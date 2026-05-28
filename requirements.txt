@@ -7,6 +7,7 @@ transformers>=4.38
 torch>=2.1
 matplotlib>=3.8
 seaborn>=0.13
+scikit-learn>=1.4
 jupyter>=1.0
 python-dotenv>=1.0
 gdelt>=0.1.10
