@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Foundation Model Energy Signal MVP</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --ink: #172033;
+      --muted: #667085;
+      --line: #d8dee8;
+      --accent: #126c6a;
+      --accent-2: #9a5b13;
+      --bad: #b42318;
+      --good: #027a48;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Arial, "Noto Sans KR", sans-serif;
+      line-height: 1.55;
+    }
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid var(--line);
+      padding: 28px 32px 20px;
+    }
+    header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      letter-spacing: 0;
+    }
+    header p {
+      margin: 0;
+      max-width: 1100px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 14px 32px;
+      background: #ffffff;
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    nav a {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #ffffff;
+    }
+    main {
+      width: min(1240px, calc(100% - 40px));
+      margin: 24px auto 48px;
+    }
+    section {
+      margin: 0 0 28px;
+      padding: 24px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    h2 {
+      margin: 0 0 14px;
+      font-size: 21px;
+      letter-spacing: 0;
+    }
+    h3 {
+      margin: 22px 0 10px;
+      font-size: 16px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fbfcfd;
+      min-height: 110px;
+    }
+    .metric strong {
+      display: block;
+      font-size: 26px;
+      margin-bottom: 4px;
+    }
+    .metric span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      align-items: stretch;
+    }
+    .step {
+      border-left: 4px solid var(--accent);
+      background: #f8fbfb;
+      padding: 12px;
+      border-radius: 6px;
+      min-height: 118px;
+    }
+    .step b {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+    .step p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 9px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f1f4f7;
+      font-weight: 700;
+    }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .tag {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #e6f2f1;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+    .warn { color: var(--accent-2); font-weight: 700; }
+    .ok { color: var(--good); font-weight: 700; }
+    .risk { color: var(--bad); font-weight: 700; }
+    .figure-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+    figure {
+      margin: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      overflow: hidden;
+    }
+    figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    figcaption {
+      border-top: 1px solid var(--line);
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 13px;
+      background: #fbfcfd;
+    }
+    .links {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .links a {
+      display: block;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px 12px;
+      color: var(--accent);
+      text-decoration: none;
+      background: #fbfcfd;
+      font-weight: 700;
+    }
+    @media (max-width: 900px) {
+      header { padding: 22px 20px 16px; }
+      nav { padding: 12px 20px; position: static; }
+      main { width: min(100% - 24px, 1240px); }
+      section { padding: 18px; }
+      .grid, .pipeline, .figure-grid, .links { grid-template-columns: 1fr; }
+      header h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Foundation Model 기반 에너지 리포트·뉴스 신호 분석 MVP</h1>
+    <p>뉴스와 PDF 리포트를 AI 모델로 읽고, 시장 분석에 쓸 수 있는 숫자 신호로 바꾼 뒤 ETF·기업 주가와 연결한 대시보드입니다.</p>
+  </header>
+
+  <nav>
+    <a href="#summary">요약</a>
+    <a href="#pipeline">파이프라인</a>
+    <a href="#pdf">PDF 신호</a>
+    <a href="#market">시장 연결</a>
+    <a href="#validation">검증</a>
+    <a href="#news">뉴스 분석</a>
+    <a href="#figures">그림</a>
+    <a href="#files">산출물</a>
+  </nav>
+
+  <main>
+    <section id="summary">
+      <h2>1. 핵심 요약</h2>
+      <div class="grid">
+        <div class="metric"><strong>2개</strong><span>적용 Foundation Model<br>FinBERT, MiniLM 임베딩</span></div>
+        <div class="metric"><strong>5개</strong><span>분석 PDF 리포트<br>IEA, ExxonMobil, Eaton</span></div>
+        <div class="metric"><strong>3,340건</strong><span>수집 뉴스 헤드라인<br>GDELT 기반</span></div>
+        <div class="metric"><strong>312주</strong><span>주가 주간 데이터<br>결측 없음</span></div>
+      </div>
+      <p><b>가장 중요한 해석:</b> 이 프로젝트는 주가를 강하게 예측했다고 주장하는 프로젝트가 아니라, <span class="tag">비정형 텍스트를 시장 분석용 신호로 바꾸는 Foundation Model 파이프라인</span>을 구현한 프로젝트입니다.</p>
+    </section>
+
+    <section id="pipeline">
+      <h2>2. 프로젝트 파이프라인</h2>
+      <div class="pipeline">
+        <div class="step"><b>PDF·뉴스 수집</b><p>IEA, 기업 리포트, GDELT 뉴스, 주가, 기후 데이터를 모읍니다.</p></div>
+        <div class="step"><b>텍스트 변환</b><p>PDF에서 문단을 추출하고 뉴스 헤드라인을 주간 단위로 정리합니다.</p></div>
+        <div class="step"><b>Foundation Model</b><p>FinBERT로 감성을 판단하고 MiniLM으로 문단 의미를 벡터화합니다.</p></div>
+        <div class="step"><b>Few-shot 점수화</b><p>예시 문장과 PDF 문단을 비교해 주제별 점수를 만듭니다.</p></div>
+        <div class="step"><b>시장 연결</b><p>텍스트 신호를 ETF·기업 수익률과 비교해 downstream 분석을 수행합니다.</p></div>
+      </div>
+    </section>
+
+    <section id="pdf">
+      <h2>3. PDF 리포트 신호</h2>
+      <p>점수가 높을수록 해당 보고서에 그 주제와 비슷한 내용이 강하게 들어 있다는 뜻입니다.</p>
+      <table>
+        <thead>
+          <tr><th>보고서</th><th class="num">재생에너지</th><th class="num">화석연료 압력</th><th class="num">전력망</th><th class="num">기후 리스크</th><th>해석</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>ExxonMobil ACS 2023</td><td class="num">0.677</td><td class="num">0.730</td><td class="num">0.668</td><td class="num">0.705</td><td>화석연료 전환 압력과 기후 리스크가 비교적 강함</td></tr>
+          <tr><td>IEA World Energy Outlook 2023</td><td class="num">0.732</td><td class="num">0.709</td><td class="num">0.711</td><td class="num">0.704</td><td>에너지 전환 전반을 넓게 다루는 보고서</td></tr>
+          <tr><td>IEA Oil and Gas Net Zero 2023</td><td class="num">0.707</td><td class="num">0.736</td><td class="num">0.693</td><td class="num">0.682</td><td>석유·가스 산업의 전환 압력이 가장 두드러짐</td></tr>
+          <tr><td>IEA Renewables 2023</td><td class="num">0.732</td><td class="num">0.683</td><td class="num">0.717</td><td class="num">0.686</td><td>재생에너지와 전력망 투자 신호가 강함</td></tr>
+          <tr><td>Eaton Annual Report 2023</td><td class="num">0.668</td><td class="num">0.640</td><td class="num">0.690</td><td class="num">0.654</td><td>전력관리·전기화 인프라 기업 신호로 해석 가능</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="market">
+      <h2>4. 리포트 신호와 4주 후 수익률</h2>
+      <p><b>ET_SPREAD</b>는 ICLN 수익률에서 XLE 수익률을 뺀 값입니다. 양수면 재생에너지가 석유·가스보다 상대적으로 좋았고, 음수면 반대입니다.</p>
+      <table>
+        <thead>
+          <tr><th>보고서</th><th class="num">전환 신호</th><th class="num">4주 후 ET_SPREAD</th><th class="num">4주 후 ICLN</th><th class="num">4주 후 XLE</th><th class="num">4주 후 ETN</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>ExxonMobil ACS 2023</td><td class="num">1.321</td><td class="num risk">-0.082</td><td class="num">-0.054</td><td class="num">0.028</td><td class="num">-0.025</td></tr>
+          <tr><td>IEA World Energy Outlook 2023</td><td class="num">1.438</td><td class="num ok">0.121</td><td class="num">0.052</td><td class="num">-0.062</td><td class="num">0.179</td></tr>
+          <tr><td>IEA Oil and Gas Net Zero 2023</td><td class="num">1.345</td><td class="num ok">0.100</td><td class="num">0.094</td><td class="num">-0.005</td><td class="num">0.042</td></tr>
+          <tr><td>IEA Renewables 2023</td><td class="num">1.453</td><td class="num risk">-0.044</td><td class="num">-0.055</td><td class="num">-0.014</td><td class="num">0.150</td></tr>
+          <tr><td>Eaton Annual Report 2023</td><td class="num">1.373</td><td class="num risk">-0.080</td><td class="num">0.001</td><td class="num">0.084</td><td class="num">0.115</td></tr>
+        </tbody>
+      </table>
+      <p><span class="warn">주의:</span> 보고서가 5개뿐이므로 통계적 예측 성능이라고 말하면 안 됩니다. 현재 결과는 “리포트 신호를 만들고 시장 데이터에 연결했다”는 구현 성과로 해석하는 것이 안전합니다.</p>
+    </section>
+
+    <section id="validation">
+      <h2>5. 다른 PDF 일반화 검증</h2>
+      <p>2023년 자료가 아닌 PDF를 추가로 넣어 모델이 기대한 방향으로 분류하는지 확인했습니다.</p>
+      <table>
+        <thead>
+          <tr><th>검증 PDF</th><th>기대 라벨</th><th>모델 예측</th><th>결과</th><th class="num">확신도 차이</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>IEA World Energy Outlook 2022</td><td>ICLN/NEE</td><td>ICLN/NEE</td><td class="ok">일치</td><td class="num">0.019</td></tr>
+          <tr><td>IEA Renewables 2022</td><td>ICLN/NEE</td><td>ICLN/NEE</td><td class="ok">일치</td><td class="num">0.015</td></tr>
+          <tr><td>IEA Electricity 2024</td><td>ETN</td><td>ETN</td><td class="ok">일치</td><td class="num">0.011</td></tr>
+        </tbody>
+      </table>
+      <p><b>검증 정확도:</b> 3개 중 3개 일치. 다만 표본이 작기 때문에 엄밀한 성능 평가라기보다는 MVP 일반화 점검으로 보는 것이 맞습니다.</p>
+    </section>
+
+    <section id="news">
+      <h2>6. 뉴스 감성 분석 결과</h2>
+      <table>
+        <thead>
+          <tr><th>분석</th><th>결과</th><th>쉬운 해석</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>TAI -> NSS_ADJ</td><td>r=-0.121, p=0.236</td><td>기후 이상 지수가 뉴스 감성을 안정적으로 설명한다고 보기 어렵습니다.</td></tr>
+          <tr><td>NSS_ADJ -> ET_SPREAD</td><td>r=-0.189, p=0.062</td><td>약한 음의 관계가 있지만 일반 기준에서는 확실하다고 말하기 어렵습니다.</td></tr>
+          <tr><td>NSS_ADJ -> XOM</td><td>r=0.216, p=0.033</td><td>약하지만 통계적으로 관찰되는 관계가 있습니다.</td></tr>
+          <tr><td>NSS_ADJ -> ETN</td><td>r=0.200, p=0.048</td><td>약하지만 통계적으로 관찰되는 관계가 있습니다.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="figures">
+      <h2>7. 산출 이미지</h2>
+      <div class="figure-grid">
+        <figure><img src="figures/fig5_report_signals.png" alt="PDF report topic scores"><figcaption>Figure 5. PDF 보고서별 주제 점수. 리포트마다 어떤 에너지 전환 신호가 강한지 보여줍니다.</figcaption></figure>
+        <figure><img src="figures/fig1_timeseries.png" alt="Time series chart"><figcaption>Figure 1. 기후 지표, 뉴스 감성, 에너지 전환 스프레드의 시간 변화입니다.</figcaption></figure>
+        <figure><img src="figures/fig2_lag_heatmap.png" alt="Lagged correlation heatmap"><figcaption>Figure 2. 시차별 상관관계입니다. 색이 진할수록 관계가 상대적으로 강합니다.</figcaption></figure>
+        <figure><img src="figures/fig3_rolling_corr.png" alt="Rolling correlation"><figcaption>Figure 3. 시간이 지나며 뉴스 감성과 ET_SPREAD 관계가 어떻게 바뀌는지 보여줍니다.</figcaption></figure>
+        <figure><img src="figures/fig4_company_sensitivity.png" alt="Company sensitivity"><figcaption>Figure 4. 뉴스 감성과 개별 기업 수익률의 관계를 비교합니다.</figcaption></figure>
+      </div>
+    </section>
+
+    <section id="files">
+      <h2>8. 산출물 링크</h2>
+      <div class="links">
+        <a href="project_report.md">한눈에 보는 결과 보고서</a>
+        <a href="tables/report_signal_summary.md">리포트 신호 요약</a>
+        <a href="tables/final_result_summary.md">최종 결과 요약</a>
+        <a href="../project_guideline.md">프로젝트 가이드라인</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

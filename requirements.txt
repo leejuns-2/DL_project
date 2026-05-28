@@ -1,0 +1,15 @@
+pandas>=2.0
+numpy>=1.24
+scipy>=1.11
+yfinance>=0.2.36
+requests>=2.31
+transformers>=4.38
+torch>=2.1
+matplotlib>=3.8
+seaborn>=0.13
+jupyter>=1.0
+python-dotenv>=1.0
+gdelt>=0.1.10
+tqdm>=4.66
+PyMuPDF>=1.24
+streamlit>=1.35
