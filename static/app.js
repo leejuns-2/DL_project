@@ -143,6 +143,7 @@ function renderResults(data) {
   renderSummary(data.summary);
   renderEvidence(data.evidence, parseInt(document.getElementById('inp-topk').value));
   renderReturns(data.returns);
+  renderPortfolioSimulator(data.returns);
   renderStats(data.stats);
   setupDownloads(data);
   showPanel('content');
@@ -184,7 +185,7 @@ function renderChart(scores) {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: true,
+      maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
         y: {
@@ -199,6 +200,113 @@ function renderChart(scores) {
       },
     },
   });
+}
+
+/* ── Portfolio Simulator ───────────────────────── */
+function renderPortfolioSimulator(returns) {
+  const box = document.getElementById('portfolio-box');
+  if (!returns || Object.keys(returns).length === 0) {
+    box.innerHTML = '<p class="note">수익률 데이터가 없어 포트폴리오 시뮬레이션을 계산할 수 없습니다.</p>';
+    return;
+  }
+
+  const assets = ['ICLN', 'XLE', 'NEE', 'XOM', 'ETN'];
+  const periods = [];
+  if (assets.every(asset => returns[`pre_4w_${asset}`] !== undefined)) {
+    periods.push({ key: 'pre_4w', label: '보고서 이전 4주' });
+  }
+  [1, 4, 8].forEach(w => {
+    if (assets.every(asset => returns[`forward_${w}w_${asset}`] !== undefined)) {
+      periods.push({ key: `forward_${w}w`, label: `보고서 이후 ${w}주` });
+    }
+  });
+
+  if (!periods.length) {
+    box.innerHTML = '<p class="note">선택 가능한 수익률 기간이 없어 포트폴리오 시뮬레이션을 계산할 수 없습니다.</p>';
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="portfolio-grid">
+      <div class="portfolio-control">
+        <label for="portfolio-amount">투자금</label>
+        <input id="portfolio-amount" type="number" min="0" step="10000" value="1000000" />
+      </div>
+      <div class="portfolio-control">
+        <label for="portfolio-period">적용 수익률 기간</label>
+        <select id="portfolio-period">
+          ${periods.map(p => `<option value="${p.key}">${p.label}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+
+    <div class="portfolio-weights">
+      ${assets.map(asset => `
+        <label class="weight-row">
+          <span>${asset}</span>
+          <input class="weight-input" data-asset="${asset}" type="number" min="0" max="100" step="1" value="20" />
+          <em>%</em>
+        </label>
+      `).join('')}
+    </div>
+
+    <div id="portfolio-warning" class="portfolio-warning hidden"></div>
+    <div id="portfolio-result" class="portfolio-result"></div>
+  `;
+
+  const amountInput = document.getElementById('portfolio-amount');
+  const periodSelect = document.getElementById('portfolio-period');
+  const weightInputs = [...document.querySelectorAll('.weight-input')];
+  const warning = document.getElementById('portfolio-warning');
+  const result = document.getElementById('portfolio-result');
+  const money = new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW', maximumFractionDigits: 0 });
+
+  function update() {
+    const amount = Number(amountInput.value || 0);
+    const period = periodSelect.value;
+    const weights = weightInputs.map(input => ({
+      asset: input.dataset.asset,
+      weight: Math.max(0, Number(input.value || 0)),
+    }));
+    const totalWeight = weights.reduce((sum, item) => sum + item.weight, 0);
+
+    if (totalWeight <= 0) {
+      warning.classList.remove('hidden');
+      warning.textContent = '비중 합계가 0%입니다. 최소 한 자산의 비중을 입력하세요.';
+      result.innerHTML = '';
+      return;
+    }
+
+    const normalized = weights.map(item => ({ ...item, normalized: item.weight / totalWeight }));
+    const weightedReturn = normalized.reduce((sum, item) => {
+      const r = returns[`${period}_${item.asset}`] ?? 0;
+      return sum + item.normalized * r;
+    }, 0);
+    const finalValue = amount * (1 + weightedReturn);
+    const profit = finalValue - amount;
+
+    warning.classList.toggle('hidden', Math.abs(totalWeight - 100) < 0.001);
+    warning.textContent = `비중 합계가 ${totalWeight.toFixed(1)}%라서 내부적으로 100%로 정규화해 계산했습니다.`;
+
+    result.innerHTML = `
+      <div class="portfolio-metric">
+        <span>가중 수익률</span>
+        <strong class="${weightedReturn >= 0 ? 'pos' : 'neg'}">${weightedReturn >= 0 ? '+' : ''}${(weightedReturn * 100).toFixed(2)}%</strong>
+      </div>
+      <div class="portfolio-metric">
+        <span>예상 평가금</span>
+        <strong>${money.format(finalValue)}</strong>
+      </div>
+      <div class="portfolio-metric">
+        <span>가상 손익</span>
+        <strong class="${profit >= 0 ? 'pos' : 'neg'}">${profit >= 0 ? '+' : ''}${money.format(profit)}</strong>
+      </div>
+    `;
+  }
+
+  [amountInput, periodSelect, ...weightInputs].forEach(el => el.addEventListener('input', update));
+  periodSelect.addEventListener('change', update);
+  update();
 }
 
 /* ── Confidence Box ────────────────────────────── */

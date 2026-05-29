@@ -443,6 +443,10 @@ code {
   padding: 12px;
   margin-bottom: 14px;
 }
+.score-chart-wrap {
+  max-width: 560px;
+  height: 170px;
+}
 .confidence-box {
   background: var(--teal-soft);
   border: 1px solid #b9ddda;
@@ -550,6 +554,93 @@ code {
   width: 100%;
   border-collapse: collapse;
   font-size: .84rem;
+}
+
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(180px, 260px);
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.portfolio-control label {
+  display: block;
+  color: var(--muted);
+  font-size: .8rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+.portfolio-control input,
+.portfolio-control select,
+.weight-row input {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--ink);
+  font-size: .9rem;
+  padding: 9px 10px;
+}
+.portfolio-weights {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(100px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.weight-row {
+  display: grid;
+  grid-template-columns: 1fr 70px 18px;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 9px 10px;
+}
+.weight-row span {
+  font-weight: 800;
+  color: var(--ink);
+}
+.weight-row em {
+  color: var(--muted);
+  font-style: normal;
+}
+.portfolio-warning {
+  background: #fff4e6;
+  border: 1px solid #f4d3a7;
+  border-radius: var(--radius-sm);
+  color: #7a4b13;
+  font-size: .82rem;
+  padding: 9px 11px;
+  margin-bottom: 12px;
+}
+.portfolio-result {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.portfolio-metric {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 13px;
+}
+.portfolio-metric span {
+  display: block;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 800;
+  margin-bottom: 5px;
+}
+.portfolio-metric strong {
+  font-size: 1.25rem;
+}
+@media (max-width: 900px) {
+  .portfolio-grid,
+  .portfolio-result { grid-template-columns: 1fr; }
+  .portfolio-weights { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .portfolio-weights { grid-template-columns: 1fr; }
 }
 .data-table th {
   background: #eef3f7;

@@ -134,8 +134,8 @@
             <h3 class="result-section-title">1. 핵심 점수</h3>
             <p class="section-help">전환 신호 = 재생에너지 + 전력망/전기화 + 기후 리스크 - 화석연료 압력</p>
             <div class="score-cards" id="score-cards"></div>
-            <div class="chart-wrap">
-              <canvas id="score-chart" height="200"></canvas>
+            <div class="chart-wrap score-chart-wrap">
+              <canvas id="score-chart" height="120"></canvas>
             </div>
             <div id="confidence-box" class="confidence-box"></div>
           </div>
@@ -159,7 +159,13 @@
           </div>
 
           <div class="result-section">
-            <h3 class="result-section-title">5. 결과 다운로드</h3>
+            <h3 class="result-section-title">5. 포트폴리오 시뮬레이터</h3>
+            <p class="section-help">선택한 기간의 과거 수익률을 사용해 투자금과 비중별 가상 손익을 계산합니다. 실제 미래 수익률 예측이 아닙니다.</p>
+            <div id="portfolio-box"></div>
+          </div>
+
+          <div class="result-section">
+            <h3 class="result-section-title">6. 결과 다운로드</h3>
             <div class="download-row">
               <button id="btn-dl-scores" class="btn-secondary">점수 CSV 다운로드</button>
               <button id="btn-dl-evidence" class="btn-secondary">근거 문단 CSV 다운로드</button>
@@ -278,6 +284,7 @@
 
     <div class="panel">
       <h2 class="panel-title">분석 그래프</h2>
+      <p class="section-help">아래 그래프는 최종 보고서에 사용한 고정 산출물입니다. 재현 가능한 분석 결과를 보여주기 위해 원본 figure를 그대로 제공하고, 상호작용 분석은 PDF 업로드 탭의 차트와 포트폴리오 시뮬레이터에서 수행합니다.</p>
       <div class="figures-grid">
         <div class="fig-card">
           <h4>Figure 1: 시계열 비교</h4>
