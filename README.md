@@ -1,4 +1,4 @@
----
+﻿---
 title: Energy Report-to-Market Signal Analyzer
 emoji: ⚡
 colorFrom: green
@@ -53,7 +53,7 @@ PDF Upload
 |---|---|
 | Stock weekly returns | 2019-2024 주간 수익률 CSV 포함 |
 | Report signals | 핵심 에너지 PDF 5개 분석 결과 포함 |
-| Expanded PDF validation | 추가 검증 PDF 8개 결과 포함 |
+| Expanded PDF validation | 추가 검증 PDF 15개 결과 포함 |
 | News sentiment context | 보고서 날짜 주변 sample weekly news-context signal 포함 |
 | Report-stock link | 보고서 날짜 이후 4주 과거 수익률 연결 포함 |
 
@@ -63,7 +63,7 @@ PDF Upload
 
 - 이 앱은 미래 수익률을 예측하지 않습니다.
 - 포트폴리오 계산은 과거 특정 기간의 실제 수익률을 적용한 시나리오입니다.
-- PDF 검증 8/8은 소규모 검증 결과이며, 정확도 100%로 일반화하면 안 됩니다.
+- PDF 검증 15/15은 소규모 검증 결과이며, 정확도 100%로 일반화하면 안 됩니다.
 - 뉴스 컨텍스트는 현재 샘플 신호이므로, 대량 뉴스 원자료 기반 정량 검증으로 과장하면 안 됩니다.
 - 상관관계와 수익률 연결은 인과관계 증명이 아닙니다.
 

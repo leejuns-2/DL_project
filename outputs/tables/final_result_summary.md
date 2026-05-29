@@ -1,4 +1,4 @@
-# Final Result Summary
+﻿# Final Result Summary
 
 ## Project Status
 
@@ -40,23 +40,24 @@
 | Stock weekly returns | `data/processed/stock_returns_weekly.csv` | 배포 포함 |
 | Report signals | `data/processed/reports/report_signals.csv` | 핵심 PDF 5개 |
 | Report-stock link | `data/processed/reports/report_stock_link.csv` | 핵심 PDF 5개 |
-| Expanded PDF validation | `data/processed/reports/expanded_pdf_validation.csv` | 추가 PDF 8개 |
+| Expanded PDF validation | `data/processed/reports/expanded_pdf_validation.csv` | 추가 PDF 15개 |
+| Test PDF manifest | `data/processed/reports/sample_pdf_manifest.csv` | 로컬 저장 PDF 15개 목록 |
 | News context signal | `data/processed/news_sentiment_weekly.csv` | 보고서 날짜 주변 sample weekly context |
 | Report-news bridge | `data/processed/reports/report_news_bridge.csv` | 뉴스 컨텍스트 연결 완료 |
 
 ## Expanded PDF Validation
 
-추가 검증 표본은 IRENA 보고서뿐 아니라 NextEra, Siemens Energy, IPCC 자료를 포함해 라벨 다양성을 늘렸습니다.
+추가 검증 표본은 IRENA 보고서뿐 아니라 NextEra, Siemens Energy, IPCC, IEA 전력망·전력·석유·가스·석탄 자료를 포함해 라벨 다양성을 늘렸습니다.
 
 | Metric | Value |
 |---|---:|
-| Validation PDFs | 8 |
-| Matched expected direction | 8 |
+| Validation PDFs | 15 |
+| Matched expected direction | 15 |
 | Interpretation | 소규모 MVP 검증 |
 
 주의:
 
-> 8/8 일치는 소규모 검증 결과입니다. 이를 일반화 성능이나 정확도 100%로 발표하면 안 됩니다.
+> 15/15 일치는 소규모 검증 결과입니다. 이를 일반화 성능이나 정확도 100%로 발표하면 안 됩니다.
 
 ## News-PDF Bridge
 

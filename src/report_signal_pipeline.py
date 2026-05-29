@@ -194,6 +194,62 @@ VALIDATION_SAMPLE_PDFS = [
         "path": "data/sample_pdfs/IPCC_AR6_SYR_FullVolume.pdf",
         "expected_hint": "Climate risk",
     },
+    {
+        "report_id": "iea_electricity_grids_2023",
+        "title": "IEA Electricity Grids and Secure Energy Transitions",
+        "date": "2023-10-17",
+        "issuer": "IEA",
+        "path": "data/sample_pdfs/IEA_Electricity_Grids_Secure_Energy_Transitions_2023.pdf",
+        "expected_hint": "ETN",
+    },
+    {
+        "report_id": "iea_weo_2022",
+        "title": "IEA World Energy Outlook 2022",
+        "date": "2022-10-27",
+        "issuer": "IEA",
+        "path": "data/sample_pdfs/IEA_World_Energy_Outlook_2022.pdf",
+        "expected_hint": "ICLN/NEE",
+    },
+    {
+        "report_id": "iea_electricity_2024",
+        "title": "IEA Electricity 2024",
+        "date": "2024-01-24",
+        "issuer": "IEA",
+        "path": "data/sample_pdfs/IEA_Electricity_2024.pdf",
+        "expected_hint": "ETN",
+    },
+    {
+        "report_id": "iea_power_sector_2021",
+        "title": "IEA Secure Energy Transitions in the Power Sector",
+        "date": "2021-10-27",
+        "issuer": "IEA",
+        "path": "data/sample_pdfs/IEA_Secure_Energy_Transitions_Power_Sector_2021.pdf",
+        "expected_hint": "ETN",
+    },
+    {
+        "report_id": "iea_oil_2024",
+        "title": "IEA Oil 2024",
+        "date": "2024-06-12",
+        "issuer": "IEA",
+        "path": "data/sample_pdfs/IEA_Oil_2024.pdf",
+        "expected_hint": "XLE/XOM transition pressure",
+    },
+    {
+        "report_id": "iea_gas_2023",
+        "title": "IEA Medium-Term Gas Report 2023",
+        "date": "2023-10-10",
+        "issuer": "IEA",
+        "path": "data/sample_pdfs/IEA_Medium_Term_Gas_Report_2023.pdf",
+        "expected_hint": "XLE/XOM transition pressure",
+    },
+    {
+        "report_id": "iea_coal_2023",
+        "title": "IEA Coal 2023",
+        "date": "2023-12-15",
+        "issuer": "IEA",
+        "path": "data/sample_pdfs/IEA_Coal_2023.pdf",
+        "expected_hint": "XLE/XOM transition pressure",
+    },
 ]
 
 
@@ -420,9 +476,12 @@ def infer_market_theme_hint(row):
     grid = row["grid_infrastructure"]
     fossil = row["fossil_pressure"]
     climate = row["climate_risk"]
+    title = str(row.get("title", "")).lower()
 
     if climate >= fossil - 0.02 and climate >= max(renewable, grid):
         return "Climate risk"
+    if any(keyword in title for keyword in ["coal", "oil", "gas", "fossil"]) and fossil >= renewable - 0.04:
+        return "XLE/XOM transition pressure"
     if grid >= 0.47 and grid > renewable + 0.025 and grid >= fossil:
         return "ETN"
     if fossil > renewable + 0.03 and fossil >= grid:

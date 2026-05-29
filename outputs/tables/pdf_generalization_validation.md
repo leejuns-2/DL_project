@@ -16,8 +16,8 @@
 
 | 항목 | 값 |
 |---|---:|
-| 추가 검증 PDF | 8 |
-| 기대 방향과 일치 | 8 |
+| 추가 검증 PDF | 15 |
+| 기대 방향과 일치 | 15 |
 | 해석 | 소규모 MVP 검증 |
 
 ## 검증 결과
@@ -32,7 +32,14 @@
 | nextera_annual_2023 | ETN | ETN | True |
 | siemens_energy_annual_2023 | ETN | ETN | True |
 | ipcc_ar6_synthesis | Climate risk | Climate risk | True |
+| iea_electricity_grids_2023 | ETN | ETN | True |
+| iea_weo_2022 | ICLN/NEE | ICLN/NEE | True |
+| iea_electricity_2024 | ETN | ETN | True |
+| iea_power_sector_2021 | ETN | ETN | True |
+| iea_oil_2024 | XLE/XOM transition pressure | XLE/XOM transition pressure | True |
+| iea_gas_2023 | XLE/XOM transition pressure | XLE/XOM transition pressure | True |
+| iea_coal_2023 | XLE/XOM transition pressure | XLE/XOM transition pressure | True |
 
 ## 주의
 
-이 결과는 소규모 검증입니다. 표본 수가 적고 라벨 정의가 사람이 정한 기준에 의존하므로, “정확도 100%”가 아니라 “추가 샘플에서 기대 방향과 일치했다”로 설명해야 합니다.
+이 결과는 소규모 검증입니다. 표본 수가 늘었지만 라벨 정의가 사람이 정한 기준에 의존하므로, “정확도 100%”가 아니라 “추가 샘플에서 기대 방향과 일치했다”로 설명해야 합니다.
