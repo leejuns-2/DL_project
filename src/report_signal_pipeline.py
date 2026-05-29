@@ -18,6 +18,10 @@ REPORT_DIR = RAW_DIR / "reports"
 REPORT_PROCESSED_DIR = PROCESSED_DIR / "reports"
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
+# This pipeline does not fine-tune model parameters. It uses a frozen
+# pre-trained Transformer embedding model to compare evidence paragraphs
+# with human-defined reference examples and convert reports into topic scores.
+
 
 @dataclass
 class ReportMeta:
@@ -81,7 +85,7 @@ THEME_QUERIES = {
 }
 
 
-FEW_SHOT_EXAMPLES = {
+SCORING_REFERENCE_EXAMPLES = {
     "renewable_opportunity": [
         "Solar and wind capacity additions are expected to accelerate due to policy support and falling costs.",
         "Clean energy investment creates growth opportunities for renewable power developers and utilities.",
@@ -234,10 +238,10 @@ class EmbeddingModel:
         return np.vstack(vectors)
 
 
-def few_shot_scores(evidence, embedder):
+def score_evidence_semantically(evidence, embedder):
     example_texts = []
     example_labels = []
-    for label, examples in FEW_SHOT_EXAMPLES.items():
+    for label, examples in SCORING_REFERENCE_EXAMPLES.items():
         for example in examples:
             example_texts.append(example)
             example_labels.append(label)
@@ -255,7 +259,7 @@ def few_shot_scores(evidence, embedder):
             "date": evidence.loc[list(indices), "date"].iloc[0],
             "issuer": evidence.loc[list(indices), "issuer"].iloc[0],
         }
-        for label in FEW_SHOT_EXAMPLES:
+        for label in SCORING_REFERENCE_EXAMPLES:
             label_indices = [i for i, lbl in enumerate(example_labels) if lbl == label]
             label_score = report_sims[:, label_indices].max(axis=1).mean()
             row[label] = float(np.clip((label_score + 1) / 2, 0, 1))
@@ -265,13 +269,13 @@ def few_shot_scores(evidence, embedder):
             + row["climate_risk"]
             - row["fossil_pressure"]
         )
-        row["asset_hint"] = asset_hint(row)
+        row["asset_hint"] = infer_market_theme_hint(row)
         score_rows.append(row)
 
     return pd.DataFrame(score_rows).sort_values("date")
 
 
-def asset_hint(row):
+def infer_market_theme_hint(row):
     scores = {
         "ICLN/NEE": row["renewable_opportunity"],
         "ETN": row["grid_infrastructure"],
@@ -313,7 +317,7 @@ def plain_korean_explanation(row):
     )
 
 
-def link_to_stock_returns(scores, horizon_weeks=4):
+def link_scores_to_stock_returns(scores, horizon_weeks=4):
     stock = pd.read_csv(STOCK_WEEKLY_PATH, index_col=0, parse_dates=True)
     stock = stock.sort_index()
     rows = []
@@ -338,14 +342,14 @@ def write_summary_markdown(scores, summaries, linked):
         "## 쉬운 설명",
         "",
         "PDF 보고서를 그냥 요약하는 데서 끝내지 않고, 보고서 안에서 에너지 전환과 관련된 근거 문단을 찾고,",
-        "범용 Transformer 임베딩 모델로 few-shot 예시와 비교해서 산업별 점수로 바꿨습니다.",
+        "범용 Transformer 임베딩 모델로 사람이 정의한 예시 문장과 PDF 문단의 의미 유사도를 비교해 산업별 점수로 바꿨습니다.",
         "쉽게 말해, 긴 보고서를 읽어서 `재생에너지`, `화석연료 압력`, `전력망`, `기후 리스크` 점수표로 만든 것입니다.",
         "",
-        "## Foundation Model 연결",
+        "## Pre-trained Transformer Embedding 연결",
         "",
         f"- 범용 임베딩 모델: `{EMBEDDING_MODEL}`",
-        "- 역할: PDF 문단과 few-shot 예시 문장의 의미를 벡터로 변환",
-        "- Few-shot 방식: 사람이 만든 예시 문장 몇 개를 기준으로 새 보고서 문단의 의미가 어떤 라벨과 가까운지 계산",
+        "- 역할: PDF 문단과 예시 문장의 의미를 벡터로 변환",
+        "- Example-based semantic scoring: 모델 파라미터를 추가 학습하지 않고, 사람이 만든 예시 문장과 새 보고서 문단의 의미 유사도를 계산",
         "- Downstream task: 보고서 점수를 ETF/기업 주가 수익률과 연결",
         "",
         "## Report Signals",
@@ -451,7 +455,7 @@ def run_report_pipeline():
     evidence.to_csv(evidence_path, index=False)
 
     embedder = EmbeddingModel()
-    scores = few_shot_scores(evidence, embedder)
+    scores = score_evidence_semantically(evidence, embedder)
     scores_path = REPORT_PROCESSED_DIR / "report_signals.csv"
     scores.to_csv(scores_path, index=False)
 
@@ -459,7 +463,7 @@ def run_report_pipeline():
     summaries_path = REPORT_PROCESSED_DIR / "report_summaries.csv"
     summaries.to_csv(summaries_path, index=False)
 
-    linked = link_to_stock_returns(scores)
+    linked = link_scores_to_stock_returns(scores)
     linked_path = REPORT_PROCESSED_DIR / "report_stock_link.csv"
     linked.to_csv(linked_path, index=False)
 

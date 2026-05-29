@@ -15,12 +15,12 @@ if str(SRC_DIR) not in sys.path:
 
 from report_signal_pipeline import (  # noqa: E402
     EmbeddingModel,
-    FEW_SHOT_EXAMPLES,
     ReportMeta,
+    SCORING_REFERENCE_EXAMPLES,
     extract_pdf_text_from_path,
-    few_shot_scores,
     make_extractive_summaries,
     retrieve_evidence,
+    score_evidence_semantically,
     split_paragraphs,
 )
 from config import FIGURES_DIR, PROCESSED_DIR, STOCK_WEEKLY_PATH  # noqa: E402
@@ -154,7 +154,7 @@ async def analyze_pdf(
             raise ValueError("에너지 전환 관련 근거 문단을 찾지 못했습니다.")
 
         embedder = get_embedder()
-        scores = few_shot_scores(evidence, embedder)
+        scores = score_evidence_semantically(evidence, embedder)
         summaries = make_extractive_summaries(evidence, scores, sentences_per_report=5)
 
         s = scores.iloc[0].to_dict()
@@ -189,7 +189,7 @@ async def analyze_pdf(
                 .head(top_k)
                 .iterrows()
             ]
-            for theme in FEW_SHOT_EXAMPLES
+            for theme in SCORING_REFERENCE_EXAMPLES
         }
 
         return JSONResponse(
