@@ -19,6 +19,8 @@ outputs/uploads/
 !data/processed/reports/
 !data/processed/reports/report_signals.csv
 !data/processed/reports/report_stock_link.csv
+!data/processed/reports/report_news_bridge.csv
+!data/processed/reports/expanded_pdf_validation.csv
 !outputs/figures/.gitkeep
 !outputs/figures/*.png
 !outputs/tables/.gitkeep

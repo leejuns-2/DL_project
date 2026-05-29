@@ -1,4 +1,7 @@
+import json
+import os
 import sys
+import urllib.request
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -17,10 +20,11 @@ from report_signal_pipeline import (  # noqa: E402
     EmbeddingModel,
     ReportMeta,
     SCORING_REFERENCE_EXAMPLES,
+    attach_news_context_to_report_scores,
     extract_pdf_text_from_path,
     make_extractive_summaries,
     retrieve_evidence,
-    score_evidence_semantically,
+    score_evidence_with_few_shot_learning,
     split_paragraphs,
 )
 from config import FIGURES_DIR, PROCESSED_DIR, STOCK_WEEKLY_PATH  # noqa: E402
@@ -87,6 +91,11 @@ def _compute_returns(scores: pd.DataFrame, horizons: list[int]) -> dict:
     return result
 
 
+def _json_records(df: pd.DataFrame) -> list[dict]:
+    clean = df.astype(object).where(pd.notna(df), None)
+    return clean.to_dict(orient="records")
+
+
 def _interpret_evidence(theme: str, paragraph: str) -> str:
     text = paragraph.lower()
     signals = []
@@ -112,6 +121,56 @@ def _interpret_evidence(theme: str, paragraph: str) -> str:
         f"`{theme_label}` 신호의 근거로 선택되었습니다. "
         "즉, 문서 안에서 해당 시장 테마와 연결될 수 있는 내용으로 해석할 수 있습니다."
     )
+
+
+def _optional_generative_summary(title: str, evidence: pd.DataFrame) -> dict:
+    api_url = os.getenv("GENAI_API_URL")
+    api_key = os.getenv("GENAI_API_KEY")
+    model = os.getenv("GENAI_MODEL", "large-generative-model")
+    if not api_url or not api_key:
+        return {
+            "enabled": False,
+            "model": model,
+            "summary": "",
+            "note": "Set GENAI_API_URL and GENAI_API_KEY to enable a large generative model.",
+        }
+
+    context = "\n".join(
+        f"- {row['theme']} p.{row['page']}: {row['paragraph'][:700]}"
+        for _, row in evidence.sort_values("retrieval_score", ascending=False).head(8).iterrows()
+    )
+    prompt = (
+        "You are an energy-market research assistant. Summarize how this PDF evidence connects "
+        "to renewable energy, fossil transition pressure, grid infrastructure, climate risk, "
+        "news sentiment, and downstream stock-return analysis. Keep the answer cautious and do "
+        "not make investment recommendations.\n\n"
+        f"Report title: {title}\nEvidence:\n{context}"
+    )
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": "Use cautious research language."},
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0.2,
+        "max_tokens": 500,
+    }
+    request = urllib.request.Request(
+        api_url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=45) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        return {"enabled": True, "model": model, "summary": content.strip(), "note": ""}
+    except Exception as exc:
+        return {"enabled": False, "model": model, "summary": "", "note": f"Generative model call failed: {exc}"}
 
 
 @app.post("/api/analyze")
@@ -154,7 +213,7 @@ async def analyze_pdf(
             raise ValueError("에너지 전환 관련 근거 문단을 찾지 못했습니다.")
 
         embedder = get_embedder()
-        scores = score_evidence_semantically(evidence, embedder)
+        scores = score_evidence_with_few_shot_learning(evidence, embedder)
         summaries = make_extractive_summaries(evidence, scores, sentences_per_report=5)
 
         s = scores.iloc[0].to_dict()
@@ -195,6 +254,11 @@ async def analyze_pdf(
         return JSONResponse(
             {
                 "status": "success",
+                "methodology": {
+                    "base_model": "sentence-transformers/all-MiniLM-L6-v2",
+                    "few_shot_learning": "Frozen MiniLM embeddings + logistic regression classifier heads trained on a small set of labeled examples.",
+                    "generative_model": "Optional OpenAI-compatible endpoint via GENAI_API_URL and GENAI_API_KEY.",
+                },
                 "scores": theme_scores,
                 "confidence": {
                     "level": confidence_level,
@@ -204,6 +268,7 @@ async def analyze_pdf(
                 "summary": {
                     "korean": summaries.iloc[0]["plain_korean_explanation"],
                     "bullets": summaries.iloc[0]["simple_summary"],
+                    "generative": _optional_generative_summary(title, evidence),
                 },
                 "evidence": evidence_by_theme,
                 "returns": _compute_returns(scores, horizon_list),
@@ -225,14 +290,36 @@ async def analyze_pdf(
 
 @app.get("/api/dashboard")
 async def get_dashboard():
-    signals, stock_link = [], []
+    signals, stock_link, news_bridge, validation = [], [], [], []
     signals_path = PROCESSED_DIR / "reports" / "report_signals.csv"
     link_path = PROCESSED_DIR / "reports" / "report_stock_link.csv"
+    news_bridge_path = PROCESSED_DIR / "reports" / "report_news_bridge.csv"
+    validation_path = PROCESSED_DIR / "reports" / "expanded_pdf_validation.csv"
     if signals_path.exists():
-        signals = pd.read_csv(signals_path).round(4).to_dict(orient="records")
+        signals_df = pd.read_csv(signals_path).round(4)
+        signals = _json_records(signals_df)
+        if news_bridge_path.exists():
+            news_bridge = _json_records(pd.read_csv(news_bridge_path).round(4))
+        else:
+            news_bridge = _json_records(attach_news_context_to_report_scores(signals_df).round(4))
     if link_path.exists():
-        stock_link = pd.read_csv(link_path).round(4).to_dict(orient="records")
-    return JSONResponse({"signals": signals, "stock_link": stock_link})
+        stock_link = _json_records(pd.read_csv(link_path).round(4))
+    if validation_path.exists():
+        validation = _json_records(pd.read_csv(validation_path))
+    return JSONResponse(
+        {
+            "signals": signals,
+            "stock_link": stock_link,
+            "news_bridge": news_bridge,
+            "validation": validation,
+            "methodology": {
+                "base_model": "sentence-transformers/all-MiniLM-L6-v2",
+                "few_shot_learning": "Frozen Transformer embeddings plus supervised few-shot logistic heads.",
+                "news_pdf_bridge": "News sentiment is aggregated around each report date and joined to PDF event scores.",
+                "generative_model": "Optional OpenAI-compatible large generative model endpoint.",
+            },
+        }
+    )
 
 
 @app.get("/api/figures/{name}")

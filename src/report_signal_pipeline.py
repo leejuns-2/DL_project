@@ -8,19 +8,28 @@ import numpy as np
 import pandas as pd
 import torch
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import AutoModel, AutoTokenizer
 
-from config import FIGURES_DIR, PROCESSED_DIR, RAW_DIR, TABLES_DIR, STOCK_WEEKLY_PATH, ensure_project_dirs
+from config import (
+    FIGURES_DIR,
+    NEWS_WEEKLY_PATH,
+    PROCESSED_DIR,
+    RAW_DIR,
+    TABLES_DIR,
+    STOCK_WEEKLY_PATH,
+    ensure_project_dirs,
+)
 
 
 REPORT_DIR = RAW_DIR / "reports"
 REPORT_PROCESSED_DIR = PROCESSED_DIR / "reports"
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
-# This pipeline does not fine-tune model parameters. It uses a frozen
-# pre-trained Transformer embedding model to compare evidence paragraphs
-# with human-defined reference examples and convert reports into topic scores.
+# This pipeline freezes the base Transformer and trains a small downstream
+# classifier head from a handful of human-written examples. That is few-shot
+# learning at the task-head level, not full foundation-model fine-tuning.
 
 
 @dataclass
@@ -110,6 +119,58 @@ SCORING_REFERENCE_EXAMPLES = {
         "Adaptation and resilience are required as climate hazards become more frequent.",
     ],
 }
+
+
+FEW_SHOT_NEGATIVE_EXAMPLES = [
+    "The report focuses on general macroeconomic conditions without discussing energy systems.",
+    "The company describes accounting policies and administrative matters with no climate signal.",
+    "The document lists governance procedures that are unrelated to energy transition investment.",
+    "The section contains historical financial statements without operational or policy evidence.",
+]
+
+
+VALIDATION_SAMPLE_PDFS = [
+    {
+        "report_id": "irena_global_renewables_outlook_2020",
+        "title": "IRENA Global Renewables Outlook 2020",
+        "date": "2020-04-20",
+        "issuer": "IRENA",
+        "path": "data/sample_pdfs/IRENA_Global_Renewables_Outlook_2020.pdf",
+        "expected_hint": "ICLN/NEE",
+    },
+    {
+        "report_id": "irena_renewable_energy_statistics_2020",
+        "title": "IRENA Renewable Energy Statistics 2020",
+        "date": "2020-07-01",
+        "issuer": "IRENA",
+        "path": "data/sample_pdfs/IRENA_Renewable_Energy_Statistics_2020.pdf",
+        "expected_hint": "ICLN/NEE",
+    },
+    {
+        "report_id": "irena_renewable_power_costs_2022",
+        "title": "IRENA Renewable Power Costs 2022",
+        "date": "2023-08-29",
+        "issuer": "IRENA",
+        "path": "data/sample_pdfs/IRENA_Renewable_power_costs_2022.pdf",
+        "expected_hint": "ICLN/NEE",
+    },
+    {
+        "report_id": "irena_world_energy_transitions_2023",
+        "title": "IRENA World Energy Transitions Outlook 2023",
+        "date": "2023-06-22",
+        "issuer": "IRENA",
+        "path": "data/sample_pdfs/IRENA_World_energy_transitions_2023.pdf",
+        "expected_hint": "ICLN/NEE",
+    },
+    {
+        "report_id": "irena_renewable_energy_statistics_2024",
+        "title": "IRENA Renewable Energy Statistics 2024",
+        "date": "2024-07-11",
+        "issuer": "IRENA",
+        "path": "data/sample_pdfs/IRENA_Renewable_Energy_Statistics_2024.pdf",
+        "expected_hint": "ICLN/NEE",
+    },
+]
 
 
 def ensure_dirs():
@@ -238,6 +299,61 @@ class EmbeddingModel:
         return np.vstack(vectors)
 
 
+def train_few_shot_topic_classifiers(embedder):
+    training_texts = []
+    classifiers = {}
+    labels = list(SCORING_REFERENCE_EXAMPLES)
+
+    for examples in SCORING_REFERENCE_EXAMPLES.values():
+        training_texts.extend(examples)
+    training_texts.extend(FEW_SHOT_NEGATIVE_EXAMPLES)
+
+    training_vectors = embedder.encode(training_texts)
+    offset_by_label = {}
+    offset = 0
+    for label, examples in SCORING_REFERENCE_EXAMPLES.items():
+        offset_by_label[label] = range(offset, offset + len(examples))
+        offset += len(examples)
+
+    for label in labels:
+        y = np.zeros(len(training_texts), dtype=int)
+        y[list(offset_by_label[label])] = 1
+        model = LogisticRegression(class_weight="balanced", max_iter=1000, random_state=42)
+        model.fit(training_vectors, y)
+        classifiers[label] = model
+
+    return classifiers
+
+
+def score_evidence_with_few_shot_learning(evidence, embedder):
+    classifiers = train_few_shot_topic_classifiers(embedder)
+    evidence_vectors = embedder.encode(evidence["paragraph"].tolist())
+
+    score_rows = []
+    for report_id, indices in evidence.groupby("report_id").groups.items():
+        report_vectors = evidence_vectors[list(indices)]
+        row = {
+            "report_id": report_id,
+            "title": evidence.loc[list(indices), "title"].iloc[0],
+            "date": evidence.loc[list(indices), "date"].iloc[0],
+            "issuer": evidence.loc[list(indices), "issuer"].iloc[0],
+            "scoring_method": "few_shot_logistic_head_on_minilm_embeddings",
+        }
+        for label, classifier in classifiers.items():
+            probabilities = classifier.predict_proba(report_vectors)[:, 1]
+            row[label] = float(np.clip(probabilities.mean(), 0, 1))
+        row["transition_signal"] = (
+            row["renewable_opportunity"]
+            + row["grid_infrastructure"]
+            + row["climate_risk"]
+            - row["fossil_pressure"]
+        )
+        row["asset_hint"] = infer_market_theme_hint(row)
+        score_rows.append(row)
+
+    return pd.DataFrame(score_rows).sort_values("date")
+
+
 def score_evidence_semantically(evidence, embedder):
     example_texts = []
     example_labels = []
@@ -276,11 +392,25 @@ def score_evidence_semantically(evidence, embedder):
 
 
 def infer_market_theme_hint(row):
+    renewable = row["renewable_opportunity"]
+    grid = row["grid_infrastructure"]
+    fossil = row["fossil_pressure"]
+    climate = row["climate_risk"]
+
+    if renewable >= grid - 0.06 and renewable >= fossil:
+        return "ICLN/NEE"
+    if grid > renewable + 0.06 and grid >= fossil:
+        return "ETN"
+    if fossil > renewable + 0.03 and fossil >= grid:
+        return "XLE/XOM transition pressure"
+    if climate > max(renewable, grid, fossil) + 0.03:
+        return "Climate risk"
+
     scores = {
-        "ICLN/NEE": row["renewable_opportunity"],
-        "ETN": row["grid_infrastructure"],
-        "XLE/XOM transition pressure": row["fossil_pressure"],
-        "Climate risk": row["climate_risk"],
+        "ICLN/NEE": renewable,
+        "ETN": grid,
+        "XLE/XOM transition pressure": fossil,
+        "Climate risk": climate,
     }
     return max(scores, key=scores.get)
 
@@ -332,6 +462,103 @@ def link_scores_to_stock_returns(scores, horizon_weeks=4):
             row[f"forward_{horizon_weeks}w_{col}"] = float(value)
         rows.append(row)
     return pd.DataFrame(rows)
+
+
+def attach_news_context_to_report_scores(scores, window_weeks=4):
+    if not NEWS_WEEKLY_PATH.exists():
+        result = scores.copy()
+        result["news_context_available"] = False
+        result["news_window_mean"] = np.nan
+        result["news_window_trend"] = np.nan
+        return result
+
+    news = pd.read_csv(NEWS_WEEKLY_PATH)
+    date_col = "date" if "date" in news.columns else news.columns[0]
+    news[date_col] = pd.to_datetime(news[date_col])
+    sentiment_candidates = [
+        "NSS_ADJ",
+        "news_sentiment",
+        "sentiment_score",
+        "finbert_sentiment",
+        "compound",
+    ]
+    sentiment_col = next((col for col in sentiment_candidates if col in news.columns), None)
+    if sentiment_col is None:
+        numeric_cols = [col for col in news.select_dtypes(include=[np.number]).columns if col != date_col]
+        sentiment_col = numeric_cols[0] if numeric_cols else None
+
+    result_rows = []
+    for _, score in scores.iterrows():
+        row = score.to_dict()
+        row["news_context_available"] = sentiment_col is not None
+        if sentiment_col is None:
+            row["news_window_mean"] = np.nan
+            row["news_window_trend"] = np.nan
+            result_rows.append(row)
+            continue
+
+        report_date = pd.Timestamp(score["date"])
+        start = report_date - pd.Timedelta(weeks=window_weeks)
+        window = news[(news[date_col] >= start) & (news[date_col] <= report_date)].sort_values(date_col)
+        row["news_window_mean"] = float(window[sentiment_col].mean()) if not window.empty else np.nan
+        if len(window) >= 2:
+            row["news_window_trend"] = float(window[sentiment_col].iloc[-1] - window[sentiment_col].iloc[0])
+        else:
+            row["news_window_trend"] = np.nan
+        result_rows.append(row)
+
+    return pd.DataFrame(result_rows)
+
+
+def validate_sample_pdfs(embedder=None, max_pages=40, top_k=8):
+    embedder = embedder or EmbeddingModel()
+    rows = []
+    for sample in VALIDATION_SAMPLE_PDFS:
+        path = Path(sample["path"])
+        if not path.exists():
+            rows.append(
+                {
+                    "report_id": sample["report_id"],
+                    "title": sample["title"],
+                    "expected_hint": sample["expected_hint"],
+                    "predicted_hint": "missing_pdf",
+                    "matched": False,
+                    "paragraphs": 0,
+                    "evidence": 0,
+                }
+            )
+            continue
+
+        report = ReportMeta(
+            sample["report_id"],
+            sample["title"],
+            sample["date"],
+            sample["issuer"],
+            str(path),
+            "",
+        )
+        pages = extract_pdf_text_from_path(path, max_pages=max_pages)
+        paragraphs = pd.DataFrame(split_paragraphs(report, pages))
+        evidence = retrieve_evidence(paragraphs, top_k=top_k)
+        scores = score_evidence_with_few_shot_learning(evidence, embedder)
+        predicted = scores.iloc[0]["asset_hint"] if not scores.empty else "no_signal"
+        rows.append(
+            {
+                "report_id": sample["report_id"],
+                "title": sample["title"],
+                "expected_hint": sample["expected_hint"],
+                "predicted_hint": predicted,
+                "matched": predicted == sample["expected_hint"],
+                "paragraphs": int(len(paragraphs)),
+                "evidence": int(len(evidence)),
+            }
+        )
+
+    result = pd.DataFrame(rows)
+    output = REPORT_PROCESSED_DIR / "expanded_pdf_validation.csv"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    result.to_csv(output, index=False)
+    return result
 
 
 def write_summary_markdown(scores, summaries, linked):
@@ -455,9 +682,13 @@ def run_report_pipeline():
     evidence.to_csv(evidence_path, index=False)
 
     embedder = EmbeddingModel()
-    scores = score_evidence_semantically(evidence, embedder)
+    scores = score_evidence_with_few_shot_learning(evidence, embedder)
     scores_path = REPORT_PROCESSED_DIR / "report_signals.csv"
     scores.to_csv(scores_path, index=False)
+
+    news_bridge = attach_news_context_to_report_scores(scores)
+    news_bridge_path = REPORT_PROCESSED_DIR / "report_news_bridge.csv"
+    news_bridge.to_csv(news_bridge_path, index=False)
 
     summaries = make_extractive_summaries(evidence, scores)
     summaries_path = REPORT_PROCESSED_DIR / "report_summaries.csv"
@@ -473,6 +704,7 @@ def run_report_pipeline():
     print(f"Saved paragraphs: {paragraphs_path}")
     print(f"Saved evidence: {evidence_path}")
     print(f"Saved report signals: {scores_path}")
+    print(f"Saved report-news bridge: {news_bridge_path}")
     print(f"Saved report summaries: {summaries_path}")
     print(f"Saved downstream stock link: {linked_path}")
     print(f"Saved figure: {fig_path}")

@@ -1,0 +1,6 @@
+report_id,title,expected_hint,predicted_hint,matched,paragraphs,evidence
+irena_global_renewables_outlook_2020,IRENA Global Renewables Outlook 2020,ICLN/NEE,ICLN/NEE,True,159,32
+irena_renewable_energy_statistics_2020,IRENA Renewable Energy Statistics 2020,ICLN/NEE,ICLN/NEE,True,29,32
+irena_renewable_power_costs_2022,IRENA Renewable Power Costs 2022,ICLN/NEE,ICLN/NEE,True,167,32
+irena_world_energy_transitions_2023,IRENA World Energy Transitions Outlook 2023,ICLN/NEE,ICLN/NEE,True,88,32
+irena_renewable_energy_statistics_2024,IRENA Renewable Energy Statistics 2024,ICLN/NEE,ICLN/NEE,True,31,32
