@@ -13,14 +13,14 @@
   <div class="header-inner">
     <div class="header-title">
       <div>
-        <span class="eyebrow">Foundation Model MVP</span>
+        <span class="eyebrow">Pre-trained Transformer MVP</span>
         <h1>Energy Report-to-Market Signal Analyzer</h1>
-        <p>PDF 리포트를 업로드하면 문서 근거, few-shot 주제 점수, 시장 수익률 연결을 한 화면에서 확인합니다.</p>
+        <p>PDF 리포트를 업로드하면 문서 근거, example-based semantic scoring, 시장 수익률 연결을 한 화면에서 확인합니다.</p>
       </div>
     </div>
     <div class="header-badges">
       <span class="badge badge-model">MiniLM-L6-v2</span>
-      <span class="badge badge-method">Few-shot scoring</span>
+      <span class="badge badge-method">Example-based scoring</span>
       <span class="badge badge-safe">Research MVP</span>
     </div>
   </div>
@@ -107,7 +107,7 @@
         <!-- 초기 안내 -->
         <div id="result-empty" class="result-empty">
           <p class="empty-title">PDF를 넣으면 분석이 시작됩니다</p>
-          <p>문서에서 근거 문단을 찾고, Foundation Model 임베딩으로 주제 점수를 계산합니다.</p>
+          <p>문서에서 근거 문단을 찾고, 사전학습 Transformer 임베딩으로 주제 점수를 계산합니다.</p>
           <div class="pipeline-steps">
             <div class="step">PDF 텍스트 추출</div>
             <div class="step-arrow">→</div>
@@ -115,7 +115,7 @@
             <div class="step-arrow">→</div>
             <div class="step">MiniLM 임베딩</div>
             <div class="step-arrow">→</div>
-            <div class="step">Few-shot scoring</div>
+            <div class="step">Example-based scoring</div>
             <div class="step-arrow">→</div>
             <div class="step">시장 연결</div>
           </div>
@@ -217,17 +217,48 @@
       <div class="interpret-grid">
         <div class="interpret-card">
           <strong>무엇을 만들었나</strong>
-          <p>PDF 문서를 시장 분석용 수치 신호로 바꾸는 Report-to-Market Signal 파이프라인입니다.</p>
+          <p>뉴스는 시장 분위기 시계열 신호로, PDF는 리포트 기반 이벤트 신호로 변환해 주가 데이터와 연결하는 파이프라인입니다.</p>
         </div>
         <div class="interpret-card">
-          <strong>Foundation Model 활용</strong>
-          <p>MiniLM 임베딩으로 PDF 문단과 few-shot 예시 문장의 의미 유사도를 계산합니다.</p>
+          <strong>모델 활용 범위</strong>
+          <p>MiniLM은 GPT형 생성 LLM이 아니라 사전학습 Transformer 임베딩 모델이며, 모델 파라미터를 추가 학습하지 않습니다.</p>
         </div>
         <div class="interpret-card">
           <strong>주의할 해석</strong>
-          <p>수익률 연결은 downstream 분석 예시이며, 투자 추천이나 인과관계 증명이 아닙니다.</p>
+          <p>수익률 연결과 포트폴리오 계산은 과거 수익률 기반 시나리오이며, 미래 예측·투자 추천·인과관계 증명이 아닙니다.</p>
         </div>
       </div>
+    </div>
+
+    <div class="panel">
+      <h2 class="panel-title">방법론 정정 및 논리적 주의</h2>
+      <table class="data-table">
+        <thead>
+          <tr><th>항목</th><th>잘못 말하면 위험한 표현</th><th>이 프로젝트의 정확한 표현</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Few-shot</td>
+            <td>모델을 few-shot learning으로 추가 학습했다</td>
+            <td>사람이 만든 예시 문장과 PDF 문단의 임베딩 유사도를 비교하는 example-based semantic scoring</td>
+          </tr>
+          <tr>
+            <td>MiniLM</td>
+            <td>대형 생성형 LLM을 사용했다</td>
+            <td>사전학습 Transformer 기반 범용 문장 임베딩 모델을 사용했다</td>
+          </tr>
+          <tr>
+            <td>검증</td>
+            <td>정확도 100%를 달성했다</td>
+            <td>소규모 일반화 점검에서 3개 PDF가 기대 라벨과 일치했다</td>
+          </tr>
+          <tr>
+            <td>뉴스·PDF 연결</td>
+            <td>뉴스 분석과 PDF 앱이 따로 존재한다</td>
+            <td>뉴스는 시장 분위기 신호, PDF는 리포트 이벤트 신호, 주가는 downstream 연결 대상</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="panel">
@@ -326,14 +357,14 @@
           <tr><td>IEA Electricity 2024</td><td>ETN</td><td>ETN</td><td class="match">✓ 일치</td></tr>
         </tbody>
       </table>
-      <p class="note">3/3 일치 (정확도 1.000) — 표본이 작으므로 엄밀한 성능 평가가 아니라 MVP 수준의 일반화 점검입니다.</p>
+      <p class="note">소규모 일반화 점검에서 3개 PDF가 기대 라벨과 일치했습니다. 표본이 작으므로 엄밀한 정량 성능 평가가 아니라 MVP 검증으로 해석해야 합니다.</p>
     </div>
 
   </section>
 </main>
 
 <footer class="site-footer">
-  <p>Energy Report-to-Market Signal Analyzer · PDF evidence retrieval · MiniLM embedding · Few-shot scoring</p>
+  <p>Energy Report-to-Market Signal Analyzer · News sentiment signal · PDF event signal · MiniLM embedding · Example-based scoring</p>
 </footer>
 
 <script src="/static/app.js"></script>

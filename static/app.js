@@ -294,7 +294,7 @@ function renderPortfolioSimulator(returns) {
         <strong class="${weightedReturn >= 0 ? 'pos' : 'neg'}">${weightedReturn >= 0 ? '+' : ''}${(weightedReturn * 100).toFixed(2)}%</strong>
       </div>
       <div class="portfolio-metric">
-        <span>예상 평가금</span>
+        <span>시나리오 평가금</span>
         <strong>${money.format(finalValue)}</strong>
       </div>
       <div class="portfolio-metric">

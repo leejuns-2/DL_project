@@ -14,7 +14,7 @@ The project pipeline has been completed through the expanded Report-to-Market wo
 8. Final visualizations
 9. Result interpretation
 10. PDF report evidence retrieval
-11. Few-shot report signal generation
+11. Example-based report signal scoring
 12. Report signal to stock-return linking
 
 ## Data Summary
@@ -88,4 +88,4 @@ The key Foundation Model connection:
 
 Expanded Foundation Model message:
 
-> The final version also includes a PDF-to-market-signal pipeline. Energy reports are converted to text, relevant evidence paragraphs are retrieved, and a general-purpose Transformer embedding model is used in a few-shot setting to score renewable opportunity, fossil pressure, grid infrastructure, and climate risk. These report-level scores are then linked to downstream ETF and company returns.
+> The final version also includes a PDF-to-market-signal pipeline. Energy reports are converted to text, relevant evidence paragraphs are retrieved, and a general-purpose Transformer embedding model is used for example-based semantic scoring of renewable opportunity, fossil pressure, grid infrastructure, and climate risk. The model parameters are not fine-tuned; report-level scores are linked to downstream ETF and company returns.

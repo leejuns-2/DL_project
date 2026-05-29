@@ -10,12 +10,12 @@ app_port: 7860
 
 # Energy Report-to-Market Signal Analyzer
 
-에너지·기후 보고서 PDF를 Foundation Model 기반 파이프라인으로 분석해 시장 신호를 생성하는 웹 애플리케이션입니다. 사용자가 PDF를 업로드하면 문서 근거, few-shot 주제 점수, 모델 확신도, 전후 수익률 연결을 한 화면에서 확인할 수 있습니다.
+에너지·기후 보고서 PDF를 사전학습 Transformer 임베딩 기반 파이프라인으로 분석해 시장 신호를 생성하는 웹 애플리케이션입니다. 사용자가 PDF를 업로드하면 문서 근거, example-based semantic scoring, 모델 확신도, 전후 수익률 연결을 한 화면에서 확인할 수 있습니다.
 
 ## 기능
 
 - **PDF 업로드 분석**: 에너지 보고서를 업로드하면 4가지 주제 점수(재생에너지, 화석연료 압력, 전력망/전기화, 기후 리스크)를 즉시 산출
-- **Few-shot scoring**: `sentence-transformers/all-MiniLM-L6-v2` 임베딩 모델로 사람이 작성한 예시 문장과 PDF 문단의 의미 유사도 비교
+- **Example-based semantic scoring**: `sentence-transformers/all-MiniLM-L6-v2` 임베딩 모델로 사람이 작성한 예시 문장과 PDF 문단의 의미 유사도 비교
 - **모델 확신도**: 1등 주제와 2등 주제의 점수 차이를 이용해 결과가 얼마나 애매한지 표시
 - **주가 연결**: 보고서 날짜 전후 ICLN·XLE·NEE·XOM·ETN 수익률 연결
 - **근거 중심 UI**: 주제별 근거 문단, 관련도, 페이지 번호 표시
@@ -35,11 +35,27 @@ app_port: 7860
 | 모델 | 역할 |
 |---|---|
 | `ProsusAI/finbert` | 뉴스 헤드라인 감성 분류 |
-| `sentence-transformers/all-MiniLM-L6-v2` | PDF 문단 임베딩 및 few-shot scoring |
+| `sentence-transformers/all-MiniLM-L6-v2` | PDF 문단 임베딩 및 example-based semantic scoring |
+
+주의: MiniLM은 GPT형 생성 LLM이 아니라 사전학습 Transformer 기반 범용 문장 임베딩 모델입니다. 또한 본 프로젝트는 모델 파라미터를 추가 학습하지 않고, 예시 문장과 문단 임베딩의 의미 유사도를 비교합니다.
 
 ## 해석 주의
 
 이 앱은 투자 추천 도구가 아닙니다. PDF 문서 내용을 시장 분석용 수치 신호로 변환하는 연구용 MVP이며, 수익률 연결은 downstream 분석 예시로 해석해야 합니다.
+
+포트폴리오 시뮬레이터는 미래 수익률 예측기가 아닙니다. 보고서 날짜 전후의 실제 과거 수익률을 사용해 투자금과 비중별 가상 손익을 계산하는 시나리오 도구입니다.
+
+## 프로젝트 프레임
+
+| 데이터 | 역할 |
+|---|---|
+| 뉴스 데이터 | 시장 분위기 시계열 신호 |
+| PDF 리포트 | 리포트 기반 이벤트 신호 |
+| 주가 데이터 | downstream 연결 및 시나리오 분석 대상 |
+
+## 일반화 검증 해석
+
+2023년 외 PDF 3개에 대한 소규모 일반화 점검에서 기대 라벨과 3/3 일치했습니다. 단, 표본 수가 작으므로 `정확도 100%`가 아니라 MVP 수준의 방향성 검증으로 해석해야 합니다.
 
 ## 로컬 실행
 
@@ -63,7 +79,7 @@ PDF 업로드
   → 텍스트 추출 (PyMuPDF)
   → 에너지 전환 관련 문단 검색 (TF-IDF)
   → MiniLM-L6-v2 임베딩
-  → Few-shot scoring
+  → Example-based semantic scoring
   → 보고서 날짜 전후 ETF·기업 수익률 연결
 ```
 
