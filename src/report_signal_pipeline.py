@@ -466,42 +466,6 @@ def score_evidence_with_few_shot_learning(evidence, embedder):
     return pd.DataFrame(score_rows).sort_values("date")
 
 
-def score_evidence_semantically(evidence, embedder):
-    example_texts = []
-    example_labels = []
-    for label, examples in SCORING_REFERENCE_EXAMPLES.items():
-        for example in examples:
-            example_texts.append(example)
-            example_labels.append(label)
-
-    example_vectors = embedder.encode(example_texts)
-    evidence_vectors = embedder.encode(evidence["paragraph"].tolist())
-    sims = cosine_similarity(evidence_vectors, example_vectors)
-
-    score_rows = []
-    for report_id, indices in evidence.groupby("report_id").groups.items():
-        report_sims = sims[list(indices)]
-        row = {
-            "report_id": report_id,
-            "title": evidence.loc[list(indices), "title"].iloc[0],
-            "date": evidence.loc[list(indices), "date"].iloc[0],
-            "issuer": evidence.loc[list(indices), "issuer"].iloc[0],
-        }
-        for label in SCORING_REFERENCE_EXAMPLES:
-            label_indices = [i for i, lbl in enumerate(example_labels) if lbl == label]
-            label_score = report_sims[:, label_indices].max(axis=1).mean()
-            row[label] = float(np.clip((label_score + 1) / 2, 0, 1))
-        row["transition_signal"] = (
-            row["renewable_opportunity"]
-            + row["grid_infrastructure"]
-            + row["climate_risk"]
-            - row["fossil_pressure"]
-        )
-        row["asset_hint"] = infer_market_theme_hint(row)
-        score_rows.append(row)
-
-    return pd.DataFrame(score_rows).sort_values("date")
-
 
 def infer_market_theme_hint(row):
     renewable = row["renewable_opportunity"]
@@ -627,7 +591,7 @@ def attach_news_context_to_report_scores(scores, window_weeks=4):
     return pd.DataFrame(result_rows)
 
 
-def validate_sample_pdfs(embedder=None, max_pages=40, top_k=8):
+def validate_sample_pdfs(embedder=None, max_pages=40, top_k=10):
     embedder = embedder or EmbeddingModel()
     rows = []
     for sample in VALIDATION_SAMPLE_PDFS:

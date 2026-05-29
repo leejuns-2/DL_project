@@ -196,9 +196,8 @@ def _run_gemini_summary(api_key: str, model: str, title: str, evidence: pd.DataF
         f"Report title: {title}\nEvidence:\n{context}"
     )
     thinking_config = {}
-    if model.startswith("gemini-3"):
-        thinking_config["thinkingLevel"] = os.getenv("GEMINI_THINKING_LEVEL", "high")
-    else:
+    thinking_capable = any(model.startswith(p) for p in ("gemini-2.5", "gemini-3"))
+    if thinking_capable:
         thinking_config["thinkingBudget"] = int(os.getenv("GEMINI_THINKING_BUDGET", "1024"))
 
     payload = {
@@ -253,7 +252,7 @@ def _run_gemini_summary(api_key: str, model: str, title: str, evidence: pd.DataF
 def _optional_generative_summary(title: str, evidence: pd.DataFrame) -> dict:
     provider = os.getenv("GENAI_PROVIDER", "").strip().lower()
     gemini_key = os.getenv("GEMINI_API_KEY")
-    gemini_model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+    gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     api_url = os.getenv("GENAI_API_URL")
     api_key = os.getenv("GENAI_API_KEY")
     model = os.getenv("GENAI_MODEL", "large-generative-model")
@@ -388,8 +387,8 @@ async def analyze_pdf(
                 "status": "success",
                 "methodology": {
                     "base_model": "sentence-transformers/all-MiniLM-L6-v2",
-                    "few_shot_learning": "Frozen MiniLM embeddings + logistic regression classifier heads trained on a small set of labeled examples.",
-                    "generative_model": "Gemini 3.5 Flash summary when GEMINI_API_KEY is configured; API/local fallbacks are also supported.",
+                    "few_shot_learning": "Frozen MiniLM embeddings + logistic regression classifier heads (top-30% evidence aggregation, per-report min-max normalization).",
+                    "generative_model": "Gemini 2.5 Flash summary when GEMINI_API_KEY is configured; API/local fallbacks are also supported.",
                 },
                 "scores": theme_scores,
                 "confidence": {
@@ -446,9 +445,9 @@ async def get_dashboard():
             "validation": validation,
             "methodology": {
                 "base_model": "sentence-transformers/all-MiniLM-L6-v2",
-                "few_shot_learning": "Frozen Transformer embeddings plus supervised few-shot logistic heads.",
+                "few_shot_learning": "Frozen Transformer embeddings + few-shot logistic heads (top-30% aggregation, per-report min-max normalization). Dashboard scores are from the initial pipeline run (pre-normalization).",
                 "news_pdf_bridge": "News sentiment is aggregated around each report date and joined to PDF event scores.",
-                "generative_model": "Gemini 3.5 Flash summary with cautious research wording.",
+                "generative_model": "Gemini 2.5 Flash summary with cautious research wording.",
             },
         }
     )

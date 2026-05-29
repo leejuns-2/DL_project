@@ -257,6 +257,16 @@
             <td>뉴스 분석과 PDF 앱이 따로 존재한다</td>
             <td>뉴스는 시장 분위기 신호, PDF는 리포트 이벤트 신호, 주가는 downstream 연결 대상</td>
           </tr>
+          <tr>
+            <td>Few-shot 검증</td>
+            <td>테스트 셋에서 정확도를 측정했다</td>
+            <td>별도의 held-out test set이 없음. 15개 검증 PDF는 방향 일치 여부만 확인하는 MVP 탐색 수준이며, 정량 일반화 성능 평가가 아님</td>
+          </tr>
+          <tr>
+            <td>점수 정규화</td>
+            <td>각 테마 점수가 절대 확률이다</td>
+            <td>분류기 출력 확률을 per-report min-max 정규화하여 상대적 순위로 변환. 보고서 간 점수 직접 비교 불가</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -278,6 +288,7 @@
 
     <div class="panel">
       <h2 class="panel-title">리포트 신호 → 이후 4주 수익률</h2>
+      <p class="section-help caution-note">⚠ 현재 분석 대상 보고서는 <strong>5개(n=5)</strong>입니다. 이 수준에서는 어떤 상관·회귀 결과도 통계적 신뢰도가 극히 낮으며, 과적합 위험이 높습니다. 수익률 연결은 방향성 가설 탐색 목적의 파이프라인 시연으로만 해석해야 합니다.</p>
       <div id="link-table-wrap" class="table-wrap">
         <p class="loading-text">데이터 로딩 중…</p>
       </div>
@@ -285,6 +296,7 @@
 
     <div class="panel">
       <h2 class="panel-title">가설 검증 결과</h2>
+      <p class="section-help caution-note">⚠ 뉴스 데이터는 <strong>주간 22건</strong>입니다. 소표본에서 시차 상관 5쌍을 동시 검정했으나 <strong>다중비교 보정(Bonferroni: α=0.01)을 적용하지 않았습니다.</strong> 보정 시 p=0.033·0.048은 유의 기준 미달입니다. 결과는 탐색적 방향 확인에 한정해야 합니다.</p>
       <div class="hypothesis-grid">
         <div class="hyp-card hyp-rejected">
           <span class="hyp-label">H1</span>
@@ -348,7 +360,7 @@
         <div class="fig-card fig-card-wide">
           <h4>Figure 5: PDF 리포트 주제 점수</h4>
           <img src="/api/figures/fig5_report_signals.png" alt="Figure 5" loading="lazy" />
-          <p>5개 보고서의 재생에너지·화석연료 압력·전력망·기후 리스크 점수 비교</p>
+          <p>5개 보고서의 재생에너지·화석연료 압력·전력망·기후 리스크 점수 비교<br /><small style="color:var(--text-muted)">※ 초기 파이프라인 결과 (정규화 적용 전 원본 확률 점수). PDF 업로드 탭의 실시간 분석은 per-report min-max 정규화 점수를 사용합니다.</small></p>
         </div>
       </div>
     </div>
