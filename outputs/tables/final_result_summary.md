@@ -48,6 +48,7 @@
 | Actual climate-news lag | `data/processed/reports/actual_climate_news_lag_corr.csv` | H1 예비 검증 |
 | Actual news-stock lag | `data/processed/reports/actual_news_stock_best_lag.csv` | H2 예비 검증 |
 | PDF validation metrics | `data/processed/reports/pdf_validation_metrics.csv` | confusion matrix, macro-F1 |
+| PDF failure analysis | `data/processed/reports/pdf_validation_failure_analysis.csv` | 오분류 3건 원인 해석 |
 | Gemini summary check | `data/processed/reports/gemini_summary_human_check.csv` | 표본 5개 근거 점검 |
 | Out-of-domain PDF test | `data/processed/reports/out_of_domain_pdf_test.csv` | WHO/OECD 비에너지 PDF 음성 대조군 |
 | Zero-shot vs few-shot comparison | `data/processed/reports/zero_shot_vs_few_shot.csv` | foundation model 전이학습 비교 |
@@ -59,12 +60,16 @@
 | Metric | Value |
 |---|---:|
 | Validation PDFs | 15 |
-| Matched expected direction | 15 |
-| Interpretation | 소규모 MVP 검증 |
+| Matched expected direction | 12 |
+| Accuracy | 0.80 |
+| Macro-F1 | 0.823 |
+| Interpretation | 소규모 MVP 검증. 실패 사례를 포함한 재현 가능 결과 |
 
 주의:
 
-> 15/15 일치는 소규모 검증 결과입니다. 이를 정량 일반화 성능으로 발표하면 안 됩니다.
+> 12/15 일치는 소규모 검증 결과입니다. 이를 정량 일반화 성능으로 발표하면 안 됩니다.
+
+현재 실패 사례는 NextEra annual report, IEA World Energy Outlook 2022, IEA Coal 2023입니다. 공통 원인은 문서가 단일 주제만 담고 있지 않고, 재생에너지·화석연료·전력망·정책 전환 표현이 섞여 있다는 점입니다. 따라서 이 프로젝트는 “완벽한 분류기”가 아니라, 복합 PDF를 foundation embedding과 few-shot head로 신호화하는 연구용 MVP라고 설명하는 것이 안전합니다.
 
 ## Zero-shot vs Few-shot Comparison
 

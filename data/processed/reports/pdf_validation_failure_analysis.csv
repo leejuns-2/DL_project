@@ -1,0 +1,4 @@
+report_id,title,expected_hint,predicted_hint,matched,paragraphs,evidence,failure_interpretation
+nextera_annual_2023,NextEra Energy Annual Report 2023,ETN,XLE/XOM transition pressure,False,352,40,utility annual report contains broad clean-energy and fossil/transition language; model maps it to fossil pressure rather than grid/electrification
+iea_weo_2022,IEA World Energy Outlook 2022,ICLN/NEE,XLE/XOM transition pressure,False,165,40,"broad world energy outlook mixes renewables, fossil fuels, grids, and policy; single-label expectation is too coarse"
+iea_coal_2023,IEA Coal 2023,XLE/XOM transition pressure,ICLN/NEE,False,196,40,coal report has transition and clean-energy terms around phase-down; model under-weights fossil-specific context

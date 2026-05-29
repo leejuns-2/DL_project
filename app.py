@@ -424,7 +424,7 @@ async def analyze_pdf(
 async def get_dashboard():
     signals, stock_link, news_bridge, validation = [], [], [], []
     actual_news_stock, actual_climate_news = [], []
-    pdf_metrics, pdf_confusion, label_rationale, gemini_check = [], [], [], []
+    pdf_metrics, pdf_confusion, label_rationale, failure_analysis, gemini_check = [], [], [], [], []
     out_of_domain, zero_shot_vs_few_shot = [], []
     signals_path = PROCESSED_DIR / "reports" / "report_signals.csv"
     link_path = PROCESSED_DIR / "reports" / "report_stock_link.csv"
@@ -435,6 +435,7 @@ async def get_dashboard():
     pdf_metrics_path = PROCESSED_DIR / "reports" / "pdf_validation_metrics.csv"
     pdf_confusion_path = PROCESSED_DIR / "reports" / "pdf_validation_confusion_matrix.csv"
     rationale_path = PROCESSED_DIR / "reports" / "pdf_validation_label_rationale.csv"
+    failure_path = PROCESSED_DIR / "reports" / "pdf_validation_failure_analysis.csv"
     gemini_check_path = PROCESSED_DIR / "reports" / "gemini_summary_human_check.csv"
     ood_path = PROCESSED_DIR / "reports" / "out_of_domain_pdf_test.csv"
     zero_shot_path = PROCESSED_DIR / "reports" / "zero_shot_vs_few_shot.csv"
@@ -459,6 +460,8 @@ async def get_dashboard():
         pdf_confusion = _json_records(pd.read_csv(pdf_confusion_path).reset_index())
     if rationale_path.exists():
         label_rationale = _json_records(pd.read_csv(rationale_path))
+    if failure_path.exists():
+        failure_analysis = _json_records(pd.read_csv(failure_path))
     if gemini_check_path.exists():
         gemini_check = _json_records(pd.read_csv(gemini_check_path))
     if ood_path.exists():
@@ -476,6 +479,7 @@ async def get_dashboard():
             "pdf_metrics": pdf_metrics,
             "pdf_confusion": pdf_confusion,
             "label_rationale": label_rationale,
+            "failure_analysis": failure_analysis,
             "gemini_check": gemini_check,
             "out_of_domain": out_of_domain,
             "zero_shot_vs_few_shot": zero_shot_vs_few_shot,

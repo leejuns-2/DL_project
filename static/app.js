@@ -550,6 +550,9 @@ function renderActualEvidenceTables(data) {
   renderGenericTable('pdf-metrics-wrap', data.pdf_metrics, {
     n: 'n', accuracy: '일치율', macro_f1: 'Macro-F1', weighted_f1: 'Weighted-F1', caveat: '주의'
   });
+  renderGenericTable('failure-analysis-wrap', data.failure_analysis, {
+    title: 'PDF', expected_hint: 'Expected', predicted_hint: 'Predicted', failure_interpretation: '실패 해석'
+  });
   renderGenericTable('gemini-check-wrap', data.gemini_check, {
     title: 'PDF', expected_theme: '테마', human_check_result: '점검', manual_evidence_alignment: '근거 일치', unsupported_investment_or_prediction: '위험 문구', model: '모델'
   });

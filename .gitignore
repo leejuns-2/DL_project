@@ -32,6 +32,7 @@ outputs/uploads/
 !data/processed/reports/pdf_validation_confusion_matrix.csv
 !data/processed/reports/pdf_validation_metrics.csv
 !data/processed/reports/pdf_validation_label_rationale.csv
+!data/processed/reports/pdf_validation_failure_analysis.csv
 !data/processed/reports/gemini_summary_human_check.csv
 !data/processed/reports/out_of_domain_pdf_test.csv
 !data/processed/reports/zero_shot_vs_few_shot.csv

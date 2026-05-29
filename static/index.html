@@ -211,6 +211,11 @@
         <span class="ov-label">GDELT 주간 샘플</span>
         <span class="ov-sub">2019-2024 actual GKG</span>
       </div>
+      <div class="ov-card">
+        <span class="ov-num">12/15</span>
+        <span class="ov-label">PDF 검증 일치</span>
+        <span class="ov-sub">few-shot head 기준</span>
+      </div>
     </div>
 
     <div class="panel">
@@ -375,7 +380,10 @@
       <div id="validation-table-wrap" class="table-wrap">
         <p class="loading-text">데이터 로딩 중…</p>
       </div>
-      <p class="note">소규모 일반화 점검에서 15개 PDF가 사전 기대 방향과 일치했습니다. 단, <strong>모든 케이스가 단일 테마가 압도적인 '쉬운 사례'</strong>입니다 (IRENA 보고서 5개 전부 동일 카테고리, 석유·가스 보고서 3개 동일 카테고리 등). 복합 테마 문서·경계 사례에 대한 성능은 별도 검증이 필요하며, 현재 일치 결과는 케이스 선택 편향(easy-case bias)을 반영합니다.</p>
+      <p class="note">현재 재현 가능한 검증 결과는 15개 중 12개 일치, accuracy 0.80입니다. 3개 실패 사례는 복합 테마 문서 또는 단일 라벨 기준이 애매한 문서입니다. 단, <strong>검증 표본은 여전히 쉬운 사례가 많고 표본 수가 작으므로</strong> 일반화 성능으로 과장하면 안 됩니다.</p>
+      <div id="failure-analysis-wrap" class="table-wrap">
+        <p class="loading-text">실패 분석 로딩 중…</p>
+      </div>
     </div>
 
     <div class="panel">
