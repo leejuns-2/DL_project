@@ -1,34 +1,66 @@
-﻿# Report-to-Market Signal Summary
+# Report-to-Market Signal Summary
 
 ## 쉬운 설명
 
-PDF 보고서를 단순히 요약하는 데서 끝내지 않고, 보고서 안의 에너지 전환 관련 근거 문단을 찾은 뒤 숫자 신호로 변환했습니다.  
-쉽게 말하면 긴 보고서를 읽어서 `재생에너지`, `화석연료 전환 압력`, `전력망`, `기후 리스크` 점수표로 만든 것입니다.
+PDF 보고서를 그냥 요약하는 데서 끝내지 않고, 보고서 안에서 에너지 전환과 관련된 근거 문단을 찾고,
+범용 Transformer 임베딩 모델로 사람이 정의한 예시 문장과 PDF 문단의 의미 유사도를 비교해 산업별 점수로 바꿨습니다.
+쉽게 말해, 긴 보고서를 읽어서 `재생에너지`, `화석연료 압력`, `전력망`, `기후 리스크` 점수표로 만든 것입니다.
 
-## Foundation Model 연결
+## Pre-trained Transformer Embedding 연결
 
-- 임베딩 모델: `sentence-transformers/all-MiniLM-L6-v2`
-- Few-shot learning: MiniLM 본체는 고정하고, 소수 라벨 예시로 Logistic Regression 분류 헤드를 학습
-- 생성형 모델: `gemini-3.5-flash`
-- Downstream task: PDF 신호를 뉴스 컨텍스트 및 과거 주가 수익률과 연결
+- 범용 임베딩 모델: `sentence-transformers/all-MiniLM-L6-v2`
+- 역할: PDF 문단과 예시 문장의 의미를 벡터로 변환
+- Few-shot classifier: MiniLM 임베딩은 고정하고, 사람이 만든 소수 라벨 예시로 Logistic Regression 분류 헤드를 학습
+- Downstream task: 보고서 점수를 ETF/기업 주가 수익률과 연결
 
-## 핵심 보고서 신호
+## Report Signals
 
-| report_id | asset_hint | 해석 |
-|---|---|---|
-| exxon_acs_2023 | XLE/XOM transition pressure | 화석연료 기업의 전환 압력과 기후 대응 내용이 강함 |
-| iea_weo_2023 | ICLN/NEE | 재생에너지와 전력 시스템 전환 신호가 강함 |
-| iea_oil_gas_nz_2023 | XLE/XOM transition pressure | 석유·가스 산업의 net-zero 전환 압력 신호가 강함 |
-| iea_renewables_2023 | ICLN/NEE | 재생에너지 성장 기회 신호가 강함 |
-| eaton_annual_2023 | ETN | 전력망, 전기화, power management 관련 신호가 강함 |
+| report_id           | title                                            | date       | issuer     | scoring_method                              |   renewable_opportunity |   fossil_pressure |   grid_infrastructure |   climate_risk |   transition_signal | asset_hint                  |
+|:--------------------|:-------------------------------------------------|:-----------|:-----------|:--------------------------------------------|------------------------:|------------------:|----------------------:|---------------:|--------------------:|:----------------------------|
+| exxon_acs_2023      | ExxonMobil Advancing Climate Solutions 2023      | 2023-04-04 | ExxonMobil | few_shot_logistic_head_on_minilm_embeddings |                  0.5814 |            0.8667 |                0      |         1      |              0.7147 | Climate risk                |
+| iea_weo_2023        | IEA World Energy Outlook 2023                    | 2023-10-24 | IEA        | few_shot_logistic_head_on_minilm_embeddings |                  1      |            0.0232 |                0      |         0.0016 |              0.9784 | ICLN/NEE                    |
+| iea_oil_gas_nz_2023 | IEA Oil and Gas Industry in Net Zero Transitions | 2023-11-23 | IEA        | few_shot_logistic_head_on_minilm_embeddings |                  0.6496 |            1      |                0.4485 |         0      |              0.0981 | XLE/XOM transition pressure |
+| iea_renewables_2023 | IEA Renewables 2023                              | 2024-01-11 | IEA        | few_shot_logistic_head_on_minilm_embeddings |                  1      |            0.499  |                0.7184 |         0      |              1.2194 | ICLN/NEE                    |
+| eaton_annual_2023   | Eaton Annual Report 2023                         | 2024-02-23 | Eaton      | few_shot_logistic_head_on_minilm_embeddings |                  0.5181 |            0      |                1      |         0.6798 |              2.1978 | ETN                         |
 
-## 뉴스 연결
+## Extractive Summaries
 
-`report_news_bridge.csv`는 각 보고서 날짜 이전 4주 뉴스 컨텍스트의 평균 감성과 추세를 연결합니다. 현재 포함된 뉴스 CSV는 대량 원자료 전체가 아니라, 보고서 날짜 주변 연결을 보여주기 위한 sample weekly context입니다.
+### Eaton Annual Report 2023
 
-## 해석 주의
+- Date: `2024-02-23`
+- Simple explanation: 이 보고서는 에너지 전환을 시장 신호로 바꾸기 위해 읽은 자료입니다. 재생에너지 점수는 0.52, 전력망/전기화 점수는 1.00, 화석연료 압력 점수는 0.00입니다. 쉽게 말해, 보고서 내용이 어떤 산업에 더 좋은 뉴스인지 숫자로 바꾼 것입니다.
+- Evidence summary: The effects of climate change, including weather disruptions and regulatory/market reactions, create uncertainties that could negatively impact our business. | We make products for the data center, utility, industrial, commercial, machine building, residential, aerospace and mobility markets. | As the world’s demand for electricity grows, so does the need for Eaton’s innovative technology and solutions. | 5 EATON 2023 Annual Report carbon emissions generated at all our plants and granted the first certification to our facility in Riom, France. | Regulatory reactions to climate change may pose more stringent obligations on Eaton’s operations and change customer demands.
 
-- 이 결과는 미래 수익률 예측이 아닙니다.
-- 포트폴리오 시뮬레이터는 과거 수익률 기반 시나리오 계산기입니다.
-- Gemini 요약은 근거 문단을 바탕으로 생성되며, 반드시 원문 근거와 함께 해석해야 합니다.
-- PDF 검증 15/15은 소규모 MVP 검증이지 일반화 정확도 100%가 아닙니다.
+### ExxonMobil Advancing Climate Solutions 2023
+
+- Date: `2023-04-04`
+- Simple explanation: 이 보고서는 에너지 전환을 시장 신호로 바꾸기 위해 읽은 자료입니다. 재생에너지 점수는 0.58, 전력망/전기화 점수는 0.00, 화석연료 압력 점수는 0.87입니다. 쉽게 말해, 보고서 내용이 어떤 산업에 더 좋은 뉴스인지 숫자로 바꾼 것입니다.
+- Evidence summary: Each of these processes includes the critical elements of leadership, people, risk identification and management, and continuous improvement. | ExxonMobil | Advancing Climate Solutions | 2023 Progress Report 52 10 Section 10 | Our risk management approach Once facilities are in operation, we maintain disaster preparedness, response, and business continuity plans. | In recent history, the world has seen an increase in energy use per capita as living conditions in the developing world have improved, more than offsetting efficiency trends in the developed world. | Natural gas is projected to have less demand reduction due to its many advantages, including lower greenhouse gas emissions. | 92 Scope 1 (direct emissions) include emissions from exported power and heat.
+
+### IEA Oil and Gas Industry in Net Zero Transitions
+
+- Date: `2023-11-23`
+- Simple explanation: 이 보고서는 에너지 전환을 시장 신호로 바꾸기 위해 읽은 자료입니다. 재생에너지 점수는 0.65, 전력망/전기화 점수는 0.45, 화석연료 압력 점수는 1.00입니다. 쉽게 말해, 보고서 내용이 어떤 산업에 더 좋은 뉴스인지 숫자로 바꾼 것입니다.
+- Evidence summary: Reducing methane emissions is the single most important measure that companies can take to reduce their scope 1 and 2 emissions intensity. | But full electrification would lead to even greater efficiency improvements. | The best prospects for growth are in the United States, Southeast Asia and Africa, given their untapped potential and growing electricity demand. | No companies have to date made specific pledges on this. | Will the oil and gas industry be part of the solution?
+
+### IEA Renewables 2023
+
+- Date: `2024-01-11`
+- Simple explanation: 이 보고서는 에너지 전환을 시장 신호로 바꾸기 위해 읽은 자료입니다. 재생에너지 점수는 1.00, 전력망/전기화 점수는 0.72, 화석연료 압력 점수는 0.50입니다. 쉽게 말해, 보고서 내용이 어떤 산업에 더 좋은 뉴스인지 숫자로 바꾼 것입니다.
+- Evidence summary: Until now, programmes to increase renewable capacity have found creative solutions to work around the region’s low amount of transmission and distribution infrastructure, such as the French Development Agency’s proposal to develop solar PV installations along existing transmissio | Spain data from Red Eléctrica de Espana. | Internationally, establishing globally recognised GHG emissions intensity values can help improve trade, allowing regions with more low-carbon feedstocks to sell fuel to regions without. | The International Maritime Organization is also considering introducing a low-carbon fuel standard and a carbon price for international marine fuels, but details have not been published so it is not considered in our forecast. | Most PV manufacturing capacity expansion to 2028 is expected to take place in China, ranging from 85% for modules to 95% for polysilicon.
+
+### IEA World Energy Outlook 2023
+
+- Date: `2023-10-24`
+- Simple explanation: 이 보고서는 에너지 전환을 시장 신호로 바꾸기 위해 읽은 자료입니다. 재생에너지 점수는 1.00, 전력망/전기화 점수는 0.00, 화석연료 압력 점수는 0.02입니다. 쉽게 말해, 보고서 내용이 어떤 산업에 더 좋은 뉴스인지 숫자로 바꾼 것입니다.
+- Evidence summary: The growing impacts of global warming make this all the more important, as an increasing amount of energy infrastructure that was built for a cooler, calmer climate is no longer reliable or resilient enough as temperatures rise and weather events become more extreme. | Chapter 1 | Overview and key findings 37 1 Figure 1.10 ⊳ Global solar module manufacturing and solar PV capacity additions in the STEPS, 2010-2030 IEA. | Expanded, modernised and cybersecure transmission and distribution grids are critical to electricity security in a world where the share of solar PV and wind in electricity generation is rising rapidly. | Solar is leading the charge: solar PV capacity, including both large utility-scale and small distributed systems, accounts for two-thirds of the 2023 estimated increase in global renewable capacity. | Copper, rare earth elements, silicon and various battery metals, notably lithium, are critical minerals for electrification.
+
+## Downstream Link to Stock Returns
+
+| report_id           |   transition_signal |   forward_4w_ET_SPREAD |   forward_4w_ICLN |   forward_4w_XLE |   forward_4w_ETN |
+|:--------------------|--------------------:|-----------------------:|------------------:|-----------------:|-----------------:|
+| exxon_acs_2023      |              0.7147 |                -0.0821 |           -0.0541 |           0.0278 |          -0.0246 |
+| iea_weo_2023        |              0.9784 |                 0.1211 |            0.0519 |          -0.0617 |           0.179  |
+| iea_oil_gas_nz_2023 |              0.0981 |                 0.1003 |            0.0936 |          -0.0046 |           0.0422 |
+| iea_renewables_2023 |              1.2194 |                -0.0439 |           -0.0554 |          -0.0137 |           0.15   |
+| eaton_annual_2023   |              2.1978 |                -0.0801 |            0.0007 |           0.0836 |           0.1146 |

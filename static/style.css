@@ -789,3 +789,26 @@ code {
   text-align: center;
   padding: 18px 24px;
 }
+
+.synthetic-data-banner {
+  background: #fff8ed;
+  border: 1px solid #f5a623;
+  border-left: 4px solid #f5a623;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: .83rem;
+  color: #7a4a00;
+  margin-bottom: 12px;
+  line-height: 1.55;
+}
+
+.caution-note {
+  background: #fff8ed;
+  border: 1px solid #f5a623;
+  border-left: 4px solid #f5a623;
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  color: #7a4a00 !important;
+  font-size: .83rem !important;
+  margin-bottom: 10px;
+}
