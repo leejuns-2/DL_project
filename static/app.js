@@ -556,6 +556,9 @@ function renderActualEvidenceTables(data) {
   renderGenericTable('ood-test-wrap', data.out_of_domain, {
     title: 'OOD PDF', asset_hint: '모델 신호', top_theme: '상위 테마', score_margin: '점수 차이', ood_decision: '판정', interpretation: '해석'
   });
+  renderGenericTable('zero-shot-wrap', data.zero_shot_vs_few_shot, {
+    title: 'PDF', expected_hint: 'Expected', zero_shot_hint: 'Zero-shot', few_shot_hint: 'Few-shot', zero_shot_matched: 'Zero-shot match', few_shot_matched: 'Few-shot match', zero_shot_margin: 'Zero margin', few_shot_margin: 'Few margin'
+  });
 }
 
 function renderGenericTable(id, rows, headers) {

@@ -466,6 +466,52 @@ def score_evidence_with_few_shot_learning(evidence, embedder):
     return pd.DataFrame(score_rows).sort_values("date")
 
 
+def score_evidence_with_zero_shot_similarity(evidence):
+    """Baseline: aggregate frozen embedding retrieval scores without task-head learning."""
+    theme_keys = ["renewable_opportunity", "fossil_pressure", "grid_infrastructure", "climate_risk"]
+    score_rows = []
+
+    for report_id, group in evidence.groupby("report_id"):
+        row = {
+            "report_id": report_id,
+            "title": group["title"].iloc[0],
+            "date": group["date"].iloc[0],
+            "issuer": group["issuer"].iloc[0],
+            "scoring_method": "zero_shot_embedding_similarity",
+        }
+        for theme in theme_keys:
+            values = group.loc[group["theme"] == theme, "retrieval_score"].astype(float).values
+            if len(values) == 0:
+                row[theme] = 0.0
+                continue
+            n_top = max(1, int(len(values) * 0.30))
+            row[theme] = float(np.sort(values)[-n_top:].mean())
+
+        raw = np.array([row[k] for k in theme_keys])
+        v_min, v_max = raw.min(), raw.max()
+        if v_max - v_min > 1e-6:
+            scaled = (raw - v_min) / (v_max - v_min)
+            for k, v in zip(theme_keys, scaled):
+                row[k] = float(v)
+
+        row["transition_signal"] = (
+            row["renewable_opportunity"]
+            + row["grid_infrastructure"]
+            + row["climate_risk"]
+            - row["fossil_pressure"]
+        )
+        row["asset_hint"] = infer_market_theme_hint(row)
+        score_rows.append(row)
+
+    return pd.DataFrame(score_rows).sort_values("date")
+
+
+def theme_margin(row):
+    theme_keys = ["renewable_opportunity", "fossil_pressure", "grid_infrastructure", "climate_risk"]
+    values = sorted([float(row[k]) for k in theme_keys], reverse=True)
+    return values[0] - values[1] if len(values) >= 2 else 0.0
+
+
 
 def infer_market_theme_hint(row):
     renewable = row["renewable_opportunity"]
@@ -637,6 +683,68 @@ def validate_sample_pdfs(embedder=None, max_pages=40, top_k=10):
 
     result = pd.DataFrame(rows)
     output = REPORT_PROCESSED_DIR / "expanded_pdf_validation.csv"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    result.to_csv(output, index=False)
+    return result
+
+
+def compare_zero_shot_vs_few_shot(embedder=None, max_pages=40, top_k=10):
+    embedder = embedder or EmbeddingModel()
+    rows = []
+
+    for sample in VALIDATION_SAMPLE_PDFS:
+        path = Path(sample["path"])
+        base = {
+            "report_id": sample["report_id"],
+            "title": sample["title"],
+            "expected_hint": sample["expected_hint"],
+        }
+        if not path.exists():
+            rows.append(
+                {
+                    **base,
+                    "zero_shot_hint": "missing_pdf",
+                    "few_shot_hint": "missing_pdf",
+                    "zero_shot_matched": False,
+                    "few_shot_matched": False,
+                    "zero_shot_margin": 0.0,
+                    "few_shot_margin": 0.0,
+                }
+            )
+            continue
+
+        report = ReportMeta(
+            sample["report_id"],
+            sample["title"],
+            sample["date"],
+            sample["issuer"],
+            str(path),
+            "",
+        )
+        pages = extract_pdf_text_from_path(path, max_pages=max_pages)
+        paragraphs = pd.DataFrame(split_paragraphs(report, pages))
+        evidence = retrieve_evidence(paragraphs, top_k=top_k)
+        zero_score = score_evidence_with_zero_shot_similarity(evidence).iloc[0].to_dict()
+        few_score = score_evidence_with_few_shot_learning(evidence, embedder).iloc[0].to_dict()
+
+        rows.append(
+            {
+                **base,
+                "zero_shot_hint": zero_score["asset_hint"],
+                "few_shot_hint": few_score["asset_hint"],
+                "zero_shot_matched": zero_score["asset_hint"] == sample["expected_hint"],
+                "few_shot_matched": few_score["asset_hint"] == sample["expected_hint"],
+                "zero_shot_margin": float(theme_margin(zero_score)),
+                "few_shot_margin": float(theme_margin(few_score)),
+                "comparison_note": (
+                    "zero-shot uses frozen embedding retrieval similarity; "
+                    "few-shot uses frozen embeddings plus logistic classifier heads from human examples"
+                ),
+            }
+        )
+
+    result = pd.DataFrame(rows)
+    output = REPORT_PROCESSED_DIR / "zero_shot_vs_few_shot.csv"
     output.parent.mkdir(parents=True, exist_ok=True)
     result.to_csv(output, index=False)
     return result

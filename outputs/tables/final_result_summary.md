@@ -50,6 +50,7 @@
 | PDF validation metrics | `data/processed/reports/pdf_validation_metrics.csv` | confusion matrix, macro-F1 |
 | Gemini summary check | `data/processed/reports/gemini_summary_human_check.csv` | 표본 5개 근거 점검 |
 | Out-of-domain PDF test | `data/processed/reports/out_of_domain_pdf_test.csv` | WHO/OECD 비에너지 PDF 음성 대조군 |
+| Zero-shot vs few-shot comparison | `data/processed/reports/zero_shot_vs_few_shot.csv` | foundation model 전이학습 비교 |
 
 ## Expanded PDF Validation
 
@@ -64,6 +65,17 @@
 주의:
 
 > 15/15 일치는 소규모 검증 결과입니다. 이를 정량 일반화 성능으로 발표하면 안 됩니다.
+
+## Zero-shot vs Few-shot Comparison
+
+같은 15개 검증 PDF에 대해 두 가지 방식을 비교했습니다.
+
+| Method | Correct / 15 | Match rate | Meaning |
+|---|---:|---:|---|
+| Zero-shot embedding similarity | 6 | 40% | 사전학습 임베딩과 테마 키워드 유사도만 사용 |
+| Few-shot classifier head | 12 | 80% | 고정된 MiniLM 임베딩 위에 사람이 만든 소수 예시로 logistic head 학습 |
+
+이 비교는 교수님이 요구한 foundation model 활용 흐름을 더 명확하게 보여줍니다. 즉, 범용 사전학습 모델을 그대로 쓰는 것에서 끝내지 않고, 에너지 리포트라는 downstream task에 맞게 소수 예시를 이용해 전이학습 계층을 얹었습니다.
 
 ## Out-of-domain Check
 

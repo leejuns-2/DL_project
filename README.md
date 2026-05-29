@@ -18,6 +18,7 @@ app_port: 7860
 
 - PDF 업로드 분석: 에너지 보고서를 업로드하면 문단 추출, 근거 검색, 주제 점수화, Gemini 요약을 수행합니다.
 - Few-shot learning: MiniLM 임베딩 모델은 고정하고, 사람이 작성한 소수의 라벨 예시로 Logistic Regression 분류 헤드를 학습합니다.
+- Zero-shot vs few-shot 비교: 사전학습 임베딩 유사도만 쓴 baseline과 few-shot classifier head를 같은 15개 PDF에서 비교합니다.
 - Gemini 생성 요약: `gemini-3.5-flash`를 사용해 근거 문단을 조심스러운 한국어 연구 요약으로 변환합니다.
 - 뉴스-PDF 연결: 실제 GDELT GKG 공개 원자료에서 주간 샘플을 수집해 보고서 날짜 주변 뉴스 tone 컨텍스트를 PDF 신호와 연결합니다.
 - Downstream stock link: 보고서 날짜 전후의 실제 과거 수익률을 연결해 시나리오로 보여줍니다.
@@ -54,6 +55,7 @@ PDF Upload
 | Stock weekly returns | 2019-2024 주간 수익률 CSV 포함 |
 | Report signals | 핵심 에너지 PDF 5개 분석 결과 포함 |
 | Expanded PDF validation | 추가 검증 PDF 15개 결과 포함 |
+| Zero-shot vs few-shot comparison | zero-shot 6/15, few-shot 12/15 비교 결과 포함 |
 | News sentiment context | 실제 GDELT GKG weekly sample tone signal 포함 |
 | Report-stock link | 보고서 날짜 이후 4주 과거 수익률 연결 포함 |
 

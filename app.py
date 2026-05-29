@@ -425,7 +425,7 @@ async def get_dashboard():
     signals, stock_link, news_bridge, validation = [], [], [], []
     actual_news_stock, actual_climate_news = [], []
     pdf_metrics, pdf_confusion, label_rationale, gemini_check = [], [], [], []
-    out_of_domain = []
+    out_of_domain, zero_shot_vs_few_shot = [], []
     signals_path = PROCESSED_DIR / "reports" / "report_signals.csv"
     link_path = PROCESSED_DIR / "reports" / "report_stock_link.csv"
     news_bridge_path = PROCESSED_DIR / "reports" / "report_news_bridge.csv"
@@ -437,6 +437,7 @@ async def get_dashboard():
     rationale_path = PROCESSED_DIR / "reports" / "pdf_validation_label_rationale.csv"
     gemini_check_path = PROCESSED_DIR / "reports" / "gemini_summary_human_check.csv"
     ood_path = PROCESSED_DIR / "reports" / "out_of_domain_pdf_test.csv"
+    zero_shot_path = PROCESSED_DIR / "reports" / "zero_shot_vs_few_shot.csv"
     if signals_path.exists():
         signals_df = pd.read_csv(signals_path).round(4)
         signals = _json_records(signals_df)
@@ -462,6 +463,8 @@ async def get_dashboard():
         gemini_check = _json_records(pd.read_csv(gemini_check_path))
     if ood_path.exists():
         out_of_domain = _json_records(pd.read_csv(ood_path).round(4))
+    if zero_shot_path.exists():
+        zero_shot_vs_few_shot = _json_records(pd.read_csv(zero_shot_path).round(4))
     return JSONResponse(
         {
             "signals": signals,
@@ -475,6 +478,7 @@ async def get_dashboard():
             "label_rationale": label_rationale,
             "gemini_check": gemini_check,
             "out_of_domain": out_of_domain,
+            "zero_shot_vs_few_shot": zero_shot_vs_few_shot,
             "methodology": {
                 "base_model": "sentence-transformers/all-MiniLM-L6-v2",
                 "few_shot_learning": "Frozen Transformer embeddings + few-shot logistic heads (top-30% aggregation, per-report min-max normalization). Dashboard scores are from the initial pipeline run (pre-normalization).",

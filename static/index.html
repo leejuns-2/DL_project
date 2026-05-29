@@ -379,6 +379,14 @@
     </div>
 
     <div class="panel">
+      <h2 class="panel-title">Zero-shot vs Few-shot 비교</h2>
+      <p class="section-help">같은 PDF 15개를 대상으로 사전학습 임베딩 유사도만 사용한 zero-shot baseline과, 사람이 만든 소수 예시로 학습한 few-shot classifier head를 비교했습니다. 이 표는 전이학습을 붙였을 때 downstream 분류가 어떻게 달라지는지 보여주는 과제 핵심 실험입니다.</p>
+      <div id="zero-shot-wrap" class="table-wrap">
+        <p class="loading-text">데이터 로딩 중…</p>
+      </div>
+    </div>
+
+    <div class="panel">
       <h2 class="panel-title">비에너지 PDF 음성 대조군</h2>
       <p class="section-help">WHO 보건 통계와 OECD 교육 보고서를 넣어, 에너지·기후가 아닌 PDF에서도 모델이 신호를 억지로 만드는지 확인했습니다. WHO는 climate-health 표현 때문에 기후 리스크로 흡수되는 false-positive domain overlap이 관찰됐고, OECD는 점수 차이가 낮아 저확신 판정이 나왔습니다.</p>
       <div id="ood-test-wrap" class="table-wrap">
