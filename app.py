@@ -389,7 +389,7 @@ async def analyze_pdf(
                 "methodology": {
                     "base_model": "sentence-transformers/all-MiniLM-L6-v2",
                     "few_shot_learning": "Frozen MiniLM embeddings + logistic regression classifier heads trained on a small set of labeled examples.",
-                    "generative_model": "Optional OpenAI-compatible endpoint via GENAI_API_URL and GENAI_API_KEY.",
+                    "generative_model": "Gemini 3.5 Flash summary when GEMINI_API_KEY is configured; API/local fallbacks are also supported.",
                 },
                 "scores": theme_scores,
                 "confidence": {
@@ -448,7 +448,7 @@ async def get_dashboard():
                 "base_model": "sentence-transformers/all-MiniLM-L6-v2",
                 "few_shot_learning": "Frozen Transformer embeddings plus supervised few-shot logistic heads.",
                 "news_pdf_bridge": "News sentiment is aggregated around each report date and joined to PDF event scores.",
-                "generative_model": "Optional OpenAI-compatible large generative model endpoint.",
+                "generative_model": "Gemini 3.5 Flash summary with cautious research wording.",
             },
         }
     )

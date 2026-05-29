@@ -1,6 +1,6 @@
 ---
 title: Energy Report-to-Market Signal Analyzer
-emoji: 📄
+emoji: ⚡
 colorFrom: green
 colorTo: blue
 sdk: docker
@@ -10,52 +10,62 @@ app_port: 7860
 
 # Energy Report-to-Market Signal Analyzer
 
-에너지·기후 보고서 PDF를 사전학습 Transformer 임베딩 기반 파이프라인으로 분석해 시장 신호를 생성하는 웹 애플리케이션입니다. 사용자가 PDF를 업로드하면 문서 근거, example-based semantic scoring, 모델 확신도, 전후 수익률 연결을 한 화면에서 확인할 수 있습니다.
+에너지·기후 PDF 보고서를 텍스트로 변환하고, 근거 문단을 추출한 뒤, 사전학습 Transformer 임베딩 모델과 few-shot 분류 헤드를 이용해 시장 분석용 신호로 바꾸는 연구용 MVP입니다.
 
-## 기능
+이 앱은 투자 추천 도구가 아닙니다. PDF 내용, 뉴스 컨텍스트, 과거 주가 수익률을 연결해 “보고서 신호가 시장 데이터와 어떻게 함께 보이는지”를 탐색하는 downstream 분석 예시입니다.
 
-- **PDF 업로드 분석**: 에너지 보고서를 업로드하면 4가지 주제 점수(재생에너지, 화석연료 압력, 전력망/전기화, 기후 리스크)를 즉시 산출
-- **Example-based semantic scoring**: `sentence-transformers/all-MiniLM-L6-v2` 임베딩 모델로 사람이 작성한 예시 문장과 PDF 문단의 의미 유사도 비교
-- **모델 확신도**: 1등 주제와 2등 주제의 점수 차이를 이용해 결과가 얼마나 애매한지 표시
-- **주가 연결**: 보고서 날짜 전후 ICLN·XLE·NEE·XOM·ETN 수익률 연결
-- **근거 중심 UI**: 주제별 근거 문단, 관련도, 페이지 번호 표시
-- **한국어 근거 해석**: 추출된 근거 문단 아래에 해당 문단이 왜 그 주제 신호로 잡혔는지 설명
-- **CSV 다운로드**: 점수 결과와 근거 문단을 CSV로 저장
-- **프로젝트 대시보드**: 기존 분석 결과(5개 리포트), 가설 검증, 분석 그래프 5개 제공
+## 핵심 기능
 
-## 디자인 개편 포인트
-
-- 어두운 개발자 도구 느낌 대신 밝은 분석 대시보드 스타일 적용
-- 첫 화면에서 PDF 업로드와 분석 흐름이 바로 보이도록 재배치
-- 투자 추천이 아니라 연구용 신호 분석이라는 안내 문구 강화
-- 결과 카드, 근거 문단 탭, 수익률 표를 발표용으로 읽기 쉽게 정리
+- PDF 업로드 분석: 에너지 보고서를 업로드하면 문단 추출, 근거 검색, 주제 점수화, Gemini 요약을 수행합니다.
+- Few-shot learning: MiniLM 임베딩 모델은 고정하고, 사람이 작성한 소수의 라벨 예시로 Logistic Regression 분류 헤드를 학습합니다.
+- Gemini 생성 요약: `gemini-3.5-flash`를 사용해 근거 문단을 조심스러운 한국어 연구 요약으로 변환합니다.
+- 뉴스-PDF 연결: 보고서 날짜 주변의 주간 뉴스 감성 컨텍스트를 PDF 신호와 연결합니다.
+- Downstream stock link: 보고서 날짜 전후의 실제 과거 수익률을 연결해 시나리오로 보여줍니다.
+- 포트폴리오 시뮬레이터: 사용자가 투자금과 비중을 넣으면 과거 수익률 기반 가상 손익을 계산합니다.
 
 ## 사용 모델
 
 | 모델 | 역할 |
 |---|---|
-| `ProsusAI/finbert` | 뉴스 헤드라인 감성 분류 |
-| `sentence-transformers/all-MiniLM-L6-v2` | PDF 문단 임베딩 및 example-based semantic scoring |
+| `sentence-transformers/all-MiniLM-L6-v2` | PDF 문단과 라벨 예시 문장을 임베딩 |
+| Logistic Regression heads | 소수 라벨 예시 기반 downstream few-shot topic classification |
+| `gemini-3.5-flash` | 근거 문단 기반 생성형 한국어 요약 |
 
-주의: MiniLM은 GPT형 생성 LLM이 아니라 사전학습 Transformer 기반 범용 문장 임베딩 모델입니다. 또한 본 프로젝트는 모델 파라미터를 추가 학습하지 않고, 예시 문장과 문단 임베딩의 의미 유사도를 비교합니다.
+주의: MiniLM 자체의 파라미터를 fine-tuning하지는 않습니다. 본 프로젝트의 few-shot learning은 고정된 foundation embedding 위에 작은 downstream 분류 헤드를 학습하는 방식입니다.
+
+## 분석 흐름
+
+```text
+PDF Upload
+  -> Text Extraction (PyMuPDF)
+  -> Evidence Retrieval (TF-IDF)
+  -> MiniLM Embedding
+  -> Few-shot Logistic Classifier Heads
+  -> Report Topic Scores
+  -> Gemini Evidence Summary
+  -> News Context Bridge
+  -> Historical Stock-return Link
+```
+
+## 데이터 요약
+
+| 데이터 | 현재 상태 |
+|---|---|
+| Stock weekly returns | 2019-2024 주간 수익률 CSV 포함 |
+| Report signals | 핵심 에너지 PDF 5개 분석 결과 포함 |
+| Expanded PDF validation | 추가 검증 PDF 8개 결과 포함 |
+| News sentiment context | 보고서 날짜 주변 sample weekly news-context signal 포함 |
+| Report-stock link | 보고서 날짜 이후 4주 과거 수익률 연결 포함 |
+
+뉴스 컨텍스트 CSV는 대량 원자료 전체가 아니라, 보고서 날짜 주변 연결을 보여주기 위한 작은 샘플 신호입니다. 발표에서는 “뉴스 데이터 전체 일반화 성능”이 아니라 “PDF 이벤트 신호와 뉴스 분위기 신호를 연결하는 구조”로 설명해야 합니다.
 
 ## 해석 주의
 
-이 앱은 투자 추천 도구가 아닙니다. PDF 문서 내용을 시장 분석용 수치 신호로 변환하는 연구용 MVP이며, 수익률 연결은 downstream 분석 예시로 해석해야 합니다.
-
-포트폴리오 시뮬레이터는 미래 수익률 예측기가 아닙니다. 보고서 날짜 전후의 실제 과거 수익률을 사용해 투자금과 비중별 가상 손익을 계산하는 시나리오 도구입니다.
-
-## 프로젝트 프레임
-
-| 데이터 | 역할 |
-|---|---|
-| 뉴스 데이터 | 시장 분위기 시계열 신호 |
-| PDF 리포트 | 리포트 기반 이벤트 신호 |
-| 주가 데이터 | downstream 연결 및 시나리오 분석 대상 |
-
-## 일반화 검증 해석
-
-2023년 외 PDF 3개에 대한 소규모 일반화 점검에서 기대 라벨과 3/3 일치했습니다. 단, 표본 수가 작으므로 `정확도 100%`가 아니라 MVP 수준의 방향성 검증으로 해석해야 합니다.
+- 이 앱은 미래 수익률을 예측하지 않습니다.
+- 포트폴리오 계산은 과거 특정 기간의 실제 수익률을 적용한 시나리오입니다.
+- PDF 검증 8/8은 소규모 검증 결과이며, 정확도 100%로 일반화하면 안 됩니다.
+- 뉴스 컨텍스트는 현재 샘플 신호이므로, 대량 뉴스 원자료 기반 정량 검증으로 과장하면 안 됩니다.
+- 상관관계와 수익률 연결은 인과관계 증명이 아닙니다.
 
 ## 로컬 실행
 
@@ -66,29 +76,16 @@ uvicorn app:app --reload --port 8000
 
 브라우저에서 `http://localhost:8000` 접속
 
-## Hugging Face Spaces 배포
+## Gemini 설정
 
-1. HuggingFace에서 새 Space 생성 (SDK: Docker)
-2. 이 저장소를 연결하거나 파일 업로드
-3. Space가 자동 빌드 후 `https://huggingface.co/spaces/{username}/{space-name}` 접속
+Hugging Face Space의 Variables/Secrets에 아래 값을 넣으면 Gemini 요약이 활성화됩니다.
 
-## 파이프라인
-
-```
-PDF 업로드
-  → 텍스트 추출 (PyMuPDF)
-  → 에너지 전환 관련 문단 검색 (TF-IDF)
-  → MiniLM-L6-v2 임베딩
-  → Example-based semantic scoring
-  → 보고서 날짜 전후 ETF·기업 수익률 연결
+```bash
+GEMINI_API_KEY=your_key
+GEMINI_MODEL=gemini-3.5-flash
+GENAI_PROVIDER=gemini
+GEMINI_THINKING_LEVEL=high
+GEMINI_MAX_OUTPUT_TOKENS=600
 ```
 
-## 핵심 결론
-
-| 가설 | 결과 |
-|---|---|
-| H1: TAI → 뉴스 감성 선행 | 기각 (r=−0.12, p=0.236) |
-| H2: NSS_ADJ → ET_SPREAD 양의 방향 | 기각 (r=−0.19, p=0.062) |
-| H3: 이벤트 기간 관계 강화 | 부분 관찰 (기술적) |
-| NSS_ADJ → XOM (lag+4) | r=0.216, **p=0.033** |
-| NSS_ADJ → ETN (lag+3) | r=0.200, **p=0.048** |
+API 키는 코드나 Git에 직접 넣으면 안 됩니다.

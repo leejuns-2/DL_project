@@ -1,27 +1,38 @@
-# PDF Generalization Validation
+# Expanded PDF Validation
 
 ## 목적
 
-2023년 리포트가 아닌 자료를 넣었을 때도 example-based PDF 신호화가 기대한 방향으로 작동하는지 확인했습니다.
+핵심 분석 PDF 5개 외에 서로 성격이 다른 PDF를 추가로 넣었을 때 few-shot PDF 신호화가 기대 방향으로 작동하는지 점검했습니다.
 
-## 검증 기준
+## 방법
 
-- 사람이 보고 기대 라벨을 먼저 정했습니다.
-- 모델이 예측한 `asset_hint`가 기대 라벨과 같으면 맞은 것으로 계산했습니다.
-- 표본 수가 작으므로 이 값은 엄밀한 모델 정확도가 아니라 MVP 일반화 점검용 정확도입니다.
+- PDF에서 텍스트를 추출했습니다.
+- 에너지 전환 관련 근거 문단을 검색했습니다.
+- MiniLM 임베딩을 만들었습니다.
+- 소수 라벨 예시로 학습한 Logistic Regression 분류 헤드가 문단을 주제별로 점수화했습니다.
+- 사람이 사전에 정한 기대 방향과 모델의 `asset_hint`를 비교했습니다.
 
-소규모 일반화 점검: `3 / 3` 일치
+## 결과 요약
 
-## 결과
+| 항목 | 값 |
+|---|---:|
+| 추가 검증 PDF | 8 |
+| 기대 방향과 일치 | 8 |
+| 해석 | 소규모 MVP 검증 |
 
-| title                         | expected_asset_hint   | asset_hint   | asset_hint_correct   | top_theme             |   top_theme_score |   score_margin |   pages_extracted |   paragraphs_extracted |
-|:------------------------------|:----------------------|:-------------|:---------------------|:----------------------|------------------:|---------------:|------------------:|-----------------------:|
-| IEA World Energy Outlook 2022 | ICLN/NEE              | ICLN/NEE     | True                 | renewable_opportunity |          0.736141 |      0.0193718 |                96 |                    521 |
-| IEA Renewables 2022           | ICLN/NEE              | ICLN/NEE     | True                 | renewable_opportunity |          0.740621 |      0.0152172 |               100 |                    556 |
-| IEA Electricity 2024          | ETN                   | ETN          | True                 | grid_infrastructure   |          0.731048 |      0.0113052 |               100 |                    548 |
+## 검증 결과
 
-## 해석
+| report_id | expected_hint | predicted_hint | matched |
+|---|---|---|---|
+| irena_global_renewables_outlook_2020 | ICLN/NEE | ICLN/NEE | True |
+| irena_renewable_energy_statistics_2020 | ICLN/NEE | ICLN/NEE | True |
+| irena_renewable_power_costs_2022 | ICLN/NEE | ICLN/NEE | True |
+| irena_world_energy_transitions_2023 | ICLN/NEE | ICLN/NEE | True |
+| irena_renewable_energy_statistics_2024 | ICLN/NEE | ICLN/NEE | True |
+| nextera_annual_2023 | ETN | ETN | True |
+| siemens_energy_annual_2023 | ETN | ETN | True |
+| ipcc_ar6_synthesis | Climate risk | Climate risk | True |
 
-- 기대 라벨과 맞으면, 기존 2023년 보고서가 아닌 자료에서도 주제 신호가 같은 방향으로 나온 것입니다.
-- 틀린 항목은 모델 오류일 수도 있지만, 보고서가 여러 주제를 동시에 다루기 때문일 수도 있습니다.
-- `score_margin`이 작으면 1등 주제와 2등 주제 차이가 작다는 뜻이라 확신도가 낮은 결과로 봐야 합니다.
+## 주의
+
+이 결과는 소규모 검증입니다. 표본 수가 적고 라벨 정의가 사람이 정한 기준에 의존하므로, “정확도 100%”가 아니라 “추가 샘플에서 기대 방향과 일치했다”로 설명해야 합니다.

@@ -15,12 +15,12 @@
       <div>
         <span class="eyebrow">Pre-trained Transformer MVP</span>
         <h1>Energy Report-to-Market Signal Analyzer</h1>
-        <p>PDF 리포트를 업로드하면 문서 근거, example-based semantic scoring, 시장 수익률 연결을 한 화면에서 확인합니다.</p>
+        <p>PDF 리포트를 업로드하면 문서 근거, few-shot topic classification, Gemini 요약, 시장 수익률 연결을 한 화면에서 확인합니다.</p>
       </div>
     </div>
     <div class="header-badges">
       <span class="badge badge-model">MiniLM-L6-v2</span>
-      <span class="badge badge-method">Example-based scoring</span>
+      <span class="badge badge-method">Few-shot classifier</span>
       <span class="badge badge-safe">Research MVP</span>
     </div>
   </div>
@@ -115,7 +115,7 @@
             <div class="step-arrow">→</div>
             <div class="step">MiniLM 임베딩</div>
             <div class="step-arrow">→</div>
-            <div class="step">Example-based scoring</div>
+            <div class="step">Few-shot classifier</div>
             <div class="step-arrow">→</div>
             <div class="step">시장 연결</div>
           </div>
@@ -191,9 +191,9 @@
 
     <div class="dashboard-overview">
       <div class="ov-card">
-        <span class="ov-num">2</span>
+        <span class="ov-num">3</span>
         <span class="ov-label">사용 모델</span>
-        <span class="ov-sub">FinBERT · MiniLM-L6</span>
+        <span class="ov-sub">MiniLM · Few-shot head · Gemini</span>
       </div>
       <div class="ov-card">
         <span class="ov-num">5</span>
@@ -206,9 +206,9 @@
         <span class="ov-sub">2019-01 ~ 2024-12</span>
       </div>
       <div class="ov-card">
-        <span class="ov-num">3,340</span>
+        <span class="ov-num">22</span>
         <span class="ov-label">뉴스 헤드라인</span>
-        <span class="ov-sub">GDELT 에너지·기후</span>
+        <span class="ov-sub">Sample weekly context</span>
       </div>
     </div>
 
@@ -221,7 +221,7 @@
         </div>
         <div class="interpret-card">
           <strong>모델 활용 범위</strong>
-          <p>MiniLM은 GPT형 생성 LLM이 아니라 사전학습 Transformer 임베딩 모델이며, 모델 파라미터를 추가 학습하지 않습니다.</p>
+          <p>MiniLM은 사전학습 Transformer 임베딩 모델이며, MiniLM 본체는 고정하고 소수 라벨 예시로 downstream 분류 헤드를 학습합니다. Gemini는 근거 문단 요약에 사용합니다.</p>
         </div>
         <div class="interpret-card">
           <strong>주의할 해석</strong>
@@ -239,8 +239,8 @@
         <tbody>
           <tr>
             <td>Few-shot</td>
-            <td>모델을 few-shot learning으로 추가 학습했다</td>
-            <td>사람이 만든 예시 문장과 PDF 문단의 임베딩 유사도를 비교하는 example-based semantic scoring</td>
+            <td>대형 foundation model 전체를 fine-tuning했다</td>
+            <td>MiniLM 임베딩은 고정하고, 소수 라벨 예시로 Logistic Regression 분류 헤드를 few-shot 방식으로 학습</td>
           </tr>
           <tr>
             <td>MiniLM</td>
@@ -250,7 +250,7 @@
           <tr>
             <td>검증</td>
             <td>정확도 100%를 달성했다</td>
-            <td>소규모 일반화 점검에서 3개 PDF가 기대 라벨과 일치했다</td>
+            <td>소규모 일반화 점검에서 8개 PDF가 기대 방향과 일치했다. 다만 정량 일반화 성능으로 과장하지 않는다</td>
           </tr>
           <tr>
             <td>뉴스·PDF 연결</td>
@@ -264,6 +264,14 @@
     <div class="panel">
       <h2 class="panel-title">리포트 신호 (기존 분석 결과)</h2>
       <div id="signals-table-wrap" class="table-wrap">
+        <p class="loading-text">데이터 로딩 중…</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 class="panel-title">뉴스 컨텍스트 → PDF 신호 연결</h2>
+      <p class="section-help">보고서 날짜 이전 4주 sample weekly news-context signal을 PDF 이벤트 신호와 연결합니다. 미래 예측이나 투자 추천이 아닙니다.</p>
+      <div id="news-bridge-wrap" class="table-wrap">
         <p class="loading-text">데이터 로딩 중…</p>
       </div>
     </div>
@@ -347,24 +355,17 @@
 
     <div class="panel">
       <h2 class="panel-title">PDF 일반화 검증</h2>
-      <table class="data-table">
-        <thead>
-          <tr><th>검증 PDF</th><th>기대 자산 힌트</th><th>모델 예측</th><th>결과</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>IEA World Energy Outlook 2022</td><td>ICLN/NEE</td><td>ICLN/NEE</td><td class="match">✓ 일치</td></tr>
-          <tr><td>IEA Renewables 2022</td><td>ICLN/NEE</td><td>ICLN/NEE</td><td class="match">✓ 일치</td></tr>
-          <tr><td>IEA Electricity 2024</td><td>ETN</td><td>ETN</td><td class="match">✓ 일치</td></tr>
-        </tbody>
-      </table>
-      <p class="note">소규모 일반화 점검에서 3개 PDF가 기대 라벨과 일치했습니다. 표본이 작으므로 엄밀한 정량 성능 평가가 아니라 MVP 검증으로 해석해야 합니다.</p>
+      <div id="validation-table-wrap" class="table-wrap">
+        <p class="loading-text">데이터 로딩 중…</p>
+      </div>
+      <p class="note">소규모 일반화 점검에서 8개 PDF가 기대 방향과 일치했습니다. 표본이 작으므로 엄밀한 정량 성능 평가가 아니라 MVP 검증으로 해석해야 합니다.</p>
     </div>
 
   </section>
 </main>
 
 <footer class="site-footer">
-  <p>Energy Report-to-Market Signal Analyzer · News sentiment signal · PDF event signal · MiniLM embedding · Example-based scoring</p>
+  <p>Energy Report-to-Market Signal Analyzer · News context signal · PDF event signal · MiniLM embedding · Few-shot classifier · Gemini summary</p>
 </footer>
 
 <script src="/static/app.js"></script>

@@ -531,10 +531,57 @@ async function loadDashboard() {
     const res = await fetch('/api/dashboard');
     const data = await res.json();
     renderSignalsTable(data.signals);
+    renderNewsBridgeTable(data.news_bridge);
     renderLinkTable(data.stock_link);
+    renderValidationTable(data.validation);
   } catch (e) {
     document.getElementById('signals-table-wrap').innerHTML = '<p class="note">데이터 로드 실패</p>';
   }
+}
+
+function renderNewsBridgeTable(rows) {
+  const wrap = document.getElementById('news-bridge-wrap');
+  if (!wrap) return;
+  if (!rows || !rows.length) { wrap.innerHTML = '<p class="note">뉴스 컨텍스트 데이터 없음</p>'; return; }
+
+  const cols = ['title', 'date', 'asset_hint', 'news_context_available', 'news_window_mean', 'news_window_trend'];
+  const headers = {
+    title: '보고서',
+    date: '날짜',
+    asset_hint: 'PDF 신호',
+    news_context_available: '뉴스 연결',
+    news_window_mean: '4주 평균 감성',
+    news_window_trend: '4주 추세',
+  };
+  wrap.innerHTML = `<table class="data-table">
+    <thead><tr>${cols.map(c => `<th>${headers[c]}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(row => `<tr>${cols.map(c => {
+      const v = row[c];
+      if (typeof v === 'boolean') return `<td>${v ? '연결됨' : '없음'}</td>`;
+      if (typeof v === 'number') {
+        const cls = v > 0 ? 'pos' : v < 0 ? 'neg' : '';
+        return `<td class="${cls}">${v.toFixed(3)}</td>`;
+      }
+      return `<td>${escapeHtml(String(v ?? ''))}</td>`;
+    }).join('')}</tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function renderValidationTable(rows) {
+  const wrap = document.getElementById('validation-table-wrap');
+  if (!wrap) return;
+  if (!rows || !rows.length) return;
+
+  const cols = ['title', 'expected_hint', 'predicted_hint', 'matched'];
+  const headers = { title: '검증 PDF', expected_hint: '기대 방향', predicted_hint: '모델 결과', matched: '일치' };
+  wrap.innerHTML = `<table class="data-table">
+    <thead><tr>${cols.map(c => `<th>${headers[c]}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(row => `<tr>${cols.map(c => {
+      const v = row[c];
+      if (typeof v === 'boolean') return `<td class="${v ? 'match' : 'neg'}">${v ? '일치' : '불일치'}</td>`;
+      return `<td>${escapeHtml(String(v ?? ''))}</td>`;
+    }).join('')}</tr>`).join('')}</tbody>
+  </table>`;
 }
 
 function renderSignalsTable(signals) {

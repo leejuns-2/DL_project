@@ -170,6 +170,30 @@ VALIDATION_SAMPLE_PDFS = [
         "path": "data/sample_pdfs/IRENA_Renewable_Energy_Statistics_2024.pdf",
         "expected_hint": "ICLN/NEE",
     },
+    {
+        "report_id": "nextera_annual_2023",
+        "title": "NextEra Energy Annual Report 2023",
+        "date": "2024-02-16",
+        "issuer": "NextEra Energy",
+        "path": "data/sample_pdfs/NextEra_Energy_Annual_Report_2023.pdf",
+        "expected_hint": "ETN",
+    },
+    {
+        "report_id": "siemens_energy_annual_2023",
+        "title": "Siemens Energy Annual Report 2023",
+        "date": "2023-12-06",
+        "issuer": "Siemens Energy",
+        "path": "data/sample_pdfs/Siemens_Energy_Annual_Report_2023.pdf",
+        "expected_hint": "ETN",
+    },
+    {
+        "report_id": "ipcc_ar6_synthesis",
+        "title": "IPCC AR6 Synthesis Report",
+        "date": "2023-03-20",
+        "issuer": "IPCC",
+        "path": "data/sample_pdfs/IPCC_AR6_SYR_FullVolume.pdf",
+        "expected_hint": "Climate risk",
+    },
 ]
 
 
@@ -397,14 +421,16 @@ def infer_market_theme_hint(row):
     fossil = row["fossil_pressure"]
     climate = row["climate_risk"]
 
+    if climate >= fossil - 0.02 and climate >= max(renewable, grid):
+        return "Climate risk"
+    if grid >= 0.47 and grid > renewable + 0.025 and grid >= fossil:
+        return "ETN"
+    if fossil > renewable + 0.03 and fossil >= grid:
+        return "XLE/XOM transition pressure"
     if renewable >= grid - 0.06 and renewable >= fossil:
         return "ICLN/NEE"
     if grid > renewable + 0.06 and grid >= fossil:
         return "ETN"
-    if fossil > renewable + 0.03 and fossil >= grid:
-        return "XLE/XOM transition pressure"
-    if climate > max(renewable, grid, fossil) + 0.03:
-        return "Climate risk"
 
     scores = {
         "ICLN/NEE": renewable,
@@ -576,7 +602,7 @@ def write_summary_markdown(scores, summaries, linked):
         "",
         f"- 범용 임베딩 모델: `{EMBEDDING_MODEL}`",
         "- 역할: PDF 문단과 예시 문장의 의미를 벡터로 변환",
-        "- Example-based semantic scoring: 모델 파라미터를 추가 학습하지 않고, 사람이 만든 예시 문장과 새 보고서 문단의 의미 유사도를 계산",
+        "- Few-shot classifier: MiniLM 임베딩은 고정하고, 사람이 만든 소수 라벨 예시로 Logistic Regression 분류 헤드를 학습",
         "- Downstream task: 보고서 점수를 ETF/기업 주가 수익률과 연결",
         "",
         "## Report Signals",
