@@ -553,6 +553,9 @@ function renderActualEvidenceTables(data) {
   renderGenericTable('gemini-check-wrap', data.gemini_check, {
     title: 'PDF', expected_theme: '테마', human_check_result: '점검', manual_evidence_alignment: '근거 일치', unsupported_investment_or_prediction: '위험 문구', model: '모델'
   });
+  renderGenericTable('ood-test-wrap', data.out_of_domain, {
+    title: 'OOD PDF', asset_hint: '모델 신호', top_theme: '상위 테마', score_margin: '점수 차이', ood_decision: '판정', interpretation: '해석'
+  });
 }
 
 function renderGenericTable(id, rows, headers) {

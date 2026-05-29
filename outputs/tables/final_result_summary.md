@@ -49,6 +49,7 @@
 | Actual news-stock lag | `data/processed/reports/actual_news_stock_best_lag.csv` | H2 예비 검증 |
 | PDF validation metrics | `data/processed/reports/pdf_validation_metrics.csv` | confusion matrix, macro-F1 |
 | Gemini summary check | `data/processed/reports/gemini_summary_human_check.csv` | 표본 5개 근거 점검 |
+| Out-of-domain PDF test | `data/processed/reports/out_of_domain_pdf_test.csv` | WHO/OECD 비에너지 PDF 음성 대조군 |
 
 ## Expanded PDF Validation
 
@@ -63,6 +64,17 @@
 주의:
 
 > 15/15 일치는 소규모 검증 결과입니다. 이를 정량 일반화 성능으로 발표하면 안 됩니다.
+
+## Out-of-domain Check
+
+비에너지 PDF를 넣었을 때 모델이 어떻게 행동하는지 확인하기 위해 WHO 보건 통계 보고서와 OECD 교육 보고서를 음성 대조군으로 테스트했습니다.
+
+| PDF | Result | Interpretation |
+|---|---|---|
+| WHO World Health Statistics 2023 | Climate risk로 강하게 분류 | 보건 문서 안의 climate-health risk 표현 때문에 기후 리스크로 흡수되는 false-positive domain overlap |
+| OECD Education at a Glance 2023 | Climate risk top theme이지만 score margin 0.019 | 모델이 특정 시장 테마로 확신 있게 매핑하지 못하는 저확신 사례 |
+
+이 결과는 현재 시스템에 OOD reject 기능이 완전하지 않다는 점을 보여줍니다. 완성도를 높이려면 energy-domain relevance classifier를 앞단에 추가해 비에너지 문서를 먼저 걸러야 합니다.
 
 ## News-PDF Bridge
 
