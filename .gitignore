@@ -16,6 +16,9 @@ outputs/uploads/
 !data/raw/**/.gitkeep
 !data/processed/.gitkeep
 !data/processed/stock_returns_weekly.csv
+!data/processed/reports/
+!data/processed/reports/report_signals.csv
+!data/processed/reports/report_stock_link.csv
 !outputs/figures/.gitkeep
 !outputs/figures/*.png
 !outputs/tables/.gitkeep

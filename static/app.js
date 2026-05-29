@@ -242,6 +242,10 @@ function renderEvidence(evidence, topK) {
           <span class="ev-score">관련도 ${item.score.toFixed(3)}</span>
         </div>
         <div class="ev-text">${escapeHtml(item.paragraph)}</div>
+        <div class="ev-interpretation">
+          <strong>한국어 해석</strong>
+          <p>${escapeHtml(item.interpretation || '이 문단은 선택된 주제 신호의 근거로 사용되었습니다.')}</p>
+        </div>
       </div>`).join('');
     return `<div class="ev-list ${i === 0 ? 'active' : ''}" data-key="${k}">${rows || '<p style="color:var(--text-muted);font-size:.82rem">문단 없음</p>'}</div>`;
   }).join('');
@@ -314,10 +318,10 @@ function setupDownloads(data) {
   };
 
   document.getElementById('btn-dl-evidence').onclick = () => {
-    const header = ['theme','page','rank','retrieval_score','paragraph'];
+    const header = ['theme','page','rank','retrieval_score','paragraph','korean_interpretation'];
     const rows = [header];
     Object.entries(data.evidence).forEach(([theme, items]) => {
-      items.forEach(item => rows.push([theme, item.page, item.rank, item.score, item.paragraph]));
+      items.forEach(item => rows.push([theme, item.page, item.rank, item.score, item.paragraph, item.interpretation || '']));
     });
     downloadCSV(rows, 'pdf_signal_evidence.csv');
   };

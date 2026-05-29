@@ -35,6 +35,13 @@ ALLOWED_FIGURES = {
     "fig5_report_signals.png",
 }
 
+THEME_KOREAN = {
+    "renewable_opportunity": "재생에너지 기회",
+    "fossil_pressure": "화석연료 전환 압력",
+    "grid_infrastructure": "전력망/전기화",
+    "climate_risk": "기후 리스크",
+}
+
 _embedder: EmbeddingModel | None = None
 
 
@@ -78,6 +85,33 @@ def _compute_returns(scores: pd.DataFrame, horizons: list[int]) -> dict:
             result[f"forward_{h}w_{col}"] = round(float(val), 4)
 
     return result
+
+
+def _interpret_evidence(theme: str, paragraph: str) -> str:
+    text = paragraph.lower()
+    signals = []
+
+    keyword_groups = [
+        (["solar", "wind", "renewable", "clean energy", "capacity"], "재생에너지 확대 또는 청정에너지 투자"),
+        (["oil", "gas", "fossil", "methane", "carbon", "emissions"], "화석연료 산업의 배출 감축 또는 전환 압력"),
+        (["grid", "transmission", "distribution", "electricity", "electrification", "power"], "전력망, 송배전, 전기화 인프라"),
+        (["climate", "weather", "heat", "drought", "risk", "resilience"], "기후 변화와 물리적 리스크"),
+        (["investment", "demand", "policy", "regulation", "cost"], "투자, 수요, 정책 변화"),
+    ]
+    for keywords, label in keyword_groups:
+        if any(keyword in text for keyword in keywords):
+            signals.append(label)
+
+    if not signals:
+        signals.append("에너지 전환 관련 표현")
+
+    theme_label = THEME_KOREAN.get(theme, theme)
+    signal_text = ", ".join(dict.fromkeys(signals[:3]))
+    return (
+        f"이 문단은 {signal_text} 요소를 포함하고 있어 "
+        f"`{theme_label}` 신호의 근거로 선택되었습니다. "
+        "즉, 문서 안에서 해당 시장 테마와 연결될 수 있는 내용으로 해석할 수 있습니다."
+    )
 
 
 @app.post("/api/analyze")
@@ -148,6 +182,7 @@ async def analyze_pdf(
                     "rank": int(r["rank"]),
                     "score": round(float(r["retrieval_score"]), 4),
                     "paragraph": r["paragraph"],
+                    "interpretation": _interpret_evidence(theme, r["paragraph"]),
                 }
                 for _, r in evidence[evidence["theme"] == theme]
                 .sort_values("retrieval_score", ascending=False)
