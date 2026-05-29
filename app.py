@@ -364,7 +364,7 @@ async def analyze_pdf(
             reverse=True,
         )
         margin = sorted_themes[0][1] - sorted_themes[1][1]
-        confidence_level = "높음" if margin >= 0.04 else ("보통" if margin >= 0.015 else "낮음")
+        confidence_level = "높음" if margin >= 0.25 else ("보통" if margin >= 0.10 else "낮음")
 
         evidence_by_theme = {
             theme: [

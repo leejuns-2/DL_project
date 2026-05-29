@@ -99,11 +99,21 @@ SCORING_REFERENCE_EXAMPLES = {
         "Solar and wind capacity additions are expected to accelerate due to policy support and falling costs.",
         "Clean energy investment creates growth opportunities for renewable power developers and utilities.",
         "Renewable electricity deployment expands as countries increase energy transition targets.",
+        "Photovoltaic and offshore wind projects are receiving record investment as levelized costs fall below fossil alternatives.",
+        "Governments are setting ambitious renewable portfolio standards to accelerate the energy transition.",
+        "Battery storage paired with solar generation is increasingly cost-competitive with peaker plants.",
+        "Utility-scale renewable auctions are oversubscribed as institutional investors allocate to clean energy.",
+        "Green hydrogen production from electrolysis is scaling up as renewable electricity costs decline.",
     ],
     "fossil_pressure": [
         "Oil and gas producers face transition pressure from emissions regulation and declining fossil fuel demand.",
         "Methane reduction, carbon pricing, and climate policy increase risks for fossil fuel assets.",
         "Fossil fuel companies must reduce emissions to remain aligned with net zero pathways.",
+        "Stranded asset risk is rising as financial institutions restrict lending to new coal and oil projects.",
+        "Carbon border adjustment mechanisms are increasing competitive pressure on fossil fuel-intensive industries.",
+        "Institutional divestment campaigns are reducing capital access for oil and gas companies.",
+        "Declining renewable costs are undermining the long-term economic viability of fossil fuel power plants.",
+        "Natural gas demand faces structural decline as heat pumps and electric vehicles displace combustion equipment.",
     ],
     "grid_infrastructure": [
         "Transmission bottlenecks and grid expansion needs are delaying renewable energy deployment.",
@@ -112,11 +122,19 @@ SCORING_REFERENCE_EXAMPLES = {
         "Electricity demand growth requires investment in generation, transmission, distribution, and power system flexibility.",
         "Power system reliability depends on grid upgrades, storage, demand response, and network infrastructure.",
         "Rising electricity consumption from cooling, industry, and data centers creates opportunities for electrical equipment suppliers.",
+        "Smart grid technologies, advanced metering, and digital substations are required for modern power systems.",
+        "Interconnection queues for new renewable projects highlight transmission and substation infrastructure bottlenecks.",
+        "Microgrids, distributed energy resources, and virtual power plants are reshaping power distribution architecture.",
     ],
     "climate_risk": [
         "Extreme weather, heat waves, droughts, and physical climate risks affect energy systems.",
         "Climate change increases operational risks for infrastructure, utilities, and energy supply.",
         "Adaptation and resilience are required as climate hazards become more frequent.",
+        "Physical climate risks including flooding, wildfires, and sea level rise are affecting infrastructure assets.",
+        "Climate scenario analysis is becoming mandatory for financial institutions to assess portfolio risk.",
+        "Transition risk from carbon pricing and stranded assets is material for energy-intensive sectors.",
+        "Heat stress, water scarcity, and supply chain disruption are emerging as material climate-related financial risks.",
+        "TCFD disclosures reveal that companies in high-emission sectors face growing liability and regulatory risk.",
     ],
 }
 
@@ -126,6 +144,10 @@ FEW_SHOT_NEGATIVE_EXAMPLES = [
     "The company describes accounting policies and administrative matters with no climate signal.",
     "The document lists governance procedures that are unrelated to energy transition investment.",
     "The section contains historical financial statements without operational or policy evidence.",
+    "This chapter describes human resources policies, employee benefits, and workforce diversity programs.",
+    "The document outlines legal proceedings, patent disputes, and intellectual property litigation.",
+    "The section covers marketing strategies, brand positioning, and customer acquisition costs.",
+    "Revenue recognition policies and depreciation schedules are discussed in the notes to financial statements.",
 ]
 
 
@@ -421,7 +443,17 @@ def score_evidence_with_few_shot_learning(evidence, embedder):
         }
         for label, classifier in classifiers.items():
             probabilities = classifier.predict_proba(report_vectors)[:, 1]
-            row[label] = float(np.clip(probabilities.mean(), 0, 1))
+            n_top = max(1, int(len(probabilities) * 0.30))
+            row[label] = float(np.clip(np.sort(probabilities)[-n_top:].mean(), 0, 1))
+
+        theme_keys = ["renewable_opportunity", "fossil_pressure", "grid_infrastructure", "climate_risk"]
+        raw = np.array([row[k] for k in theme_keys])
+        v_min, v_max = raw.min(), raw.max()
+        if v_max - v_min > 1e-6:
+            scaled = (raw - v_min) / (v_max - v_min)
+            for k, v in zip(theme_keys, scaled):
+                row[k] = float(v)
+
         row["transition_signal"] = (
             row["renewable_opportunity"]
             + row["grid_infrastructure"]
