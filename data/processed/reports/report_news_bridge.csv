@@ -1,6 +1,6 @@
-report_id,title,date,issuer,renewable_opportunity,fossil_pressure,grid_infrastructure,climate_risk,transition_signal,asset_hint,news_context_available,news_window_mean,news_window_trend
-exxon_acs_2023,ExxonMobil Advancing Climate Solutions 2023,2023-04-04,ExxonMobil,0.6768331527709961,0.7295172810554504,0.6680348515510559,0.7052814364433289,1.3206321597099304,XLE/XOM transition pressure,True,-0.17,0.06
-iea_weo_2023,IEA World Energy Outlook 2023,2023-10-24,IEA,0.7321200966835022,0.7094463109970093,0.7114701867103577,0.7043371796607971,1.4384811520576477,ICLN/NEE,True,0.11,0.06000000000000001
-iea_oil_gas_nz_2023,IEA Oil and Gas Industry in Net Zero Transitions,2023-11-23,IEA,0.7069989442825317,0.7361418008804321,0.6925250291824341,0.6820995807647705,1.3454817533493042,XLE/XOM transition pressure,True,-0.07,-0.020000000000000004
-iea_renewables_2023,IEA Renewables 2023,2024-01-11,IEA,0.7318511009216309,0.682590126991272,0.7172439098358154,0.6860383152961731,1.4525431990623474,ICLN/NEE,True,0.185,0.1
-eaton_annual_2023,Eaton Annual Report 2023,2024-02-23,Eaton,0.6682081818580627,0.6400668025016785,0.6901770234107971,0.6544702053070068,1.3727886080741882,ETN,True,0.1625,0.009999999999999981
+report_id,title,date,issuer,scoring_method,renewable_opportunity,fossil_pressure,grid_infrastructure,climate_risk,transition_signal,asset_hint,news_context_available,news_window_mean,news_window_trend
+exxon_acs_2023,ExxonMobil Advancing Climate Solutions 2023,2023-04-04,ExxonMobil,few_shot_logistic_head_on_minilm_embeddings,0.581438360992367,0.8666913340643324,0.0,1.0,0.7147470269280346,Climate risk,True,-0.17,0.06
+iea_weo_2023,IEA World Energy Outlook 2023,2023-10-24,IEA,few_shot_logistic_head_on_minilm_embeddings,1.0,0.023216548009720502,0.0,0.0015876956059677864,0.9783711475962472,ICLN/NEE,True,0.11,0.06000000000000001
+iea_oil_gas_nz_2023,IEA Oil and Gas Industry in Net Zero Transitions,2023-11-23,IEA,few_shot_logistic_head_on_minilm_embeddings,0.6495888680579908,1.0,0.44847045254507245,0.0,0.09805932060306333,XLE/XOM transition pressure,True,-0.07,-0.020000000000000004
+iea_renewables_2023,IEA Renewables 2023,2024-01-11,IEA,few_shot_logistic_head_on_minilm_embeddings,1.0,0.49903195551902235,0.7184179931378303,0.0,1.219386037618808,ICLN/NEE,True,0.185,0.1
+eaton_annual_2023,Eaton Annual Report 2023,2024-02-23,Eaton,few_shot_logistic_head_on_minilm_embeddings,0.5180592814856025,0.0,1.0,0.6797643106117661,2.1978235920973686,ETN,True,0.1625,0.009999999999999981
