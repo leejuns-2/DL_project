@@ -47,6 +47,7 @@ THEME_KOREAN = {
 }
 
 _embedder: EmbeddingModel | None = None
+_local_genai: dict | None = None
 
 
 def get_embedder() -> EmbeddingModel:
@@ -123,16 +124,75 @@ def _interpret_evidence(theme: str, paragraph: str) -> str:
     )
 
 
+def _load_local_genai(model_id: str) -> dict:
+    global _local_genai
+    if _local_genai and _local_genai.get("model_id") == model_id:
+        return _local_genai
+
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.float32, low_cpu_mem_usage=True)
+    model.eval()
+    _local_genai = {"model_id": model_id, "tokenizer": tokenizer, "model": model}
+    return _local_genai
+
+
+def _run_local_genai(model_id: str, title: str, evidence: pd.DataFrame) -> dict:
+    import torch
+
+    bundle = _load_local_genai(model_id)
+    tokenizer = bundle["tokenizer"]
+    model = bundle["model"]
+
+    context = "\n".join(
+        f"- {row['theme']} p.{row['page']}: {row['paragraph'][:550]}"
+        for _, row in evidence.sort_values("retrieval_score", ascending=False).head(6).iterrows()
+    )
+    messages = [
+        {"role": "system", "content": "You are a cautious energy-market research assistant."},
+        {
+            "role": "user",
+            "content": (
+                "다음 PDF 근거를 바탕으로 에너지 전환, 뉴스 분위기, 주가 downstream 연결 관점에서 "
+                "한국어로 3문장 이내로 요약해줘. 투자 추천이나 미래 수익률 예측처럼 말하지 마.\n\n"
+                f"보고서 제목: {title}\n근거:\n{context}"
+            ),
+        },
+    ]
+    text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    inputs = tokenizer([text], return_tensors="pt")
+    with torch.no_grad():
+        output = model.generate(
+            **inputs,
+            max_new_tokens=int(os.getenv("LOCAL_GENAI_MAX_TOKENS", "180")),
+            do_sample=False,
+            pad_token_id=tokenizer.eos_token_id,
+        )
+    generated = output[0][inputs.input_ids.shape[-1] :]
+    return {
+        "enabled": True,
+        "provider": "local_huggingface_transformers",
+        "model": model_id,
+        "summary": tokenizer.decode(generated, skip_special_tokens=True).strip(),
+        "note": "",
+    }
+
+
 def _optional_generative_summary(title: str, evidence: pd.DataFrame) -> dict:
     api_url = os.getenv("GENAI_API_URL")
     api_key = os.getenv("GENAI_API_KEY")
     model = os.getenv("GENAI_MODEL", "large-generative-model")
+    local_model = os.getenv("LOCAL_GENAI_MODEL")
     if not api_url or not api_key:
+        if local_model:
+            return _run_local_genai(local_model, title, evidence)
         return {
             "enabled": False,
             "model": model,
             "summary": "",
-            "note": "Set GENAI_API_URL and GENAI_API_KEY to enable a large generative model.",
+            "note": "Set GENAI_API_URL/GENAI_API_KEY for an API model or LOCAL_GENAI_MODEL for an open-weight local model.",
         }
 
     context = "\n".join(
