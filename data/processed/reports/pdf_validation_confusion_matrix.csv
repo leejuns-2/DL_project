@@ -1,5 +1,5 @@
 ,pred:Climate risk,pred:ETN,pred:ICLN/NEE,pred:XLE/XOM transition pressure
-actual:Climate risk,1,0,0,0
-actual:ETN,0,4,0,1
-actual:ICLN/NEE,0,0,5,1
+actual:Climate risk,2,0,0,2
+actual:ETN,0,5,1,1
+actual:ICLN/NEE,0,1,9,1
 actual:XLE/XOM transition pressure,0,0,1,2

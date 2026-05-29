@@ -14,3 +14,13 @@ iea_power_sector_2021,IEA Secure Energy Transitions in the Power Sector,ETN,ETN,
 iea_oil_2024,IEA Oil 2024,XLE/XOM transition pressure,XLE/XOM transition pressure,True,205,40
 iea_gas_2023,IEA Medium-Term Gas Report 2023,XLE/XOM transition pressure,XLE/XOM transition pressure,True,153,40
 iea_coal_2023,IEA Coal 2023,XLE/XOM transition pressure,ICLN/NEE,False,196,40
+iea_global_ev_2023,IEA Global EV Outlook 2023,ICLN/NEE,ETN,False,219,40
+iea_solar_pv_supply_2022,IEA Solar PV Global Supply Chains 2022,ICLN/NEE,ICLN/NEE,True,185,40
+iea_clean_tech_supply_2022,IEA Securing Clean Energy Technology Supply Chains,ICLN/NEE,ICLN/NEE,True,192,40
+iea_etp_2023,IEA Energy Technology Perspectives 2023,ICLN/NEE,ICLN/NEE,True,225,40
+iea_weo_2023_validation,IEA World Energy Outlook 2023,ICLN/NEE,ICLN/NEE,True,211,40
+iea_batteries_2024,IEA Batteries and Secure Energy Transitions 2024,ETN,ICLN/NEE,False,226,40
+eia_electric_power_annual_2023,EIA Electric Power Annual 2023,ETN,ETN,True,158,28
+exxon_acs_2024,ExxonMobil Advancing Climate Solutions 2024,Climate risk,XLE/XOM transition pressure,False,226,40
+exxon_acs_2025,ExxonMobil Advancing Climate Solutions 2025,Climate risk,XLE/XOM transition pressure,False,252,40
+ipcc_ar6_wg3_mitigation,IPCC AR6 WGIII Mitigation Full Report,Climate risk,Climate risk,True,263,40

@@ -18,7 +18,7 @@ app_port: 7860
 
 - PDF 업로드 분석: 에너지 보고서를 업로드하면 문단 추출, 근거 검색, 주제 점수화, Gemini 요약을 수행합니다.
 - Few-shot learning: MiniLM 임베딩 모델은 고정하고, 사람이 작성한 소수의 라벨 예시로 Logistic Regression 분류 헤드를 학습합니다.
-- Zero-shot vs few-shot 비교: 사전학습 임베딩 유사도만 쓴 baseline과 few-shot classifier head를 같은 15개 PDF에서 비교합니다.
+- Zero-shot vs few-shot 비교: 사전학습 임베딩 유사도만 쓴 baseline과 few-shot classifier head를 같은 25개 PDF에서 비교합니다.
 - Gemini 생성 요약: `gemini-3.5-flash`를 사용해 근거 문단을 조심스러운 한국어 연구 요약으로 변환합니다.
 - 뉴스-PDF 연결: 실제 GDELT GKG 공개 원자료에서 주간 샘플을 수집해 보고서 날짜 주변 뉴스 tone 컨텍스트를 PDF 신호와 연결합니다.
 - Downstream stock link: 보고서 날짜 전후의 실제 과거 수익률을 연결해 시나리오로 보여줍니다.
@@ -54,8 +54,8 @@ PDF Upload
 |---|---|
 | Stock weekly returns | 2019-2024 주간 수익률 CSV 포함 |
 | Report signals | 핵심 에너지 PDF 5개 분석 결과 포함 |
-| Expanded PDF validation | 추가 검증 PDF 15개 결과 포함 |
-| Zero-shot vs few-shot comparison | zero-shot 6/15, few-shot 12/15 비교 결과 포함 |
+| Expanded PDF validation | 추가 검증 PDF 25개 결과 포함 |
+| Zero-shot vs few-shot comparison | zero-shot 10/25, few-shot 18/25 비교 결과 포함 |
 | News sentiment context | 실제 GDELT GKG weekly sample tone signal 포함 |
 | Report-stock link | 보고서 날짜 이후 4주 과거 수익률 연결 포함 |
 
@@ -65,7 +65,7 @@ PDF Upload
 
 - 이 앱은 미래 수익률을 예측하지 않습니다.
 - 포트폴리오 계산은 과거 특정 기간의 실제 수익률을 적용한 시나리오입니다.
-- PDF 검증은 현재 재현 가능한 기준으로 15개 중 12개 일치입니다. 표본이 작고 쉬운 사례가 많아 정량 일반화 성능으로 해석하면 안 됩니다.
+- PDF 검증은 현재 재현 가능한 기준으로 25개 중 18개 일치입니다. 표본이 아직 작고 복합 주제 문서의 단일 라벨 평가가 어려워 정량 일반화 성능으로 해석하면 안 됩니다.
 - 뉴스 컨텍스트는 현재 샘플 신호이므로, 대량 뉴스 원자료 기반 정량 검증으로 과장하면 안 됩니다.
 - 상관관계와 수익률 연결은 인과관계 증명이 아닙니다.
 

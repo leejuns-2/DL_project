@@ -40,45 +40,45 @@
 | Stock weekly returns | `data/processed/stock_returns_weekly.csv` | 배포 포함 |
 | Report signals | `data/processed/reports/report_signals.csv` | 핵심 PDF 5개 |
 | Report-stock link | `data/processed/reports/report_stock_link.csv` | 핵심 PDF 5개 |
-| Expanded PDF validation | `data/processed/reports/expanded_pdf_validation.csv` | 추가 PDF 15개 |
-| Test PDF manifest | `data/processed/reports/sample_pdf_manifest.csv` | 로컬 저장 PDF 15개 목록 |
+| Expanded PDF validation | `data/processed/reports/expanded_pdf_validation.csv` | 추가 PDF 25개 |
+| Test PDF manifest | `data/processed/reports/sample_pdf_manifest.csv` | 로컬 저장 PDF 25개 목록 |
 | News context signal | `data/processed/news_sentiment_weekly.csv` | 실제 GDELT GKG weekly sample tone |
 | Climate anomaly | `data/processed/climate_monthly_gistemp_tai.csv` | NASA GISTEMP monthly anomaly |
 | Report-news bridge | `data/processed/reports/report_news_bridge.csv` | 뉴스 컨텍스트 연결 완료 |
 | Actual climate-news lag | `data/processed/reports/actual_climate_news_lag_corr.csv` | H1 예비 검증 |
 | Actual news-stock lag | `data/processed/reports/actual_news_stock_best_lag.csv` | H2 예비 검증 |
 | PDF validation metrics | `data/processed/reports/pdf_validation_metrics.csv` | confusion matrix, macro-F1 |
-| PDF failure analysis | `data/processed/reports/pdf_validation_failure_analysis.csv` | 오분류 3건 원인 해석 |
+| PDF failure analysis | `data/processed/reports/pdf_validation_failure_analysis.csv` | 오분류 7건 원인 해석 |
 | Gemini summary check | `data/processed/reports/gemini_summary_human_check.csv` | 표본 5개 근거 점검 |
 | Out-of-domain PDF test | `data/processed/reports/out_of_domain_pdf_test.csv` | WHO/OECD 비에너지 PDF 음성 대조군 |
 | Zero-shot vs few-shot comparison | `data/processed/reports/zero_shot_vs_few_shot.csv` | foundation model 전이학습 비교 |
 
 ## Expanded PDF Validation
 
-추가 검증 표본은 IRENA 보고서뿐 아니라 NextEra, Siemens Energy, IPCC, IEA 전력망·전력·석유·가스·석탄 자료를 포함해 라벨 다양성을 늘렸습니다.
+추가 검증 표본은 IRENA 보고서뿐 아니라 NextEra, Siemens Energy, IPCC, EIA, ExxonMobil, IEA 전력망·전력·석유·가스·석탄·EV·태양광·배터리·공급망 자료를 포함해 라벨 다양성을 늘렸습니다.
 
 | Metric | Value |
 |---|---:|
-| Validation PDFs | 15 |
-| Matched expected direction | 12 |
-| Accuracy | 0.80 |
-| Macro-F1 | 0.823 |
+| Validation PDFs | 25 |
+| Matched expected direction | 18 |
+| Accuracy | 0.72 |
+| Macro-F1 | 0.675 |
 | Interpretation | 소규모 MVP 검증. 실패 사례를 포함한 재현 가능 결과 |
 
 주의:
 
-> 12/15 일치는 소규모 검증 결과입니다. 이를 정량 일반화 성능으로 발표하면 안 됩니다.
+> 18/25 일치는 소규모 검증 결과입니다. 이를 정량 일반화 성능으로 발표하면 안 됩니다.
 
-현재 실패 사례는 NextEra annual report, IEA World Energy Outlook 2022, IEA Coal 2023입니다. 공통 원인은 문서가 단일 주제만 담고 있지 않고, 재생에너지·화석연료·전력망·정책 전환 표현이 섞여 있다는 점입니다. 따라서 이 프로젝트는 “완벽한 분류기”가 아니라, 복합 PDF를 foundation embedding과 few-shot head로 신호화하는 연구용 MVP라고 설명하는 것이 안전합니다.
+현재 실패 사례는 NextEra annual report, IEA World Energy Outlook 2022, IEA Coal 2023, IEA Global EV Outlook 2023, IEA Batteries 2024, ExxonMobil ACS 2024, ExxonMobil ACS 2025입니다. 공통 원인은 문서가 단일 주제만 담고 있지 않고, 재생에너지·화석연료·전력망·정책 전환 표현이 섞여 있다는 점입니다. 따라서 이 프로젝트는 “완벽한 분류기”가 아니라, 복합 PDF를 foundation embedding과 few-shot head로 신호화하는 연구용 MVP라고 설명하는 것이 안전합니다.
 
 ## Zero-shot vs Few-shot Comparison
 
-같은 15개 검증 PDF에 대해 두 가지 방식을 비교했습니다.
+같은 25개 검증 PDF에 대해 두 가지 방식을 비교했습니다.
 
-| Method | Correct / 15 | Match rate | Meaning |
+| Method | Correct / 25 | Match rate | Meaning |
 |---|---:|---:|---|
-| Zero-shot embedding similarity | 6 | 40% | 사전학습 임베딩과 테마 키워드 유사도만 사용 |
-| Few-shot classifier head | 12 | 80% | 고정된 MiniLM 임베딩 위에 사람이 만든 소수 예시로 logistic head 학습 |
+| Zero-shot embedding similarity | 10 | 40% | 사전학습 임베딩과 테마 키워드 유사도만 사용 |
+| Few-shot classifier head | 18 | 72% | 고정된 MiniLM 임베딩 위에 사람이 만든 소수 예시로 logistic head 학습 |
 
 이 비교는 교수님이 요구한 foundation model 활용 흐름을 더 명확하게 보여줍니다. 즉, 범용 사전학습 모델을 그대로 쓰는 것에서 끝내지 않고, 에너지 리포트라는 downstream task에 맞게 소수 예시를 이용해 전이학습 계층을 얹었습니다.
 
@@ -119,7 +119,7 @@
 
 ## Limitations
 
-- 검증 PDF 수가 아직 작습니다.
+- 검증 PDF 수를 25개로 늘렸지만, 여전히 엄밀한 일반화 평가에는 작습니다.
 - 뉴스 컨텍스트는 실제 GDELT 기반이지만 주간 1시점 표본이므로 대량 뉴스 기반 일반화 검증은 추가로 필요합니다.
 - Gemini 요약은 생성형 모델 출력이므로 근거 문단과 함께 확인해야 합니다.
 - 과거 수익률 연결은 예측이나 투자 추천이 아닙니다.

@@ -16,6 +16,12 @@
         <span class="eyebrow">Pre-trained Transformer MVP</span>
         <h1>Energy Report-to-Market Signal Analyzer</h1>
         <p>PDF 리포트를 업로드하면 문서 근거, few-shot topic classification, Gemini 요약, 시장 수익률 연결을 한 화면에서 확인합니다.</p>
+        <div class="hero-metrics">
+          <span><strong>25</strong> validation PDFs</span>
+          <span><strong>18/25</strong> few-shot match</span>
+          <span><strong>10/25</strong> zero-shot match</span>
+          <span><strong>313</strong> GDELT samples</span>
+        </div>
       </div>
     </div>
     <div class="header-badges">
@@ -23,6 +29,15 @@
       <span class="badge badge-method">Few-shot classifier</span>
       <span class="badge badge-safe">Research MVP</span>
     </div>
+  </div>
+  <div class="header-flow">
+    <span>PDF</span>
+    <span>Text</span>
+    <span>Evidence</span>
+    <span>Embedding</span>
+    <span>Few-shot Head</span>
+    <span>Summary</span>
+    <span>Market Link</span>
   </div>
 </header>
 
@@ -212,7 +227,7 @@
         <span class="ov-sub">2019-2024 actual GKG</span>
       </div>
       <div class="ov-card">
-        <span class="ov-num">12/15</span>
+        <span class="ov-num">18/25</span>
         <span class="ov-label">PDF 검증 일치</span>
         <span class="ov-sub">few-shot head 기준</span>
       </div>
@@ -256,7 +271,7 @@
           <tr>
             <td>검증</td>
             <td>소규모 일치 결과를 정량 정확도로 일반화했다</td>
-            <td>소규모 일반화 점검에서 15개 PDF가 기대 방향과 일치했다. 다만 정량 일반화 성능으로 과장하지 않는다</td>
+            <td>25개 공개 PDF 점검에서 18개가 기대 방향과 일치했다. 다만 정량 일반화 성능으로 과장하지 않는다</td>
           </tr>
           <tr>
             <td>뉴스·PDF 연결</td>
@@ -266,7 +281,7 @@
           <tr>
             <td>Few-shot 검증</td>
             <td>테스트 셋에서 정확도를 측정했다</td>
-            <td>별도의 held-out test set이 없음. 15개 검증 PDF는 방향 일치 여부만 확인하는 MVP 탐색 수준이며, 정량 일반화 성능 평가가 아님</td>
+            <td>별도의 held-out test set이 없음. 25개 검증 PDF는 방향 일치 여부를 확인하는 MVP 탐색 수준이며, 정량 일반화 성능 평가가 아님</td>
           </tr>
           <tr>
             <td>점수 정규화</td>
@@ -380,7 +395,7 @@
       <div id="validation-table-wrap" class="table-wrap">
         <p class="loading-text">데이터 로딩 중…</p>
       </div>
-      <p class="note">현재 재현 가능한 검증 결과는 15개 중 12개 일치, accuracy 0.80입니다. 3개 실패 사례는 복합 테마 문서 또는 단일 라벨 기준이 애매한 문서입니다. 단, <strong>검증 표본은 여전히 쉬운 사례가 많고 표본 수가 작으므로</strong> 일반화 성능으로 과장하면 안 됩니다.</p>
+      <p class="note">현재 재현 가능한 검증 결과는 25개 중 18개 일치, accuracy 0.72입니다. 실패 사례는 복합 테마 문서 또는 단일 라벨 기준이 애매한 문서에서 주로 발생합니다. 단, <strong>검증 표본은 여전히 작으므로</strong> 일반화 성능으로 과장하면 안 됩니다.</p>
       <div id="failure-analysis-wrap" class="table-wrap">
         <p class="loading-text">실패 분석 로딩 중…</p>
       </div>
@@ -388,7 +403,7 @@
 
     <div class="panel">
       <h2 class="panel-title">Zero-shot vs Few-shot 비교</h2>
-      <p class="section-help">같은 PDF 15개를 대상으로 사전학습 임베딩 유사도만 사용한 zero-shot baseline과, 사람이 만든 소수 예시로 학습한 few-shot classifier head를 비교했습니다. 이 표는 전이학습을 붙였을 때 downstream 분류가 어떻게 달라지는지 보여주는 과제 핵심 실험입니다.</p>
+      <p class="section-help">같은 PDF 25개를 대상으로 사전학습 임베딩 유사도만 사용한 zero-shot baseline과, 사람이 만든 소수 예시로 학습한 few-shot classifier head를 비교했습니다. 이 표는 전이학습을 붙였을 때 downstream 분류가 어떻게 달라지는지 보여주는 과제 핵심 실험입니다.</p>
       <div id="zero-shot-wrap" class="table-wrap">
         <p class="loading-text">데이터 로딩 중…</p>
       </div>

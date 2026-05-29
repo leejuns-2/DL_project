@@ -1,2 +1,2 @@
 n,accuracy,macro_f1,weighted_f1,caveat
-15,0.8,0.8234126984126984,0.8105820105820105,"small easy-case validation set; current reproducible pipeline result, not a generalization estimate"
+25,0.72,0.6746309246309246,0.7353846153846153,small public-PDF validation set with mixed easy and boundary cases; not a generalization estimate

@@ -2,3 +2,7 @@ report_id,title,expected_hint,predicted_hint,matched,paragraphs,evidence,failure
 nextera_annual_2023,NextEra Energy Annual Report 2023,ETN,XLE/XOM transition pressure,False,352,40,utility annual report contains broad clean-energy and fossil/transition language; model maps it to fossil pressure rather than grid/electrification
 iea_weo_2022,IEA World Energy Outlook 2022,ICLN/NEE,XLE/XOM transition pressure,False,165,40,"broad world energy outlook mixes renewables, fossil fuels, grids, and policy; single-label expectation is too coarse"
 iea_coal_2023,IEA Coal 2023,XLE/XOM transition pressure,ICLN/NEE,False,196,40,coal report has transition and clean-energy terms around phase-down; model under-weights fossil-specific context
+iea_global_ev_2023,IEA Global EV Outlook 2023,ICLN/NEE,ETN,False,219,40,mixed-theme or label ambiguity
+iea_batteries_2024,IEA Batteries and Secure Energy Transitions 2024,ETN,ICLN/NEE,False,226,40,"battery reports mix clean-energy opportunity and grid/storage infrastructure, making the single ETN label ambiguous"
+exxon_acs_2024,ExxonMobil Advancing Climate Solutions 2024,Climate risk,XLE/XOM transition pressure,False,226,40,mixed-theme or label ambiguity
+exxon_acs_2025,ExxonMobil Advancing Climate Solutions 2025,Climate risk,XLE/XOM transition pressure,False,252,40,mixed-theme or label ambiguity

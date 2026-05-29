@@ -1,16 +1,26 @@
-file,issuer,title,expected_hint,saved_locally,bytes
-IRENA_Global_Renewables_Outlook_2020.pdf,IRENA,Global Renewables Outlook 2020,ICLN/NEE,True,19852709
-IRENA_Renewable_Energy_Statistics_2020.pdf,IRENA,Renewable Energy Statistics 2020,ICLN/NEE,True,2674515
-IRENA_Renewable_power_costs_2022.pdf,IRENA,Renewable Power Costs 2022,ICLN/NEE,True,48176296
-IRENA_World_energy_transitions_2023.pdf,IRENA,World Energy Transitions Outlook 2023,ICLN/NEE,True,2000191
-IRENA_Renewable_Energy_Statistics_2024.pdf,IRENA,Renewable Energy Statistics 2024,ICLN/NEE,True,8291028
-NextEra_Energy_Annual_Report_2023.pdf,NextEra Energy,Annual Report 2023,ETN,True,1822750
-Siemens_Energy_Annual_Report_2023.pdf,Siemens Energy,Annual Report 2023,ETN,True,4800533
-IPCC_AR6_SYR_FullVolume.pdf,IPCC,AR6 Synthesis Report,Climate risk,True,4913496
-IEA_Electricity_Grids_Secure_Energy_Transitions_2023.pdf,IEA,Electricity Grids and Secure Energy Transitions,ETN,True,4850992
-IEA_World_Energy_Outlook_2022.pdf,IEA,World Energy Outlook 2022,ICLN/NEE,True,14153467
-IEA_Electricity_2024.pdf,IEA,Electricity 2024,ETN,True,6591657
-IEA_Secure_Energy_Transitions_Power_Sector_2021.pdf,IEA,Secure Energy Transitions in the Power Sector,ETN,True,14372287
-IEA_Oil_2024.pdf,IEA,Oil 2024,XLE/XOM transition pressure,True,4186527
-IEA_Medium_Term_Gas_Report_2023.pdf,IEA,Medium-Term Gas Report 2023,XLE/XOM transition pressure,True,4072768
-IEA_Coal_2023.pdf,IEA,Coal 2023,XLE/XOM transition pressure,True,3733407
+file,issuer,title,expected_hint,saved_locally,bytes,source_url
+IRENA_Global_Renewables_Outlook_2020.pdf,IRENA,IRENA Global Renewables Outlook 2020,ICLN/NEE,True,19852709,
+IRENA_Renewable_Energy_Statistics_2020.pdf,IRENA,IRENA Renewable Energy Statistics 2020,ICLN/NEE,True,2674515,
+IRENA_Renewable_power_costs_2022.pdf,IRENA,IRENA Renewable Power Costs 2022,ICLN/NEE,True,48176296,
+IRENA_World_energy_transitions_2023.pdf,IRENA,IRENA World Energy Transitions Outlook 2023,ICLN/NEE,True,2000191,
+IRENA_Renewable_Energy_Statistics_2024.pdf,IRENA,IRENA Renewable Energy Statistics 2024,ICLN/NEE,True,8291028,
+NextEra_Energy_Annual_Report_2023.pdf,NextEra Energy,NextEra Energy Annual Report 2023,ETN,True,1822750,
+Siemens_Energy_Annual_Report_2023.pdf,Siemens Energy,Siemens Energy Annual Report 2023,ETN,True,4800533,
+IPCC_AR6_SYR_FullVolume.pdf,IPCC,IPCC AR6 Synthesis Report,Climate risk,True,4913496,
+IEA_Electricity_Grids_Secure_Energy_Transitions_2023.pdf,IEA,IEA Electricity Grids and Secure Energy Transitions,ETN,True,4850992,
+IEA_World_Energy_Outlook_2022.pdf,IEA,IEA World Energy Outlook 2022,ICLN/NEE,True,14153467,
+IEA_Electricity_2024.pdf,IEA,IEA Electricity 2024,ETN,True,6591657,
+IEA_Secure_Energy_Transitions_Power_Sector_2021.pdf,IEA,IEA Secure Energy Transitions in the Power Sector,ETN,True,14372287,
+IEA_Oil_2024.pdf,IEA,IEA Oil 2024,XLE/XOM transition pressure,True,4186527,
+IEA_Medium_Term_Gas_Report_2023.pdf,IEA,IEA Medium-Term Gas Report 2023,XLE/XOM transition pressure,True,4072768,
+IEA_Coal_2023.pdf,IEA,IEA Coal 2023,XLE/XOM transition pressure,True,3733407,
+IEA_Global_EV_Outlook_2023.pdf,IEA,IEA Global EV Outlook 2023,ICLN/NEE,True,6552753,https://iea.blob.core.windows.net/assets/dacf14d2-eabc-498a-8263-9f97fd5dc327/GEVO2023.pdf
+IEA_Solar_PV_Global_Supply_Chains_2022.pdf,IEA,IEA Solar PV Global Supply Chains 2022,ICLN/NEE,True,4705336,https://iea.blob.core.windows.net/assets/d2ee601d-6b1a-4cd2-a0e8-db02dc64332c/SpecialReportonSolarPVGlobalSupplyChains.pdf
+IEA_Securing_Clean_Energy_Tech_Supply_Chains_2022.pdf,IEA,IEA Securing Clean Energy Technology Supply Chains,ICLN/NEE,True,4041629,https://iea.blob.core.windows.net/assets/0fe16228-521a-43d9-8da6-bbf08cc9f2b4/SecuringCleanEnergyTechnologySupplyChains.pdf
+IEA_Energy_Technology_Perspectives_2023.pdf,IEA,IEA Energy Technology Perspectives 2023,ICLN/NEE,True,41860937,https://iea.blob.core.windows.net/assets/a86b480e-2b03-4e25-bae1-da1395e0b620/EnergyTechnologyPerspectives2023.pdf
+IEA_World_Energy_Outlook_2023.pdf,IEA,IEA World Energy Outlook 2023,ICLN/NEE,True,16033285,https://iea.blob.core.windows.net/assets/86ede39e-4436-42d7-ba2a-edf61467e070/WorldEnergyOutlook2023.pdf
+IEA_Batteries_Secure_Energy_Transitions_2024.pdf,IEA,IEA Batteries and Secure Energy Transitions 2024,ETN,True,7827636,https://iea.blob.core.windows.net/assets/cb39c1bf-d2b3-446d-8c35-aae6b1f3a4a0/BatteriesandSecureEnergyTransitions.pdf
+EIA_Electric_Power_Annual_2023.pdf,EIA,EIA Electric Power Annual 2023,ETN,True,7016957,https://www.eia.gov/electricity/annual/archive/2023/pdf/epa.pdf
+ExxonMobil_Advancing_Climate_Solutions_2024.pdf,ExxonMobil,ExxonMobil Advancing Climate Solutions 2024,Climate risk,True,15549568,https://corporate.exxonmobil.com/-/media/global/files/advancing-climate-solutions/2024/2024-advancing-climate-solutions-report.pdf
+ExxonMobil_Advancing_Climate_Solutions_2025.pdf,ExxonMobil,ExxonMobil Advancing Climate Solutions 2025,Climate risk,True,11342905,https://corporate.exxonmobil.com/-/media/global/files/advancing-climate-solutions/2025/advancing-climate-solutions-report.pdf
+IPCC_AR6_WGIII_Mitigation_FullReport.pdf,IPCC,IPCC AR6 WGIII Mitigation Full Report,Climate risk,True,68822320,https://www.ipcc.ch/report/ar6/wg3/downloads/report/IPCC_AR6_WGIII_FullReport.pdf

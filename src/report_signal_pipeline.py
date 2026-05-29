@@ -272,6 +272,86 @@ VALIDATION_SAMPLE_PDFS = [
         "path": "data/sample_pdfs/IEA_Coal_2023.pdf",
         "expected_hint": "XLE/XOM transition pressure",
     },
+    {
+        "report_id": "iea_global_ev_2023",
+        "title": "IEA Global EV Outlook 2023",
+        "date": "2023-04-26",
+        "issuer": "IEA",
+        "path": "data/sample_pdfs/IEA_Global_EV_Outlook_2023.pdf",
+        "expected_hint": "ICLN/NEE",
+    },
+    {
+        "report_id": "iea_solar_pv_supply_2022",
+        "title": "IEA Solar PV Global Supply Chains 2022",
+        "date": "2022-08-01",
+        "issuer": "IEA",
+        "path": "data/sample_pdfs/IEA_Solar_PV_Global_Supply_Chains_2022.pdf",
+        "expected_hint": "ICLN/NEE",
+    },
+    {
+        "report_id": "iea_clean_tech_supply_2022",
+        "title": "IEA Securing Clean Energy Technology Supply Chains",
+        "date": "2022-07-12",
+        "issuer": "IEA",
+        "path": "data/sample_pdfs/IEA_Securing_Clean_Energy_Tech_Supply_Chains_2022.pdf",
+        "expected_hint": "ICLN/NEE",
+    },
+    {
+        "report_id": "iea_etp_2023",
+        "title": "IEA Energy Technology Perspectives 2023",
+        "date": "2023-01-12",
+        "issuer": "IEA",
+        "path": "data/sample_pdfs/IEA_Energy_Technology_Perspectives_2023.pdf",
+        "expected_hint": "ICLN/NEE",
+    },
+    {
+        "report_id": "iea_weo_2023_validation",
+        "title": "IEA World Energy Outlook 2023",
+        "date": "2023-10-24",
+        "issuer": "IEA",
+        "path": "data/sample_pdfs/IEA_World_Energy_Outlook_2023.pdf",
+        "expected_hint": "ICLN/NEE",
+    },
+    {
+        "report_id": "iea_batteries_2024",
+        "title": "IEA Batteries and Secure Energy Transitions 2024",
+        "date": "2024-04-25",
+        "issuer": "IEA",
+        "path": "data/sample_pdfs/IEA_Batteries_Secure_Energy_Transitions_2024.pdf",
+        "expected_hint": "ETN",
+    },
+    {
+        "report_id": "eia_electric_power_annual_2023",
+        "title": "EIA Electric Power Annual 2023",
+        "date": "2024-11-07",
+        "issuer": "EIA",
+        "path": "data/sample_pdfs/EIA_Electric_Power_Annual_2023.pdf",
+        "expected_hint": "ETN",
+    },
+    {
+        "report_id": "exxon_acs_2024",
+        "title": "ExxonMobil Advancing Climate Solutions 2024",
+        "date": "2024-04-08",
+        "issuer": "ExxonMobil",
+        "path": "data/sample_pdfs/ExxonMobil_Advancing_Climate_Solutions_2024.pdf",
+        "expected_hint": "Climate risk",
+    },
+    {
+        "report_id": "exxon_acs_2025",
+        "title": "ExxonMobil Advancing Climate Solutions 2025",
+        "date": "2025-03-31",
+        "issuer": "ExxonMobil",
+        "path": "data/sample_pdfs/ExxonMobil_Advancing_Climate_Solutions_2025.pdf",
+        "expected_hint": "Climate risk",
+    },
+    {
+        "report_id": "ipcc_ar6_wg3_mitigation",
+        "title": "IPCC AR6 WGIII Mitigation Full Report",
+        "date": "2022-04-04",
+        "issuer": "IPCC",
+        "path": "data/sample_pdfs/IPCC_AR6_WGIII_Mitigation_FullReport.pdf",
+        "expected_hint": "Climate risk",
+    },
 ]
 
 
@@ -428,6 +508,7 @@ def train_few_shot_topic_classifiers(embedder):
 
 
 def score_evidence_with_few_shot_learning(evidence, embedder):
+    evidence = evidence.reset_index(drop=True)
     classifiers = train_few_shot_topic_classifiers(embedder)
     evidence_vectors = embedder.encode(evidence["paragraph"].tolist())
 

@@ -1,16 +1,26 @@
-report_id,title,expected_hint,predicted_hint,matched,label_rationale
-irena_global_renewables_outlook_2020,IRENA Global Renewables Outlook 2020,ICLN/NEE,ICLN/NEE,True,"IRENA renewable outlook focuses on scaling renewable power and transition investment, so ICLN/NEE is the expected broad clean-energy direction."
-irena_renewable_energy_statistics_2020,IRENA Renewable Energy Statistics 2020,ICLN/NEE,ICLN/NEE,True,Renewable statistics report is dominated by renewable capacity and generation indicators.
-irena_renewable_power_costs_2022,IRENA Renewable Power Costs 2022,ICLN/NEE,ICLN/NEE,True,Power-cost report centers on renewable cost competitiveness and deployment economics.
-irena_world_energy_transitions_2023,IRENA World Energy Transitions Outlook 2023,ICLN/NEE,ICLN/NEE,True,Energy transition outlook emphasizes clean-energy transition pathways and renewable deployment.
-irena_renewable_energy_statistics_2024,IRENA Renewable Energy Statistics 2024,ICLN/NEE,ICLN/NEE,True,Renewable statistics report is a single-theme renewable dataset/report.
-nextera_annual_2023,NextEra Energy Annual Report 2023,ETN,ETN,True,"Utility annual report includes power infrastructure, generation, and grid-linked business exposure; ETN-style electrification/grid hint is expected for this simplified label set."
-siemens_energy_annual_2023,Siemens Energy Annual Report 2023,ETN,ETN,True,"Siemens Energy is strongly tied to grid technology, power systems, and electrification infrastructure."
-ipcc_ar6_synthesis,IPCC AR6 Synthesis Report,Climate risk,Climate risk,True,"IPCC synthesis is dominated by climate risk, impacts, mitigation urgency, and adaptation language."
-iea_electricity_grids_2023,IEA Electricity Grids and Secure Energy Transitions,ETN,ETN,True,Report title and content directly focus on electricity grids and secure transitions.
-iea_weo_2022,IEA World Energy Outlook 2022,ICLN/NEE,ICLN/NEE,True,World Energy Outlook has broad transition coverage but clean-energy deployment is a central direction in this simplified validation label.
-iea_electricity_2024,IEA Electricity 2024,ETN,ETN,True,"Electricity forecast/report focuses on power demand, grids, and electricity-system infrastructure."
-iea_power_sector_2021,IEA Secure Energy Transitions in the Power Sector,ETN,ETN,True,Power-sector transition security report centers on electricity systems and grid reliability.
-iea_oil_2024,IEA Oil 2024,XLE/XOM transition pressure,XLE/XOM transition pressure,True,"Oil market report is fossil-fuel-sector specific, so transition-pressure label is expected."
-iea_gas_2023,IEA Medium-Term Gas Report 2023,XLE/XOM transition pressure,XLE/XOM transition pressure,True,"Gas market report is fossil-fuel-sector specific, so transition-pressure label is expected."
-iea_coal_2023,IEA Coal 2023,XLE/XOM transition pressure,XLE/XOM transition pressure,True,Coal report is fossil-fuel-sector specific and highlights coal demand/emissions transition pressure.
+report_id,title,expected_hint,label_rationale
+irena_global_renewables_outlook_2020,IRENA Global Renewables Outlook 2020,ICLN/NEE,"Clean-energy deployment, renewables, EV, solar, or transition technology emphasis."
+irena_renewable_energy_statistics_2020,IRENA Renewable Energy Statistics 2020,ICLN/NEE,"Clean-energy deployment, renewables, EV, solar, or transition technology emphasis."
+irena_renewable_power_costs_2022,IRENA Renewable Power Costs 2022,ICLN/NEE,"Clean-energy deployment, renewables, EV, solar, or transition technology emphasis."
+irena_world_energy_transitions_2023,IRENA World Energy Transitions Outlook 2023,ICLN/NEE,"Clean-energy deployment, renewables, EV, solar, or transition technology emphasis."
+irena_renewable_energy_statistics_2024,IRENA Renewable Energy Statistics 2024,ICLN/NEE,"Clean-energy deployment, renewables, EV, solar, or transition technology emphasis."
+nextera_annual_2023,NextEra Energy Annual Report 2023,ETN,"Electricity grid, power-system infrastructure, storage, or electrification emphasis."
+siemens_energy_annual_2023,Siemens Energy Annual Report 2023,ETN,"Electricity grid, power-system infrastructure, storage, or electrification emphasis."
+ipcc_ar6_synthesis,IPCC AR6 Synthesis Report,Climate risk,"Climate-risk, mitigation, disclosure, or climate-solution framing emphasis."
+iea_electricity_grids_2023,IEA Electricity Grids and Secure Energy Transitions,ETN,"Electricity grid, power-system infrastructure, storage, or electrification emphasis."
+iea_weo_2022,IEA World Energy Outlook 2022,ICLN/NEE,"Clean-energy deployment, renewables, EV, solar, or transition technology emphasis."
+iea_electricity_2024,IEA Electricity 2024,ETN,"Electricity grid, power-system infrastructure, storage, or electrification emphasis."
+iea_power_sector_2021,IEA Secure Energy Transitions in the Power Sector,ETN,"Electricity grid, power-system infrastructure, storage, or electrification emphasis."
+iea_oil_2024,IEA Oil 2024,XLE/XOM transition pressure,"Oil, gas, coal, or fossil-fuel transition-pressure emphasis."
+iea_gas_2023,IEA Medium-Term Gas Report 2023,XLE/XOM transition pressure,"Oil, gas, coal, or fossil-fuel transition-pressure emphasis."
+iea_coal_2023,IEA Coal 2023,XLE/XOM transition pressure,"Oil, gas, coal, or fossil-fuel transition-pressure emphasis."
+iea_global_ev_2023,IEA Global EV Outlook 2023,ICLN/NEE,"Clean-energy deployment, renewables, EV, solar, or transition technology emphasis."
+iea_solar_pv_supply_2022,IEA Solar PV Global Supply Chains 2022,ICLN/NEE,"Clean-energy deployment, renewables, EV, solar, or transition technology emphasis."
+iea_clean_tech_supply_2022,IEA Securing Clean Energy Technology Supply Chains,ICLN/NEE,"Clean-energy deployment, renewables, EV, solar, or transition technology emphasis."
+iea_etp_2023,IEA Energy Technology Perspectives 2023,ICLN/NEE,"Clean-energy deployment, renewables, EV, solar, or transition technology emphasis."
+iea_weo_2023_validation,IEA World Energy Outlook 2023,ICLN/NEE,"Clean-energy deployment, renewables, EV, solar, or transition technology emphasis."
+iea_batteries_2024,IEA Batteries and Secure Energy Transitions 2024,ETN,"Electricity grid, power-system infrastructure, storage, or electrification emphasis."
+eia_electric_power_annual_2023,EIA Electric Power Annual 2023,ETN,"Electricity grid, power-system infrastructure, storage, or electrification emphasis."
+exxon_acs_2024,ExxonMobil Advancing Climate Solutions 2024,Climate risk,"Climate-risk, mitigation, disclosure, or climate-solution framing emphasis."
+exxon_acs_2025,ExxonMobil Advancing Climate Solutions 2025,Climate risk,"Climate-risk, mitigation, disclosure, or climate-solution framing emphasis."
+ipcc_ar6_wg3_mitigation,IPCC AR6 WGIII Mitigation Full Report,Climate risk,"Climate-risk, mitigation, disclosure, or climate-solution framing emphasis."
