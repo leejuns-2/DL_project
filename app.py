@@ -423,10 +423,18 @@ async def analyze_pdf(
 @app.get("/api/dashboard")
 async def get_dashboard():
     signals, stock_link, news_bridge, validation = [], [], [], []
+    actual_news_stock, actual_climate_news = [], []
+    pdf_metrics, pdf_confusion, label_rationale, gemini_check = [], [], [], []
     signals_path = PROCESSED_DIR / "reports" / "report_signals.csv"
     link_path = PROCESSED_DIR / "reports" / "report_stock_link.csv"
     news_bridge_path = PROCESSED_DIR / "reports" / "report_news_bridge.csv"
     validation_path = PROCESSED_DIR / "reports" / "expanded_pdf_validation.csv"
+    news_stock_path = PROCESSED_DIR / "reports" / "actual_news_stock_best_lag.csv"
+    climate_news_path = PROCESSED_DIR / "reports" / "actual_climate_news_lag_corr.csv"
+    pdf_metrics_path = PROCESSED_DIR / "reports" / "pdf_validation_metrics.csv"
+    pdf_confusion_path = PROCESSED_DIR / "reports" / "pdf_validation_confusion_matrix.csv"
+    rationale_path = PROCESSED_DIR / "reports" / "pdf_validation_label_rationale.csv"
+    gemini_check_path = PROCESSED_DIR / "reports" / "gemini_summary_human_check.csv"
     if signals_path.exists():
         signals_df = pd.read_csv(signals_path).round(4)
         signals = _json_records(signals_df)
@@ -438,16 +446,34 @@ async def get_dashboard():
         stock_link = _json_records(pd.read_csv(link_path).round(4))
     if validation_path.exists():
         validation = _json_records(pd.read_csv(validation_path))
+    if news_stock_path.exists():
+        actual_news_stock = _json_records(pd.read_csv(news_stock_path).round(4))
+    if climate_news_path.exists():
+        actual_climate_news = _json_records(pd.read_csv(climate_news_path).round(4))
+    if pdf_metrics_path.exists():
+        pdf_metrics = _json_records(pd.read_csv(pdf_metrics_path).round(4))
+    if pdf_confusion_path.exists():
+        pdf_confusion = _json_records(pd.read_csv(pdf_confusion_path).reset_index())
+    if rationale_path.exists():
+        label_rationale = _json_records(pd.read_csv(rationale_path))
+    if gemini_check_path.exists():
+        gemini_check = _json_records(pd.read_csv(gemini_check_path))
     return JSONResponse(
         {
             "signals": signals,
             "stock_link": stock_link,
             "news_bridge": news_bridge,
             "validation": validation,
+            "actual_news_stock": actual_news_stock,
+            "actual_climate_news": actual_climate_news,
+            "pdf_metrics": pdf_metrics,
+            "pdf_confusion": pdf_confusion,
+            "label_rationale": label_rationale,
+            "gemini_check": gemini_check,
             "methodology": {
                 "base_model": "sentence-transformers/all-MiniLM-L6-v2",
                 "few_shot_learning": "Frozen Transformer embeddings + few-shot logistic heads (top-30% aggregation, per-report min-max normalization). Dashboard scores are from the initial pipeline run (pre-normalization).",
-                "news_pdf_bridge": "News sentiment is aggregated around each report date and joined to PDF event scores.",
+                "news_pdf_bridge": "Actual GDELT GKG weekly tone samples are aggregated around each report date and joined to PDF event scores.",
                 "generative_model": "Gemini 3.5 Flash summary with cautious research wording.",
             },
         }

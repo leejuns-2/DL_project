@@ -1,0 +1,5 @@
+signal,target,lag_months,n,r,p_value,data_source
+TAI,NSS_ADJ,0,72,0.4127506822448813,0.00031448184702040566,actual_nasa_gistemp_and_actual_gdelt_gkg_sample
+TAI,NSS_ADJ,1,71,0.4061806450264825,0.000440413218056198,actual_nasa_gistemp_and_actual_gdelt_gkg_sample
+TAI,NSS_ADJ,2,70,0.3264031775953907,0.0058213447135465595,actual_nasa_gistemp_and_actual_gdelt_gkg_sample
+TAI,NSS_ADJ,3,69,0.3573908220071112,0.002572162172526316,actual_nasa_gistemp_and_actual_gdelt_gkg_sample

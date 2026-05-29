@@ -1,0 +1,7 @@
+signal,target,lag_weeks,n,r,p_value,data_source
+NSS_ADJ,ETN,4,308,0.0917046232089971,0.10821856109526277,actual_gdelt_gkg_weekly_sample
+NSS_ADJ,ET_SPREAD,2,310,-0.12965439737993453,0.022417133317263728,actual_gdelt_gkg_weekly_sample
+NSS_ADJ,ICLN,0,312,-0.14569489182879738,0.00996850764109711,actual_gdelt_gkg_weekly_sample
+NSS_ADJ,NEE,0,312,-0.09883415675172415,0.08132977240424476,actual_gdelt_gkg_weekly_sample
+NSS_ADJ,XLE,4,308,0.07644645039404521,0.18085290764563697,actual_gdelt_gkg_weekly_sample
+NSS_ADJ,XOM,4,308,0.09270087940563562,0.10442340833825522,actual_gdelt_gkg_weekly_sample

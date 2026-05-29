@@ -207,9 +207,9 @@
         <span class="ov-sub">2019-01 ~ 2024-12</span>
       </div>
       <div class="ov-card">
-        <span class="ov-num">22</span>
-        <span class="ov-label">뉴스 헤드라인</span>
-        <span class="ov-sub">Sample weekly context</span>
+        <span class="ov-num">313</span>
+        <span class="ov-label">GDELT 주간 샘플</span>
+        <span class="ov-sub">2019-2024 actual GKG</span>
       </div>
     </div>
 
@@ -282,9 +282,9 @@
     <div class="panel">
       <h2 class="panel-title">뉴스 컨텍스트 → PDF 신호 연결</h2>
       <div class="synthetic-data-banner">
-        ⚠ <strong>뉴스 데이터 출처 공개:</strong> 이 섹션의 NSS_ADJ 값은 <strong>파이프라인 시연을 위해 수동으로 구성한 주간 22건의 플레이스홀더 데이터</strong>입니다. 실제 뉴스 감성 시계열이 아닙니다.
-        실제 분석에는 Bloomberg Terminal, GDELT(gdeltproject.org), 또는 NewsAPI 히스토리 플랜이 필요합니다.
-        현 데이터 기반 수치 해석·인과 추론은 무효합니다.
+        ⚠ <strong>뉴스 데이터 출처 공개:</strong> 이 섹션의 NSS_ADJ 값은 <strong>실제 GDELT GKG 공개 원자료</strong>에서 2019-2024 매주 금요일 12:00 UTC 파일을 표본 수집해 계산한 tone 신호입니다.
+        전체 뉴스 데이터베이스가 아니라 주간 샘플이므로, Bloomberg Terminal·NewsAPI 히스토리 플랜 같은 완전한 원자료 기반 분석보다 제한적입니다.
+        통계 결과는 예비 분석으로만 해석해야 합니다.
       </div>
       <p class="section-help">보고서 기준일 이전 4주 뉴스 컨텍스트 신호와 PDF 이벤트 신호를 연결하는 파이프라인 구조를 보여줍니다. 미래 예측이나 투자 추천이 아닙니다.</p>
       <div id="news-bridge-wrap" class="table-wrap">
@@ -303,51 +303,41 @@
     <div class="panel">
       <h2 class="panel-title">가설 검증 설계 및 예비 분석</h2>
       <div class="synthetic-data-banner">
-        ⚠ <strong>분석 한계 공개:</strong> 아래 H1·H2 수치는 <strong>구성 데이터(n=22 주간, synthetic placeholder)</strong> 기반 예비 분석 결과입니다.
-        구성 데이터에서 산출된 상관계수·p-value는 통계적 근거가 없으며, 결론으로 해석할 수 없습니다.
-        실제 뉴스 감성 시계열(GDELT·Bloomberg 등)을 적용해야 가설 검증이 가능합니다.
-        H3는 실제 주가 수익률을 포함하지만 뉴스 감성 축은 구성 데이터이므로, 통계 검증이 아니라 기술적 시각화 참고용입니다.
+        ⚠ <strong>분석 한계 공개:</strong> H1은 NASA GISTEMP 월별 기온 이상치와 실제 GDELT GKG 뉴스 tone 샘플을 월별로 연결했고, H2는 실제 GDELT GKG 주간 뉴스 tone 샘플과 주가 수익률을 연결했습니다.
+        다만 GDELT는 매주 1개 시점 파일만 표본 수집했으므로 완전한 뉴스 원자료 분석이 아니라 실제 데이터 기반 예비 검증입니다.
       </div>
       <div class="hypothesis-grid">
         <div class="hyp-card hyp-rejected">
           <span class="hyp-label">H1</span>
           <p class="hyp-claim">TAI → 뉴스 감성 선행</p>
-          <span class="hyp-result rejected">미검증</span>
-          <p class="hyp-detail">구성 데이터 기반 수치 (r=−0.121, p=0.236) — 실제 데이터 필요</p>
+          <span class="hyp-result partial">예비 지지</span>
+          <p class="hyp-detail">실제 NASA + GDELT 샘플 월별 분석: lag +1개월 r≈0.406, p≈0.0004</p>
         </div>
         <div class="hyp-card hyp-rejected">
           <span class="hyp-label">H2</span>
           <p class="hyp-claim">NSS_ADJ → ET_SPREAD 양의 방향</p>
-          <span class="hyp-result rejected">미검증</span>
-          <p class="hyp-detail">구성 데이터 기반 수치 (r=−0.189, p=0.062) — 실제 데이터 필요</p>
+          <span class="hyp-result rejected">방향 불일치</span>
+          <p class="hyp-detail">실제 GDELT 샘플 주간 분석: best lag +2주 r≈−0.130, p≈0.022</p>
         </div>
         <div class="hyp-card hyp-partial">
           <span class="hyp-label">H3</span>
           <p class="hyp-claim">이벤트 기간 관계 강화</p>
           <span class="hyp-result partial">기술적 관찰</span>
-          <p class="hyp-detail">실제 주가 수익률 포함, 뉴스 축은 구성 데이터 — 2022 H2·2023 초 이동 상관 패턴 참고용 (인과 불명)</p>
+          <p class="hyp-detail">실제 GDELT 샘플 + 실제 주가 수익률 — rolling correlation 패턴 참고용 (인과 불명)</p>
         </div>
       </div>
       <div class="corr-table-wrap">
-        <p class="note" style="margin-bottom:.5rem">아래 수치는 구성 데이터(n=22) 기반이므로 통계적 결론 도출 불가. 실제 뉴스 데이터 적용 시 검증 구조를 보여주기 위한 파이프라인 시연입니다.</p>
-        <table class="data-table">
-          <thead>
-            <tr><th>신호 → 타겟</th><th>Best Lag</th><th>r</th><th>p-value</th><th>해석</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>NSS_ADJ → XOM</td><td>+4</td><td class="pos">0.216</td><td>0.033</td><td>구성 데이터 — 무효</td></tr>
-            <tr><td>NSS_ADJ → ETN</td><td>+3</td><td class="pos">0.200</td><td>0.048</td><td>구성 데이터 — 무효</td></tr>
-            <tr><td>NSS_ADJ → NEE</td><td>+2</td><td class="neg">−0.181</td><td>0.073</td><td>구성 데이터 — 무효</td></tr>
-            <tr><td>NSS_ADJ → ET_SPREAD</td><td>+4</td><td class="neg">−0.189</td><td>0.062</td><td>구성 데이터 — 무효</td></tr>
-            <tr><td>TAI → NSS_ADJ</td><td>+2</td><td class="neg">−0.121</td><td>0.236</td><td>구성 데이터 — 무효</td></tr>
-          </tbody>
-        </table>
+        <p class="note" style="margin-bottom:.5rem">아래 표는 실제 공개 데이터 기반 예비 분석입니다. GDELT 주간 1시점 샘플링이므로 전체 뉴스 모집단 분석으로 과장하면 안 됩니다.</p>
+        <h4>H1: 실제 기후 이상치 → 실제 뉴스 tone</h4>
+        <div id="actual-climate-news-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중…</p></div>
+        <h4>H2: 실제 뉴스 tone → 주가 수익률</h4>
+        <div id="actual-news-stock-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중…</p></div>
       </div>
     </div>
 
     <div class="panel">
       <h2 class="panel-title">분석 그래프</h2>
-      <p class="section-help">Figure 1~4는 구성 뉴스 데이터가 포함된 고정 산출물이므로 시각적 패턴 확인 용도이며 통계적 결론이 아닙니다. Figure 5는 이 리포지터리에서 재현 가능합니다 (<code>python src/report_signal_pipeline.py</code>).</p>
+      <p class="section-help">Figure 1~4는 실제 GDELT GKG 주간 샘플, NASA GISTEMP, 주가 데이터를 사용해 재생성한 고정 산출물입니다. 표본 뉴스 샘플 기반이므로 통계적 결론이 아니라 예비 분석으로 해석해야 합니다.</p>
       <div class="figures-grid">
         <div class="fig-card">
           <h4>Figure 1: 시계열 비교</h4>
@@ -379,10 +369,21 @@
 
     <div class="panel">
       <h2 class="panel-title">PDF 일반화 검증</h2>
+      <div id="pdf-metrics-wrap" class="table-wrap">
+        <p class="loading-text">정량 지표 로딩 중…</p>
+      </div>
       <div id="validation-table-wrap" class="table-wrap">
         <p class="loading-text">데이터 로딩 중…</p>
       </div>
       <p class="note">소규모 일반화 점검에서 15개 PDF가 사전 기대 방향과 일치했습니다. 단, <strong>모든 케이스가 단일 테마가 압도적인 '쉬운 사례'</strong>입니다 (IRENA 보고서 5개 전부 동일 카테고리, 석유·가스 보고서 3개 동일 카테고리 등). 복합 테마 문서·경계 사례에 대한 성능은 별도 검증이 필요하며, 현재 일치 결과는 케이스 선택 편향(easy-case bias)을 반영합니다.</p>
+    </div>
+
+    <div class="panel">
+      <h2 class="panel-title">Gemini 요약 근거 점검</h2>
+      <p class="section-help">표본 PDF 5개에 대해 Gemini 요약이 추출 근거와 어긋나는지, 투자 추천·수익률 예측 표현이 있는지 점검했습니다.</p>
+      <div id="gemini-check-wrap" class="table-wrap">
+        <p class="loading-text">데이터 로딩 중…</p>
+      </div>
     </div>
 
   </section>

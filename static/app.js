@@ -533,10 +533,47 @@ async function loadDashboard() {
     renderSignalsTable(data.signals);
     renderNewsBridgeTable(data.news_bridge);
     renderLinkTable(data.stock_link);
+    renderActualEvidenceTables(data);
     renderValidationTable(data.validation);
   } catch (e) {
     document.getElementById('signals-table-wrap').innerHTML = '<p class="note">데이터 로드 실패</p>';
   }
+}
+
+function renderActualEvidenceTables(data) {
+  renderGenericTable('actual-climate-news-wrap', data.actual_climate_news, {
+    signal: '신호', target: '대상', lag_months: 'Lag(월)', n: 'n', r: 'r', p_value: 'p-value', data_source: '데이터'
+  });
+  renderGenericTable('actual-news-stock-wrap', data.actual_news_stock, {
+    target: '대상', lag_weeks: 'Best lag(주)', n: 'n', r: 'r', p_value: 'p-value', data_source: '데이터'
+  });
+  renderGenericTable('pdf-metrics-wrap', data.pdf_metrics, {
+    n: 'n', accuracy: '일치율', macro_f1: 'Macro-F1', weighted_f1: 'Weighted-F1', caveat: '주의'
+  });
+  renderGenericTable('gemini-check-wrap', data.gemini_check, {
+    title: 'PDF', expected_theme: '테마', human_check_result: '점검', manual_evidence_alignment: '근거 일치', unsupported_investment_or_prediction: '위험 문구', model: '모델'
+  });
+}
+
+function renderGenericTable(id, rows, headers) {
+  const wrap = document.getElementById(id);
+  if (!wrap) return;
+  if (!rows || !rows.length) { wrap.innerHTML = '<p class="note">데이터 없음</p>'; return; }
+  const cols = Object.keys(headers).filter(c => c in rows[0]);
+  wrap.innerHTML = `<table class="data-table">
+    <thead><tr>${cols.map(c => `<th>${headers[c]}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(row => `<tr>${cols.map(c => {
+      const v = row[c];
+      if (typeof v === 'boolean') return `<td>${v ? '있음' : '없음'}</td>`;
+      if (typeof v === 'number') {
+        const cls = ['r', 'p_value'].includes(c) ? (v > 0 ? 'pos' : v < 0 ? 'neg' : '') : '';
+        const formatted = c === 'p_value' ? v.toFixed(4) : (Math.abs(v) < 10 ? v.toFixed(3) : v.toFixed(0));
+        return `<td class="${cls}">${formatted}</td>`;
+      }
+      const text = String(v ?? '');
+      return `<td>${escapeHtml(text.length > 120 ? text.slice(0, 120) + '…' : text)}</td>`;
+    }).join('')}</tr>`).join('')}</tbody>
+  </table>`;
 }
 
 function renderNewsBridgeTable(rows) {
