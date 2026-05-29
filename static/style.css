@@ -515,6 +515,10 @@ code {
 }
 .ev-score { color: var(--green); }
 .ev-text { color: var(--ink); font-size: .84rem; line-height: 1.55; }
+.keyword-highlight {
+  color: var(--red);
+  font-weight: 900;
+}
 .ev-interpretation {
   margin-top: 10px;
   padding: 10px 12px;
@@ -535,6 +539,13 @@ code {
 }
 
 .table-wrap { overflow-x: auto; }
+.returns-chart-wrap {
+  height: 260px;
+  margin-bottom: 14px;
+}
+.dashboard-return-chart {
+  height: 300px;
+}
 .data-table {
   width: 100%;
   border-collapse: collapse;

@@ -12,6 +12,8 @@ const THEME_LABELS = Object.fromEntries(Object.entries(THEME_META).map(([key, me
 
 /* ── State ─────────────────────────────────────── */
 let scoreChart = null;
+let returnsChart = null;
+let dashboardReturnsChart = null;
 let lastResult = null;
 
 /* ── Tab Switching ─────────────────────────────── */
@@ -241,11 +243,7 @@ function renderEvidence(evidence, topK) {
           <span>순위 #${item.rank}</span>
           <span class="ev-score">관련도 ${item.score.toFixed(3)}</span>
         </div>
-        <div class="ev-text">${escapeHtml(item.paragraph)}</div>
-        <div class="ev-interpretation">
-          <strong>한국어 해석</strong>
-          <p>${escapeHtml(item.interpretation || '이 문단은 선택된 주제 신호의 근거로 사용되었습니다.')}</p>
-        </div>
+        <div class="ev-text">${highlightKeywords(item.paragraph)}</div>
       </div>`).join('');
     return `<div class="ev-list ${i === 0 ? 'active' : ''}" data-key="${k}">${rows || '<p style="color:var(--text-muted);font-size:.82rem">문단 없음</p>'}</div>`;
   }).join('');
@@ -274,6 +272,18 @@ function renderReturns(returns) {
   });
 
   const cols = Object.keys(MARKET_LABELS);
+  const periods = [];
+  if (preKeys.length) {
+    periods.push({ label: '이전 4주', prefix: 'pre_4w_' });
+  }
+  Object.keys(fwdGroups).sort((a, b) => +a - +b).forEach(w => {
+    periods.push({ label: `이후 ${w}주`, group: fwdGroups[w] });
+  });
+
+  const graphCols = ['ET_SPREAD', 'ICLN', 'XLE', 'ETN'];
+  const chartId = `returns-chart-${Date.now()}`;
+  let html = `<div class="chart-wrap returns-chart-wrap"><canvas id="${chartId}" height="170"></canvas></div>`;
+
   const fmtCell = v => {
     if (v === undefined || v === null) return '<td>—</td>';
     const cls = v > 0.005 ? 'pos' : v < -0.005 ? 'neg' : '';
@@ -281,7 +291,7 @@ function renderReturns(returns) {
     return `<td class="${cls}">${sign}${(v * 100).toFixed(2)}%</td>`;
   };
 
-  let html = `<div class="table-wrap"><table class="data-table">
+  html += `<div class="table-wrap"><table class="data-table">
     <thead><tr><th>기간</th>${cols.map(c => `<th>${MARKET_LABELS[c]}</th>`).join('')}</tr></thead><tbody>`;
 
   if (preKeys.length) {
@@ -293,6 +303,68 @@ function renderReturns(returns) {
 
   html += '</tbody></table></div>';
   box.innerHTML = html;
+
+  const chartData = periods.map(period => {
+    if (period.prefix) {
+      return graphCols.map(col => returns[`${period.prefix}${col}`] ?? null);
+    }
+    return graphCols.map(col => period.group[col] ?? null);
+  });
+  renderReturnsChart(chartId, periods.map(p => p.label), graphCols, chartData, false);
+}
+
+function renderReturnsChart(canvasId, labels, columns, valuesByPeriod, dashboardMode) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const palette = {
+    ET_SPREAD: '#126c6a',
+    ICLN: '#12805c',
+    XLE: '#a15c10',
+    ETN: '#2563eb',
+    NEE: '#475467',
+    XOM: '#b42318',
+  };
+  const datasets = columns.map((col, idx) => ({
+    label: MARKET_LABELS[col] || col,
+    data: valuesByPeriod.map(row => row[idx] === null ? null : row[idx] * 100),
+    backgroundColor: (palette[col] || '#667085') + 'cc',
+    borderColor: palette[col] || '#667085',
+    borderWidth: 1,
+    borderRadius: 4,
+  }));
+
+  if (dashboardMode && dashboardReturnsChart) dashboardReturnsChart.destroy();
+  if (!dashboardMode && returnsChart) returnsChart.destroy();
+
+  const chart = new Chart(canvas, {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#667085', boxWidth: 14 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y > 0 ? '+' : ''}${ctx.parsed.y.toFixed(2)}%`,
+          },
+        },
+      },
+      scales: {
+        y: {
+          grid: { color: '#e4eaf0' },
+          ticks: { color: '#667085', callback: value => `${value}%` },
+        },
+        x: {
+          grid: { display: false },
+          ticks: { color: '#667085' },
+        },
+      },
+    },
+  });
+
+  if (dashboardMode) dashboardReturnsChart = chart;
+  else returnsChart = chart;
 }
 
 /* ── Stats Row ─────────────────────────────────── */
@@ -382,7 +454,14 @@ function renderLinkTable(link) {
   if (!link || !link.length) { wrap.innerHTML = '<p class="note">데이터 없음</p>'; return; }
 
   const cols = Object.keys(link[0]);
-  wrap.innerHTML = `<table class="data-table">
+  const graphCols = ['forward_4w_ET_SPREAD', 'forward_4w_ICLN', 'forward_4w_XLE', 'forward_4w_ETN'];
+  const labels = link.map(row => shortenTitle(row.title || row.report_id || 'Report'));
+  const valuesByPeriod = link.map(row => graphCols.map(col => row[col] ?? null));
+  wrap.innerHTML = `
+  <div class="chart-wrap returns-chart-wrap dashboard-return-chart">
+    <canvas id="dashboard-returns-chart" height="210"></canvas>
+  </div>
+  <table class="data-table">
     <thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
     <tbody>${link.map(row => `<tr>${cols.map(c => {
       const v = row[c];
@@ -394,11 +473,38 @@ function renderLinkTable(link) {
       return `<td>${escapeHtml(String(v ?? ''))}</td>`;
     }).join('')}</tr>`).join('')}</tbody>
   </table>`;
+  renderReturnsChart('dashboard-returns-chart', labels, ['ET_SPREAD', 'ICLN', 'XLE', 'ETN'], valuesByPeriod, true);
 }
 
 /* ── Utility ───────────────────────────────────── */
 function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function highlightKeywords(str) {
+  const keywords = [
+    'renewable', 'solar', 'wind', 'clean energy', 'capacity',
+    'oil', 'gas', 'fossil', 'methane', 'carbon', 'emissions',
+    'grid', 'transmission', 'distribution', 'electricity', 'electrification', 'power',
+    'climate', 'weather', 'heat', 'drought', 'risk', 'resilience',
+    'investment', 'demand', 'policy', 'regulation', 'cost',
+  ];
+  let escaped = escapeHtml(str);
+  const pattern = new RegExp(`\\b(${keywords.map(escapeRegExp).join('|')})\\b`, 'gi');
+  return escaped.replace(pattern, '<strong class="keyword-highlight">$1</strong>');
+}
+
+function escapeRegExp(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function shortenTitle(title) {
+  return title
+    .replace('ExxonMobil Advancing Climate Solutions 2023', 'Exxon ACS')
+    .replace('IEA World Energy Outlook 2023', 'IEA WEO')
+    .replace('IEA Oil and Gas Industry in Net Zero Transitions', 'IEA Oil/Gas NZ')
+    .replace('IEA Renewables 2023', 'IEA Renewables')
+    .replace('Eaton Annual Report 2023', 'Eaton Annual');
 }
 
 /* ── Init ──────────────────────────────────────── */
