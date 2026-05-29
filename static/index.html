@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PDF Report-to-Market Signal</title>
+  <title>Energy Report-to-Market Signal Analyzer</title>
   <link rel="stylesheet" href="/static/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 </head>
@@ -12,29 +12,34 @@
 <header class="site-header">
   <div class="header-inner">
     <div class="header-title">
-      <span class="header-icon">📄</span>
       <div>
-        <h1>PDF Report-to-Market Signal</h1>
-        <p>에너지·기후 보고서를 Foundation Model로 읽어 시장 신호로 변환합니다</p>
+        <span class="eyebrow">Foundation Model MVP</span>
+        <h1>Energy Report-to-Market Signal Analyzer</h1>
+        <p>PDF 리포트를 업로드하면 문서 근거, few-shot 주제 점수, 시장 수익률 연결을 한 화면에서 확인합니다.</p>
       </div>
     </div>
     <div class="header-badges">
-      <span class="badge badge-model">FinBERT</span>
       <span class="badge badge-model">MiniLM-L6-v2</span>
-      <span class="badge badge-method">Few-shot</span>
+      <span class="badge badge-method">Few-shot scoring</span>
+      <span class="badge badge-safe">Research MVP</span>
     </div>
   </div>
 </header>
 
 <nav class="tab-nav">
-  <button class="tab-btn active" data-tab="analyzer">🔍 PDF 분석</button>
-  <button class="tab-btn" data-tab="dashboard">📊 프로젝트 대시보드</button>
+  <button class="tab-btn active" data-tab="analyzer">PDF 분석</button>
+  <button class="tab-btn" data-tab="dashboard">프로젝트 대시보드</button>
 </nav>
 
 <main class="main-content">
 
   <!-- ─── PDF 분석 탭 ─── -->
   <section id="tab-analyzer" class="tab-section active">
+    <div class="notice-strip">
+      <strong>연구용 분석 도구</strong>
+      <span>본 결과는 투자 추천이 아니라, PDF 문서 내용을 시장 분석용 신호로 변환한 MVP 결과입니다.</span>
+    </div>
+
     <div class="analyzer-grid">
 
       <!-- 왼쪽: 입력 폼 -->
@@ -44,7 +49,6 @@
         <div id="dropzone" class="dropzone">
           <input type="file" id="file-input" accept=".pdf" hidden />
           <div class="dropzone-inner">
-            <span class="dropzone-icon">📂</span>
             <p class="dropzone-text">PDF를 여기에 드래그하거나<br /><strong>클릭하여 선택</strong></p>
             <p id="file-name" class="file-name"></p>
           </div>
@@ -89,6 +93,12 @@
           <span id="btn-text">PDF 분석 실행</span>
           <span id="btn-spinner" class="spinner hidden"></span>
         </button>
+
+        <div class="input-note">
+          <strong>권장 입력</strong>
+          <p>에너지, 전력망, 기후, 기업 지속가능성 리포트처럼 텍스트가 포함된 PDF에서 가장 안정적으로 작동합니다.</p>
+          <p>첫 분석은 모델 로딩 때문에 1~2분 정도 걸릴 수 있습니다.</p>
+        </div>
       </div>
 
       <!-- 오른쪽: 결과 패널 -->
@@ -96,18 +106,18 @@
 
         <!-- 초기 안내 -->
         <div id="result-empty" class="result-empty">
-          <span class="result-empty-icon">🔬</span>
-          <p>왼쪽에서 PDF를 선택하고<br />분석 실행 버튼을 누르세요.</p>
+          <p class="empty-title">PDF를 넣으면 분석이 시작됩니다</p>
+          <p>문서에서 근거 문단을 찾고, Foundation Model 임베딩으로 주제 점수를 계산합니다.</p>
           <div class="pipeline-steps">
-            <div class="step">① PDF 텍스트 추출</div>
+            <div class="step">PDF 텍스트 추출</div>
             <div class="step-arrow">→</div>
-            <div class="step">② 근거 문단 검색</div>
+            <div class="step">근거 문단 검색</div>
             <div class="step-arrow">→</div>
-            <div class="step">③ MiniLM 임베딩</div>
+            <div class="step">MiniLM 임베딩</div>
             <div class="step-arrow">→</div>
-            <div class="step">④ Few-shot 점수화</div>
+            <div class="step">Few-shot scoring</div>
             <div class="step-arrow">→</div>
-            <div class="step">⑤ 주가 연결</div>
+            <div class="step">시장 연결</div>
           </div>
         </div>
 
@@ -122,6 +132,7 @@
 
           <div class="result-section">
             <h3 class="result-section-title">1. 핵심 점수</h3>
+            <p class="section-help">전환 신호 = 재생에너지 + 전력망/전기화 + 기후 리스크 - 화석연료 압력</p>
             <div class="score-cards" id="score-cards"></div>
             <div class="chart-wrap">
               <canvas id="score-chart" height="200"></canvas>
@@ -136,12 +147,14 @@
 
           <div class="result-section">
             <h3 class="result-section-title">3. 근거 문단</h3>
+            <p class="section-help">점수 계산에 사용된 PDF 원문 근거입니다. 관련도는 검색 단계의 문단 유사도입니다.</p>
             <div class="evidence-tabs" id="evidence-tabs"></div>
             <div class="evidence-content" id="evidence-content"></div>
           </div>
 
           <div class="result-section">
             <h3 class="result-section-title">4. 전후 수익률 연결</h3>
+            <p class="section-help">보고서 날짜 기준 전후 수익률입니다. 상관 확인용이며 예측이나 투자 판단이 아닙니다.</p>
             <div id="returns-box"></div>
           </div>
 
@@ -190,6 +203,24 @@
         <span class="ov-num">3,340</span>
         <span class="ov-label">뉴스 헤드라인</span>
         <span class="ov-sub">GDELT 에너지·기후</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 class="panel-title">프로젝트 해석 기준</h2>
+      <div class="interpret-grid">
+        <div class="interpret-card">
+          <strong>무엇을 만들었나</strong>
+          <p>PDF 문서를 시장 분석용 수치 신호로 바꾸는 Report-to-Market Signal 파이프라인입니다.</p>
+        </div>
+        <div class="interpret-card">
+          <strong>Foundation Model 활용</strong>
+          <p>MiniLM 임베딩으로 PDF 문단과 few-shot 예시 문장의 의미 유사도를 계산합니다.</p>
+        </div>
+        <div class="interpret-card">
+          <strong>주의할 해석</strong>
+          <p>수익률 연결은 downstream 분석 예시이며, 투자 추천이나 인과관계 증명이 아닙니다.</p>
+        </div>
       </div>
     </div>
 
@@ -288,16 +319,14 @@
           <tr><td>IEA Electricity 2024</td><td>ETN</td><td>ETN</td><td class="match">✓ 일치</td></tr>
         </tbody>
       </table>
-      <p class="note">3/3 일치 (정확도 1.000) — MVP 수준의 일반화 점검. 보고서 수를 늘려 추가 검증 필요.</p>
+      <p class="note">3/3 일치 (정확도 1.000) — 표본이 작으므로 엄밀한 성능 평가가 아니라 MVP 수준의 일반화 점검입니다.</p>
     </div>
 
   </section>
 </main>
 
 <footer class="site-footer">
-  <p>Foundation Model 기반 에너지 리포트 분석 파이프라인 &nbsp;|&nbsp;
-     <code>ProsusAI/finbert</code> &nbsp;·&nbsp; <code>sentence-transformers/all-MiniLM-L6-v2</code>
-  </p>
+  <p>Energy Report-to-Market Signal Analyzer · PDF evidence retrieval · MiniLM embedding · Few-shot scoring</p>
 </footer>
 
 <script src="/static/app.js"></script>

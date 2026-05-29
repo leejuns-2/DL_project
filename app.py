@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="PDF Report-to-Market Signal", lifespan=lifespan)
+app = FastAPI(title="Energy Report-to-Market Signal Analyzer", lifespan=lifespan)
 
 
 def _compute_returns(scores: pd.DataFrame, horizons: list[int]) -> dict:

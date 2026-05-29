@@ -2,12 +2,13 @@
 
 /* ── Constants ─────────────────────────────────── */
 const THEME_META = {
-  renewable_opportunity: { label: '재생에너지',   color: '#10b981', cls: 'score-renewable' },
-  fossil_pressure:       { label: '화석연료 압력', color: '#f59e0b', cls: 'score-fossil'    },
-  grid_infrastructure:   { label: '전력망/전기화', color: '#3b82f6', cls: 'score-grid'      },
-  climate_risk:          { label: '기후 리스크',   color: '#ef4444', cls: 'score-climate'   },
+  renewable_opportunity: { label: '재생에너지',   color: '#12805c', cls: 'score-renewable' },
+  fossil_pressure:       { label: '화석연료 압력', color: '#a15c10', cls: 'score-fossil'    },
+  grid_infrastructure:   { label: '전력망/전기화', color: '#2563eb', cls: 'score-grid'      },
+  climate_risk:          { label: '기후 리스크',   color: '#b42318', cls: 'score-climate'   },
 };
 const MARKET_LABELS = { ET_SPREAD: 'ET Spread', ICLN: 'ICLN', XLE: 'XLE', NEE: 'NEE', XOM: 'XOM', ETN: 'ETN' };
+const THEME_LABELS = Object.fromEntries(Object.entries(THEME_META).map(([key, meta]) => [key, meta.label]));
 
 /* ── State ─────────────────────────────────────── */
 let scoreChart = null;
@@ -186,12 +187,12 @@ function renderChart(scores) {
       scales: {
         y: {
           min: 0, max: 1,
-          grid: { color: 'rgba(255,255,255,.06)' },
-          ticks: { color: '#64748b', font: { size: 11 } },
+          grid: { color: '#e4eaf0' },
+          ticks: { color: '#667085', font: { size: 11 } },
         },
         x: {
           grid: { display: false },
-          ticks: { color: '#94a3b8', font: { size: 11 } },
+          ticks: { color: '#667085', font: { size: 11 } },
         },
       },
     },
@@ -202,9 +203,11 @@ function renderChart(scores) {
 function renderConfidence(scores, conf) {
   const box = document.getElementById('confidence-box');
   const hint = scores.asset_hint;
+  const topThemeLabel = THEME_LABELS[conf.top_theme] || conf.top_theme;
   const confColor = { '높음': '#10b981', '보통': '#f59e0b', '낮음': '#ef4444' }[conf.level] || '#94a3b8';
   box.innerHTML = `
     가장 강한 자산 힌트: <strong>${hint}</strong> &nbsp;|&nbsp;
+    1등 주제: <strong>${topThemeLabel}</strong> &nbsp;|&nbsp;
     모델 확신도: <strong style="color:${confColor}">${conf.level}</strong>
     (점수 차이 ${conf.margin.toFixed(3)})
     &nbsp;— 투자 추천이 아닌 의미 분류 결과입니다.`;
@@ -314,14 +317,18 @@ function setupDownloads(data) {
     const header = ['theme','page','rank','retrieval_score','paragraph'];
     const rows = [header];
     Object.entries(data.evidence).forEach(([theme, items]) => {
-      items.forEach(item => rows.push([theme, item.page, item.rank, item.score, `"${item.paragraph.replace(/"/g, '""')}"`]));
+      items.forEach(item => rows.push([theme, item.page, item.rank, item.score, item.paragraph]));
     });
     downloadCSV(rows, 'pdf_signal_evidence.csv');
   };
 }
 
 function downloadCSV(rows, filename) {
-  const content = rows.map(r => r.join(',')).join('\n');
+  const escapeCsv = value => {
+    const s = String(value ?? '');
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const content = rows.map(r => r.map(escapeCsv).join(',')).join('\n');
   const blob = new Blob(['﻿' + content], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
