@@ -195,6 +195,12 @@ def _run_gemini_summary(api_key: str, model: str, title: str, evidence: pd.DataF
         "Use cautious research wording. Do not provide investment advice or future return predictions.\n\n"
         f"Report title: {title}\nEvidence:\n{context}"
     )
+    thinking_config = {}
+    if model.startswith("gemini-3"):
+        thinking_config["thinkingLevel"] = os.getenv("GEMINI_THINKING_LEVEL", "high")
+    else:
+        thinking_config["thinkingBudget"] = int(os.getenv("GEMINI_THINKING_BUDGET", "1024"))
+
     payload = {
         "system_instruction": {
             "parts": [
@@ -209,6 +215,7 @@ def _run_gemini_summary(api_key: str, model: str, title: str, evidence: pd.DataF
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "maxOutputTokens": int(os.getenv("GEMINI_MAX_OUTPUT_TOKENS", "600")),
+            "thinkingConfig": thinking_config,
         },
     }
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
@@ -246,7 +253,7 @@ def _run_gemini_summary(api_key: str, model: str, title: str, evidence: pd.DataF
 def _optional_generative_summary(title: str, evidence: pd.DataFrame) -> dict:
     provider = os.getenv("GENAI_PROVIDER", "").strip().lower()
     gemini_key = os.getenv("GEMINI_API_KEY")
-    gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    gemini_model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
     api_url = os.getenv("GENAI_API_URL")
     api_key = os.getenv("GENAI_API_KEY")
     model = os.getenv("GENAI_MODEL", "large-generative-model")
@@ -258,7 +265,7 @@ def _optional_generative_summary(title: str, evidence: pd.DataFrame) -> dict:
             return _run_local_genai(local_model, title, evidence)
         return {
             "enabled": False,
-            "model": model,
+            "model": gemini_model,
             "summary": "",
             "note": "Set GEMINI_API_KEY, GENAI_API_URL/GENAI_API_KEY, or LOCAL_GENAI_MODEL to enable generative summaries.",
         }
