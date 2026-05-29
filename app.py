@@ -180,11 +180,79 @@ def _run_local_genai(model_id: str, title: str, evidence: pd.DataFrame) -> dict:
     }
 
 
+def _evidence_context(evidence: pd.DataFrame, limit: int, chars: int) -> str:
+    return "\n".join(
+        f"- {row['theme']} p.{row['page']}: {row['paragraph'][:chars]}"
+        for _, row in evidence.sort_values("retrieval_score", ascending=False).head(limit).iterrows()
+    )
+
+
+def _run_gemini_summary(api_key: str, model: str, title: str, evidence: pd.DataFrame) -> dict:
+    context = _evidence_context(evidence, limit=8, chars=700)
+    prompt = (
+        "Summarize the following PDF evidence in Korean within 3-5 sentences. "
+        "Connect it to energy transition, news-sentiment context, and downstream stock-return analysis. "
+        "Use cautious research wording. Do not provide investment advice or future return predictions.\n\n"
+        f"Report title: {title}\nEvidence:\n{context}"
+    )
+    payload = {
+        "system_instruction": {
+            "parts": [
+                {
+                    "text": (
+                        "You are a cautious energy-market research assistant. "
+                        "Explain model outputs as research signals, not investment recommendations."
+                    )
+                }
+            ]
+        },
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "maxOutputTokens": int(os.getenv("GEMINI_MAX_OUTPUT_TOKENS", "600")),
+        },
+    }
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "x-goog-api-key": api_key,
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=45) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        text = "".join(part.get("text", "") for part in parts).strip()
+        return {
+            "enabled": bool(text),
+            "provider": "google_gemini",
+            "model": model,
+            "summary": text,
+            "note": "" if text else "Gemini returned no text.",
+        }
+    except Exception as exc:
+        return {
+            "enabled": False,
+            "provider": "google_gemini",
+            "model": model,
+            "summary": "",
+            "note": f"Gemini call failed: {exc}",
+        }
+
+
 def _optional_generative_summary(title: str, evidence: pd.DataFrame) -> dict:
+    provider = os.getenv("GENAI_PROVIDER", "").strip().lower()
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     api_url = os.getenv("GENAI_API_URL")
     api_key = os.getenv("GENAI_API_KEY")
     model = os.getenv("GENAI_MODEL", "large-generative-model")
     local_model = os.getenv("LOCAL_GENAI_MODEL")
+    if gemini_key and (provider in {"", "gemini", "google"} or not api_url):
+        return _run_gemini_summary(gemini_key, gemini_model, title, evidence)
     if not api_url or not api_key:
         if local_model:
             return _run_local_genai(local_model, title, evidence)
@@ -192,13 +260,10 @@ def _optional_generative_summary(title: str, evidence: pd.DataFrame) -> dict:
             "enabled": False,
             "model": model,
             "summary": "",
-            "note": "Set GENAI_API_URL/GENAI_API_KEY for an API model or LOCAL_GENAI_MODEL for an open-weight local model.",
+            "note": "Set GEMINI_API_KEY, GENAI_API_URL/GENAI_API_KEY, or LOCAL_GENAI_MODEL to enable generative summaries.",
         }
 
-    context = "\n".join(
-        f"- {row['theme']} p.{row['page']}: {row['paragraph'][:700]}"
-        for _, row in evidence.sort_values("retrieval_score", ascending=False).head(8).iterrows()
-    )
+    context = _evidence_context(evidence, limit=8, chars=700)
     prompt = (
         "You are an energy-market research assistant. Summarize how this PDF evidence connects "
         "to renewable energy, fossil transition pressure, grid infrastructure, climate risk, "
