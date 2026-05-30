@@ -102,6 +102,12 @@ THEME_QUERIES = {
 }
 
 THEME_KEYS = list(THEME_QUERIES)
+THEME_ASSET_HINTS = {
+    "renewable_opportunity": "ICLN/NEE",
+    "fossil_pressure": "XLE/XOM transition pressure",
+    "grid_infrastructure": "ETN",
+    "climate_risk": "Climate risk",
+}
 ENERGY_RELEVANCE_KEYWORDS = {
     "energy",
     "electricity",
@@ -720,7 +726,7 @@ def score_evidence_with_few_shot_learning(evidence, embedder):
             + row["climate_risk_raw"]
             - row["fossil_pressure_raw"]
         )
-        row["asset_hint"] = infer_market_theme_hint(row)
+        row.update(infer_signal_profile(row))
         score_rows.append(row)
 
     return pd.DataFrame(score_rows).sort_values("date")
@@ -760,7 +766,7 @@ def score_evidence_with_zero_shot_similarity(evidence):
             + row["climate_risk"]
             - row["fossil_pressure"]
         )
-        row["asset_hint"] = infer_market_theme_hint(row)
+        row.update(infer_signal_profile(row))
         score_rows.append(row)
 
     return pd.DataFrame(score_rows).sort_values("date")
@@ -771,8 +777,11 @@ def theme_margin(row):
     return values[0] - values[1] if len(values) >= 2 else 0.0
 
 
+def ranked_theme_scores(row):
+    return sorted([(theme, float(row[theme])) for theme in THEME_KEYS], key=lambda item: item[1], reverse=True)
 
-def infer_market_theme_hint(row):
+
+def infer_single_market_theme_hint(row):
     if row.get("ood_decision") in {"out_of_domain", "low_relevance"}:
         return "Out-of-domain / low energy relevance"
 
@@ -795,13 +804,61 @@ def infer_market_theme_hint(row):
     if grid > renewable + 0.06 and grid >= fossil:
         return "ETN"
 
-    scores = {
-        "ICLN/NEE": renewable,
-        "ETN": grid,
-        "XLE/XOM transition pressure": fossil,
-        "Climate risk": climate,
-    }
+    scores = {asset: row[theme] for theme, asset in THEME_ASSET_HINTS.items()}
     return max(scores, key=scores.get)
+
+
+def infer_signal_profile(row, mixed_margin=0.10, mixed_min_second_score=0.80):
+    ranked = ranked_theme_scores(row)
+    top_theme, top_score = ranked[0]
+    second_theme, second_score = ranked[1]
+    margin = top_score - second_score
+    ood_decision = row.get("ood_decision")
+
+    if ood_decision in {"out_of_domain", "low_relevance"}:
+        return {
+            "asset_hint": "Out-of-domain / low energy relevance",
+            "top_theme": top_theme,
+            "second_theme": second_theme,
+            "score_margin": float(margin),
+            "mixed_signal": False,
+            "mixed_components": "",
+        }
+
+    mixed_signal = margin <= mixed_margin and second_score >= mixed_min_second_score
+    if mixed_signal:
+        assets = [THEME_ASSET_HINTS[top_theme], THEME_ASSET_HINTS[second_theme]]
+        return {
+            "asset_hint": f"Mixed transition signal ({' + '.join(assets)})",
+            "top_theme": top_theme,
+            "second_theme": second_theme,
+            "score_margin": float(margin),
+            "mixed_signal": True,
+            "mixed_components": " + ".join([top_theme, second_theme]),
+        }
+
+    return {
+        "asset_hint": infer_single_market_theme_hint(row),
+        "top_theme": top_theme,
+        "second_theme": second_theme,
+        "score_margin": float(margin),
+        "mixed_signal": False,
+        "mixed_components": "",
+    }
+
+
+def infer_market_theme_hint(row):
+    return infer_signal_profile(row)["asset_hint"]
+
+
+def asset_hint_matches_expected(predicted_hint, expected_hint):
+    predicted_hint = str(predicted_hint)
+    expected_hint = str(expected_hint)
+    if predicted_hint == expected_hint:
+        return True
+    if predicted_hint.startswith("Mixed transition signal"):
+        return expected_hint in predicted_hint
+    return False
 
 
 def make_extractive_summaries(evidence, scores, sentences_per_report=5):
@@ -1013,7 +1070,7 @@ def validate_sample_pdfs(embedder=None, max_pages=40, top_k=10, hybrid_retrieval
                 "split": split,
                 "expected_hint": sample["expected_hint"],
                 "predicted_hint": predicted,
-                "matched": predicted == sample["expected_hint"],
+                "matched": asset_hint_matches_expected(predicted, sample["expected_hint"]),
                 "energy_relevance": float(score_row.get("energy_relevance", 0.0)),
                 "ood_decision": score_row.get("ood_decision", "no_signal"),
                 "paragraphs": int(len(paragraphs)),
@@ -1076,8 +1133,8 @@ def compare_zero_shot_vs_few_shot(embedder=None, max_pages=40, top_k=10, hybrid_
                 **base,
                 "zero_shot_hint": zero_score["asset_hint"],
                 "few_shot_hint": few_score["asset_hint"],
-                "zero_shot_matched": zero_score["asset_hint"] == sample["expected_hint"],
-                "few_shot_matched": few_score["asset_hint"] == sample["expected_hint"],
+                "zero_shot_matched": asset_hint_matches_expected(zero_score["asset_hint"], sample["expected_hint"]),
+                "few_shot_matched": asset_hint_matches_expected(few_score["asset_hint"], sample["expected_hint"]),
                 "zero_shot_margin": float(theme_margin(zero_score)),
                 "few_shot_margin": float(theme_margin(few_score)),
                 "few_shot_energy_relevance": float(few_score.get("energy_relevance", 0.0)),

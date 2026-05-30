@@ -11,6 +11,7 @@ import app  # noqa: E402
 from report_signal_pipeline import (  # noqa: E402
     EmbeddingModel,
     ReportMeta,
+    infer_signal_profile,
     event_window_stock_returns,
     extract_pdf_text_from_path,
     retrieve_evidence,
@@ -82,6 +83,21 @@ def check_validation_metrics():
     check({"all", "validation", "test"}.issubset(set(metrics["split"])), "split metrics include all groups")
 
 
+def check_mixed_signal_profile():
+    row = {
+        "title": "World Energy Outlook boundary case",
+        "renewable_opportunity": 0.93,
+        "fossil_pressure": 1.0,
+        "grid_infrastructure": 0.0,
+        "climate_risk": 0.46,
+        "ood_decision": "in_domain",
+    }
+    profile = infer_signal_profile(row)
+    check(profile["mixed_signal"] is True, "close high-confidence themes are marked mixed_signal")
+    check("ICLN/NEE" in profile["asset_hint"], "mixed signal keeps renewable component visible")
+    check("XLE/XOM" in profile["asset_hint"], "mixed signal keeps fossil component visible")
+
+
 def main():
     check(app.app.title == "Energy Report-to-Market Signal Analyzer", "FastAPI app imports")
     check_event_returns()
@@ -89,6 +105,7 @@ def main():
     check_ood_guard(embedder)
     check_sample_pdf(embedder)
     check_validation_metrics()
+    check_mixed_signal_profile()
     print("smoke check complete")
 
 

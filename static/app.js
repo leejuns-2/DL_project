@@ -196,10 +196,15 @@ function renderChart(scores) {
 function renderConfidence(scores, conf) {
   const box = document.getElementById('confidence-box');
   const topThemeLabel = THEME_LABELS[conf.top_theme] || conf.top_theme;
+  const secondThemeLabel = THEME_LABELS[conf.second_theme] || conf.second_theme;
+  const mixedLine = conf.mixed_signal
+    ? `<span>복합 신호: ${escapeHtml(topThemeLabel)} + ${escapeHtml(secondThemeLabel)}</span>`
+    : '';
   const confColor = { 높음: '#1f7a5c', 보통: '#9a5b18', 낮음: '#a33b32' }[conf.level] || '#667085';
   box.innerHTML = `
     <strong>${escapeHtml(scores.asset_hint)}</strong>
     <span>상위 테마: ${escapeHtml(topThemeLabel)}</span>
+    ${mixedLine}
     <span>확신도: <b style="color:${confColor}">${escapeHtml(conf.level)}</b></span>
     <span>점수 차이: ${Number(conf.margin).toFixed(3)}</span>`;
 }

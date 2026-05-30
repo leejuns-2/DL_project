@@ -363,7 +363,7 @@ async def analyze_pdf(
         "max_pages": max_pages,
         "top_k": top_k,
         "horizons": horizon_list,
-        "pipeline_version": "2026-05-30-ood-hybrid-v2",
+        "pipeline_version": "2026-05-30-mixed-signal-v3",
     }
     cache_key = _analysis_cache_key(pdf_bytes, cache_params)
     cached = _read_analysis_cache(cache_key)
@@ -420,6 +420,15 @@ async def analyze_pdf(
             reverse=True,
         )
         margin = sorted_themes[0][1] - sorted_themes[1][1]
+        theme_scores.update(
+            {
+                "top_theme": s.get("top_theme", sorted_themes[0][0]),
+                "second_theme": s.get("second_theme", sorted_themes[1][0]),
+                "score_margin": round(float(s.get("score_margin", margin)), 4),
+                "mixed_signal": bool(s.get("mixed_signal", False)),
+                "mixed_components": s.get("mixed_components", ""),
+            }
+        )
         confidence_level = "높음" if margin >= 0.25 else ("보통" if margin >= 0.10 else "낮음")
         if s["ood_decision"] != "in_domain":
             confidence_level = "낮음"
@@ -456,8 +465,11 @@ async def analyze_pdf(
             "raw_scores": raw_scores,
             "confidence": {
                 "level": confidence_level,
-                "margin": round(margin, 4),
-                "top_theme": sorted_themes[0][0],
+                "margin": round(float(s.get("score_margin", margin)), 4),
+                "top_theme": s.get("top_theme", sorted_themes[0][0]),
+                "second_theme": s.get("second_theme", sorted_themes[1][0]),
+                "mixed_signal": bool(s.get("mixed_signal", False)),
+                "mixed_components": s.get("mixed_components", ""),
                 "energy_relevance": round(s["energy_relevance"], 4),
                 "ood_decision": s["ood_decision"],
             },
