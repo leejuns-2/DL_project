@@ -502,9 +502,34 @@ def _minmax(values):
     return (values - v_min) / (v_max - v_min)
 
 
+def _is_low_information_paragraph(text):
+    text = str(text)
+    if not text.strip():
+        return True
+
+    dot_leaders = len(re.findall(r"\.{5,}", text))
+    toc_entries = len(re.findall(r"\b\d+(?:\.\d+){1,3}\b[^.!?]{0,140}\.{4,}\s*\d{1,3}\b", text))
+    words = re.findall(r"[A-Za-z][A-Za-z-]{2,}", text)
+    alpha_chars = len(re.findall(r"[A-Za-z]", text))
+    digit_chars = len(re.findall(r"\d", text))
+    total_chars = max(len(text), 1)
+
+    if toc_entries >= 2:
+        return True
+    if dot_leaders >= 3 and len(words) < 90:
+        return True
+    if dot_leaders >= 2 and digit_chars / total_chars > 0.08 and alpha_chars / total_chars < 0.65:
+        return True
+    return False
+
+
 def retrieve_evidence(paragraphs, top_k=10, embedder=None, hybrid=False):
     evidence_rows = []
     for report_id, group in paragraphs.groupby("report_id"):
+        candidate_group = group[~group["paragraph"].map(_is_low_information_paragraph)]
+        if candidate_group.empty:
+            candidate_group = group
+        group = candidate_group.reset_index(drop=True)
         texts = group["paragraph"].tolist()
         vectorizer = TfidfVectorizer(stop_words="english", max_features=5000)
         matrix = vectorizer.fit_transform(texts)

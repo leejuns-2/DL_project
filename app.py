@@ -363,7 +363,7 @@ async def analyze_pdf(
         "max_pages": max_pages,
         "top_k": top_k,
         "horizons": horizon_list,
-        "pipeline_version": "2026-05-30-ood-hybrid-v1",
+        "pipeline_version": "2026-05-30-ood-hybrid-v2",
     }
     cache_key = _analysis_cache_key(pdf_bytes, cache_params)
     cached = _read_analysis_cache(cache_key)
