@@ -1,4 +1,5 @@
 import re
+import zlib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -26,6 +27,13 @@ from config import (
 REPORT_DIR = RAW_DIR / "reports"
 REPORT_PROCESSED_DIR = PROCESSED_DIR / "reports"
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+MARKET_RETURN_COLUMNS = ["ICLN", "XLE", "NEE", "XOM", "ETN"]
+EVENT_WINDOWS = {
+    "pre_4w": (-4, 0),
+    "post_1w": (0, 1),
+    "post_4w": (0, 4),
+    "post_8w": (0, 8),
+}
 
 # This pipeline freezes the base Transformer and trains a small downstream
 # classifier head from a handful of human-written examples. That is few-shot
@@ -91,6 +99,28 @@ THEME_QUERIES = {
     "fossil_pressure": "oil gas fossil fuel emissions methane transition risk carbon reduction pressure",
     "grid_infrastructure": "electricity grid transmission distribution power infrastructure electrification demand",
     "climate_risk": "climate change extreme weather heat drought emissions risk policy transition",
+}
+
+THEME_KEYS = list(THEME_QUERIES)
+ENERGY_RELEVANCE_KEYWORDS = {
+    "energy",
+    "electricity",
+    "power",
+    "grid",
+    "transmission",
+    "renewable",
+    "solar",
+    "wind",
+    "oil",
+    "gas",
+    "fossil",
+    "carbon",
+    "emissions",
+    "climate",
+    "methane",
+    "electrification",
+    "utility",
+    "fuel",
 }
 
 
@@ -355,6 +385,42 @@ VALIDATION_SAMPLE_PDFS = [
 ]
 
 
+def validation_split_for_report(report_id, test_ratio=0.28):
+    """Stable split so validation/test membership does not change across runs."""
+    bucket = zlib.crc32(str(report_id).encode("utf-8")) % 100
+    return "test" if bucket < int(test_ratio * 100) else "validation"
+
+
+def summarize_validation_results(result, matched_col="matched"):
+    rows = []
+    if result.empty or matched_col not in result.columns:
+        return pd.DataFrame(rows)
+
+    groups = [("all", result)]
+    if "split" in result.columns:
+        groups.extend((split, group) for split, group in result.groupby("split"))
+
+    for split, group in groups:
+        available = group[group.get("predicted_hint", "") != "missing_pdf"] if "predicted_hint" in group else group
+        if available.empty:
+            rows.append({"split": split, "n": 0, "accuracy": np.nan, "coverage": 0.0})
+            continue
+        rows.append(
+            {
+                "split": split,
+                "n": int(len(available)),
+                "accuracy": float(available[matched_col].astype(bool).mean()),
+                "coverage": float(len(available) / len(group)) if len(group) else 0.0,
+                "low_relevance_rate": (
+                    float((available["ood_decision"] != "in_domain").mean())
+                    if "ood_decision" in available.columns
+                    else np.nan
+                ),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
 def ensure_dirs():
     ensure_project_dirs()
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -426,16 +492,38 @@ def split_paragraphs(report, pages):
     return records
 
 
-def retrieve_evidence(paragraphs, top_k=10):
+def _minmax(values):
+    values = np.asarray(values, dtype=float)
+    if len(values) == 0:
+        return values
+    v_min, v_max = values.min(), values.max()
+    if v_max - v_min <= 1e-9:
+        return np.zeros_like(values)
+    return (values - v_min) / (v_max - v_min)
+
+
+def retrieve_evidence(paragraphs, top_k=10, embedder=None, hybrid=False):
     evidence_rows = []
     for report_id, group in paragraphs.groupby("report_id"):
         texts = group["paragraph"].tolist()
         vectorizer = TfidfVectorizer(stop_words="english", max_features=5000)
         matrix = vectorizer.fit_transform(texts)
+        paragraph_vectors = embedder.encode(texts) if hybrid and embedder is not None and texts else None
 
         for theme, query in THEME_QUERIES.items():
             query_vector = vectorizer.transform([query])
-            scores = cosine_similarity(query_vector, matrix).ravel()
+            tfidf_scores = cosine_similarity(query_vector, matrix).ravel()
+            embedding_scores = np.zeros_like(tfidf_scores)
+            if paragraph_vectors is not None:
+                query_embedding = embedder.encode([query])
+                embedding_scores = cosine_similarity(query_embedding, paragraph_vectors).ravel()
+
+            if paragraph_vectors is not None:
+                scores = 0.65 * _minmax(tfidf_scores) + 0.35 * _minmax(embedding_scores)
+                retrieval_method = "tfidf_embedding_hybrid"
+            else:
+                scores = tfidf_scores
+                retrieval_method = "tfidf"
             top_indices = scores.argsort()[::-1][:top_k]
 
             for rank, idx in enumerate(top_indices, start=1):
@@ -445,11 +533,16 @@ def retrieve_evidence(paragraphs, top_k=10):
                         "theme": theme,
                         "rank": rank,
                         "retrieval_score": float(scores[idx]),
+                        "tfidf_score": float(tfidf_scores[idx]),
+                        "embedding_score": float(embedding_scores[idx]),
+                        "retrieval_method": retrieval_method,
                     }
                 )
                 evidence_rows.append(row)
 
     evidence = pd.DataFrame(evidence_rows)
+    if evidence.empty:
+        return evidence
     evidence = evidence.drop_duplicates(subset=["report_id", "paragraph", "theme"])
     return evidence
 
@@ -459,6 +552,7 @@ class EmbeddingModel:
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModel.from_pretrained(model_name)
         self.model.eval()
+        self._topic_classifiers = None
 
     def encode(self, texts, batch_size=16):
         vectors = []
@@ -482,6 +576,9 @@ class EmbeddingModel:
 
 
 def train_few_shot_topic_classifiers(embedder):
+    if getattr(embedder, "_topic_classifiers", None) is not None:
+        return embedder._topic_classifiers
+
     training_texts = []
     classifiers = {}
     labels = list(SCORING_REFERENCE_EXAMPLES)
@@ -504,7 +601,53 @@ def train_few_shot_topic_classifiers(embedder):
         model.fit(training_vectors, y)
         classifiers[label] = model
 
+    embedder._topic_classifiers = classifiers
     return classifiers
+
+
+def estimate_energy_relevance(evidence_group, raw_scores=None):
+    if evidence_group.empty:
+        return {
+            "energy_relevance": 0.0,
+            "retrieval_relevance": 0.0,
+            "keyword_relevance": 0.0,
+            "classifier_relevance": 0.0,
+            "ood_decision": "out_of_domain",
+        }
+
+    relevance_col = "tfidf_score" if "tfidf_score" in evidence_group.columns else "retrieval_score"
+    retrieval_values = evidence_group[relevance_col].astype(float).values
+    n_top = max(1, min(8, len(retrieval_values)))
+    retrieval_relevance = float(np.sort(retrieval_values)[-n_top:].mean())
+
+    paragraphs = evidence_group.drop_duplicates(subset=["paragraph"])["paragraph"].astype(str).str.lower().tolist()
+    keyword_hits = []
+    for paragraph in paragraphs:
+        tokens = set(re.findall(r"[a-zA-Z]+", paragraph))
+        keyword_hits.append(len(tokens & ENERGY_RELEVANCE_KEYWORDS) > 0)
+    keyword_relevance = float(np.mean(keyword_hits)) if keyword_hits else 0.0
+    classifier_relevance = float(max(raw_scores.values())) if raw_scores else 0.0
+
+    # The components intentionally mix retrieval evidence, surface-domain
+    # keywords, and classifier confidence so non-energy PDFs do not get forced
+    # into a strong transition label by min-max scaling alone.
+    retrieval_component = np.clip(retrieval_relevance / 0.18, 0, 1)
+    classifier_component = np.clip((classifier_relevance - 0.35) / 0.25, 0, 1)
+    energy_relevance = float(np.clip(0.45 * retrieval_component + 0.35 * keyword_relevance + 0.20 * classifier_component, 0, 1))
+    if energy_relevance < 0.35:
+        ood_decision = "out_of_domain"
+    elif energy_relevance < 0.55:
+        ood_decision = "low_relevance"
+    else:
+        ood_decision = "in_domain"
+
+    return {
+        "energy_relevance": energy_relevance,
+        "retrieval_relevance": retrieval_relevance,
+        "keyword_relevance": keyword_relevance,
+        "classifier_relevance": classifier_relevance,
+        "ood_decision": ood_decision,
+    }
 
 
 def score_evidence_with_few_shot_learning(evidence, embedder):
@@ -522,24 +665,35 @@ def score_evidence_with_few_shot_learning(evidence, embedder):
             "issuer": evidence.loc[list(indices), "issuer"].iloc[0],
             "scoring_method": "few_shot_logistic_head_on_minilm_embeddings",
         }
+        raw_scores = {}
         for label, classifier in classifiers.items():
             probabilities = classifier.predict_proba(report_vectors)[:, 1]
             n_top = max(1, int(len(probabilities) * 0.30))
-            row[label] = float(np.clip(np.sort(probabilities)[-n_top:].mean(), 0, 1))
+            raw_value = float(np.clip(np.sort(probabilities)[-n_top:].mean(), 0, 1))
+            raw_scores[label] = raw_value
+            row[f"{label}_raw"] = raw_value
+            row[label] = raw_value
 
-        theme_keys = ["renewable_opportunity", "fossil_pressure", "grid_infrastructure", "climate_risk"]
-        raw = np.array([row[k] for k in theme_keys])
+        raw = np.array([row[k] for k in THEME_KEYS])
         v_min, v_max = raw.min(), raw.max()
         if v_max - v_min > 1e-6:
             scaled = (raw - v_min) / (v_max - v_min)
-            for k, v in zip(theme_keys, scaled):
+            for k, v in zip(THEME_KEYS, scaled):
                 row[k] = float(v)
 
+        relevance = estimate_energy_relevance(evidence.loc[list(indices)], raw_scores=raw_scores)
+        row.update(relevance)
         row["transition_signal"] = (
             row["renewable_opportunity"]
             + row["grid_infrastructure"]
             + row["climate_risk"]
             - row["fossil_pressure"]
+        )
+        row["transition_signal_raw"] = (
+            row["renewable_opportunity_raw"]
+            + row["grid_infrastructure_raw"]
+            + row["climate_risk_raw"]
+            - row["fossil_pressure_raw"]
         )
         row["asset_hint"] = infer_market_theme_hint(row)
         score_rows.append(row)
@@ -549,7 +703,6 @@ def score_evidence_with_few_shot_learning(evidence, embedder):
 
 def score_evidence_with_zero_shot_similarity(evidence):
     """Baseline: aggregate frozen embedding retrieval scores without task-head learning."""
-    theme_keys = ["renewable_opportunity", "fossil_pressure", "grid_infrastructure", "climate_risk"]
     score_rows = []
 
     for report_id, group in evidence.groupby("report_id"):
@@ -560,7 +713,7 @@ def score_evidence_with_zero_shot_similarity(evidence):
             "issuer": group["issuer"].iloc[0],
             "scoring_method": "zero_shot_embedding_similarity",
         }
-        for theme in theme_keys:
+        for theme in THEME_KEYS:
             values = group.loc[group["theme"] == theme, "retrieval_score"].astype(float).values
             if len(values) == 0:
                 row[theme] = 0.0
@@ -568,13 +721,14 @@ def score_evidence_with_zero_shot_similarity(evidence):
             n_top = max(1, int(len(values) * 0.30))
             row[theme] = float(np.sort(values)[-n_top:].mean())
 
-        raw = np.array([row[k] for k in theme_keys])
+        raw = np.array([row[k] for k in THEME_KEYS])
         v_min, v_max = raw.min(), raw.max()
         if v_max - v_min > 1e-6:
             scaled = (raw - v_min) / (v_max - v_min)
-            for k, v in zip(theme_keys, scaled):
+            for k, v in zip(THEME_KEYS, scaled):
                 row[k] = float(v)
 
+        row.update(estimate_energy_relevance(group))
         row["transition_signal"] = (
             row["renewable_opportunity"]
             + row["grid_infrastructure"]
@@ -588,13 +742,15 @@ def score_evidence_with_zero_shot_similarity(evidence):
 
 
 def theme_margin(row):
-    theme_keys = ["renewable_opportunity", "fossil_pressure", "grid_infrastructure", "climate_risk"]
-    values = sorted([float(row[k]) for k in theme_keys], reverse=True)
+    values = sorted([float(row[k]) for k in THEME_KEYS], reverse=True)
     return values[0] - values[1] if len(values) >= 2 else 0.0
 
 
 
 def infer_market_theme_hint(row):
+    if row.get("ood_decision") in {"out_of_domain", "low_relevance"}:
+        return "Out-of-domain / low energy relevance"
+
     renewable = row["renewable_opportunity"]
     grid = row["grid_infrastructure"]
     fossil = row["fossil_pressure"]
@@ -646,11 +802,14 @@ def make_extractive_summaries(evidence, scores, sentences_per_report=5):
 
 
 def plain_korean_explanation(row):
+    relevance = row.get("energy_relevance", None)
+    relevance_text = f" 에너지 관련성 점수는 {relevance:.2f}입니다." if relevance is not None else ""
     return (
         "이 보고서는 에너지 전환을 시장 신호로 바꾸기 위해 읽은 자료입니다. "
         f"재생에너지 점수는 {row['renewable_opportunity']:.2f}, "
         f"전력망/전기화 점수는 {row['grid_infrastructure']:.2f}, "
-        f"화석연료 압력 점수는 {row['fossil_pressure']:.2f}입니다. "
+        f"화석연료 압력 점수는 {row['fossil_pressure']:.2f}입니다."
+        f"{relevance_text} "
         "쉽게 말해, 보고서 내용을 어떤 산업에 좋은 또는 부담이 되는 신호인지 숫자로 바꾼 결과입니다."
     )
 
@@ -672,12 +831,65 @@ def link_scores_to_stock_returns(scores, horizon_weeks=4):
     return pd.DataFrame(rows)
 
 
+def compound_returns(window, columns):
+    if window.empty:
+        return pd.Series({col: np.nan for col in columns})
+    return (1 + window[columns]).prod() - 1
+
+
+def event_window_stock_returns(scores, windows=None):
+    windows = windows or EVENT_WINDOWS
+    if not STOCK_WEEKLY_PATH.exists():
+        return pd.DataFrame()
+
+    stock = pd.read_csv(STOCK_WEEKLY_PATH, index_col=0, parse_dates=True).sort_index()
+    required = [*MARKET_RETURN_COLUMNS, "ET_SPREAD"]
+    if not set(required).issubset(stock.columns):
+        return pd.DataFrame()
+
+    rows = []
+    for _, score in scores.iterrows():
+        report_date = pd.Timestamp(score["date"])
+        row = {
+            "report_id": score.get("report_id"),
+            "title": score.get("title"),
+            "date": score.get("date"),
+            "asset_hint": score.get("asset_hint"),
+            "transition_signal": score.get("transition_signal"),
+        }
+        for label, (start_offset, end_offset) in windows.items():
+            if start_offset < 0:
+                start = report_date + pd.Timedelta(weeks=start_offset)
+                end = report_date
+                window = stock[(stock.index > start) & (stock.index <= end)]
+            else:
+                start = report_date
+                end = report_date + pd.Timedelta(weeks=end_offset)
+                window = stock[(stock.index > start) & (stock.index <= end)]
+
+            row[f"{label}_n_weeks"] = int(len(window))
+            asset_returns = compound_returns(window, MARKET_RETURN_COLUMNS)
+            benchmark = float(asset_returns.mean()) if asset_returns.notna().any() else np.nan
+            row[f"{label}_benchmark_equal_weight"] = benchmark
+            for col, value in asset_returns.items():
+                row[f"{label}_{col}"] = float(value) if pd.notna(value) else np.nan
+                row[f"{label}_abnormal_{col}"] = float(value - benchmark) if pd.notna(value) and pd.notna(benchmark) else np.nan
+            if "ET_SPREAD" in window:
+                spread_return = compound_returns(window, ["ET_SPREAD"]).iloc[0]
+                row[f"{label}_ET_SPREAD"] = float(spread_return) if pd.notna(spread_return) else np.nan
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
 def attach_news_context_to_report_scores(scores, window_weeks=4):
     if not NEWS_WEEKLY_PATH.exists():
         result = scores.copy()
         result["news_context_available"] = False
         result["news_window_mean"] = np.nan
         result["news_window_trend"] = np.nan
+        result["news_window_std"] = np.nan
+        result["news_window_article_count"] = np.nan
+        result["news_window_mean_z"] = np.nan
         return result
 
     news = pd.read_csv(NEWS_WEEKLY_PATH)
@@ -695,6 +907,10 @@ def attach_news_context_to_report_scores(scores, window_weeks=4):
         numeric_cols = [col for col in news.select_dtypes(include=[np.number]).columns if col != date_col]
         sentiment_col = numeric_cols[0] if numeric_cols else None
 
+    global_mean = float(news[sentiment_col].mean()) if sentiment_col else np.nan
+    global_std = float(news[sentiment_col].std(ddof=0)) if sentiment_col else np.nan
+    article_col = "article_count" if "article_count" in news.columns else None
+
     result_rows = []
     for _, score in scores.iterrows():
         row = score.to_dict()
@@ -709,6 +925,16 @@ def attach_news_context_to_report_scores(scores, window_weeks=4):
         start = report_date - pd.Timedelta(weeks=window_weeks)
         window = news[(news[date_col] >= start) & (news[date_col] <= report_date)].sort_values(date_col)
         row["news_window_mean"] = float(window[sentiment_col].mean()) if not window.empty else np.nan
+        row["news_window_std"] = float(window[sentiment_col].std(ddof=0)) if len(window) >= 2 else np.nan
+        row["news_window_min"] = float(window[sentiment_col].min()) if not window.empty else np.nan
+        row["news_window_max"] = float(window[sentiment_col].max()) if not window.empty else np.nan
+        row["news_window_n_weeks"] = int(len(window))
+        row["news_window_article_count"] = int(window[article_col].sum()) if article_col and not window.empty else np.nan
+        row["news_window_mean_z"] = (
+            float((row["news_window_mean"] - global_mean) / global_std)
+            if pd.notna(row["news_window_mean"]) and pd.notna(global_std) and global_std > 1e-9
+            else np.nan
+        )
         if len(window) >= 2:
             row["news_window_trend"] = float(window[sentiment_col].iloc[-1] - window[sentiment_col].iloc[0])
         else:
@@ -718,19 +944,23 @@ def attach_news_context_to_report_scores(scores, window_weeks=4):
     return pd.DataFrame(result_rows)
 
 
-def validate_sample_pdfs(embedder=None, max_pages=40, top_k=10):
+def validate_sample_pdfs(embedder=None, max_pages=40, top_k=10, hybrid_retrieval=True):
     embedder = embedder or EmbeddingModel()
     rows = []
     for sample in VALIDATION_SAMPLE_PDFS:
+        split = validation_split_for_report(sample["report_id"])
         path = Path(sample["path"])
         if not path.exists():
             rows.append(
                 {
                     "report_id": sample["report_id"],
                     "title": sample["title"],
+                    "split": split,
                     "expected_hint": sample["expected_hint"],
                     "predicted_hint": "missing_pdf",
                     "matched": False,
+                    "energy_relevance": 0.0,
+                    "ood_decision": "missing_pdf",
                     "paragraphs": 0,
                     "evidence": 0,
                 }
@@ -747,16 +977,20 @@ def validate_sample_pdfs(embedder=None, max_pages=40, top_k=10):
         )
         pages = extract_pdf_text_from_path(path, max_pages=max_pages)
         paragraphs = pd.DataFrame(split_paragraphs(report, pages))
-        evidence = retrieve_evidence(paragraphs, top_k=top_k)
+        evidence = retrieve_evidence(paragraphs, top_k=top_k, embedder=embedder, hybrid=hybrid_retrieval)
         scores = score_evidence_with_few_shot_learning(evidence, embedder)
         predicted = scores.iloc[0]["asset_hint"] if not scores.empty else "no_signal"
+        score_row = scores.iloc[0] if not scores.empty else {}
         rows.append(
             {
                 "report_id": sample["report_id"],
                 "title": sample["title"],
+                "split": split,
                 "expected_hint": sample["expected_hint"],
                 "predicted_hint": predicted,
                 "matched": predicted == sample["expected_hint"],
+                "energy_relevance": float(score_row.get("energy_relevance", 0.0)),
+                "ood_decision": score_row.get("ood_decision", "no_signal"),
                 "paragraphs": int(len(paragraphs)),
                 "evidence": int(len(evidence)),
             }
@@ -766,18 +1000,22 @@ def validate_sample_pdfs(embedder=None, max_pages=40, top_k=10):
     output = REPORT_PROCESSED_DIR / "expanded_pdf_validation.csv"
     output.parent.mkdir(parents=True, exist_ok=True)
     result.to_csv(output, index=False)
+    split_metrics = summarize_validation_results(result)
+    split_metrics.to_csv(REPORT_PROCESSED_DIR / "pdf_validation_split_metrics.csv", index=False)
     return result
 
 
-def compare_zero_shot_vs_few_shot(embedder=None, max_pages=40, top_k=10):
+def compare_zero_shot_vs_few_shot(embedder=None, max_pages=40, top_k=10, hybrid_retrieval=True):
     embedder = embedder or EmbeddingModel()
     rows = []
 
     for sample in VALIDATION_SAMPLE_PDFS:
+        split = validation_split_for_report(sample["report_id"])
         path = Path(sample["path"])
         base = {
             "report_id": sample["report_id"],
             "title": sample["title"],
+            "split": split,
             "expected_hint": sample["expected_hint"],
         }
         if not path.exists():
@@ -804,7 +1042,7 @@ def compare_zero_shot_vs_few_shot(embedder=None, max_pages=40, top_k=10):
         )
         pages = extract_pdf_text_from_path(path, max_pages=max_pages)
         paragraphs = pd.DataFrame(split_paragraphs(report, pages))
-        evidence = retrieve_evidence(paragraphs, top_k=top_k)
+        evidence = retrieve_evidence(paragraphs, top_k=top_k, embedder=embedder, hybrid=hybrid_retrieval)
         zero_score = score_evidence_with_zero_shot_similarity(evidence).iloc[0].to_dict()
         few_score = score_evidence_with_few_shot_learning(evidence, embedder).iloc[0].to_dict()
 
@@ -817,6 +1055,8 @@ def compare_zero_shot_vs_few_shot(embedder=None, max_pages=40, top_k=10):
                 "few_shot_matched": few_score["asset_hint"] == sample["expected_hint"],
                 "zero_shot_margin": float(theme_margin(zero_score)),
                 "few_shot_margin": float(theme_margin(few_score)),
+                "few_shot_energy_relevance": float(few_score.get("energy_relevance", 0.0)),
+                "few_shot_ood_decision": few_score.get("ood_decision", "unknown"),
                 "comparison_note": (
                     "zero-shot uses frozen embedding retrieval similarity; "
                     "few-shot uses frozen embeddings plus logistic classifier heads from human examples"
@@ -828,6 +1068,23 @@ def compare_zero_shot_vs_few_shot(embedder=None, max_pages=40, top_k=10):
     output = REPORT_PROCESSED_DIR / "zero_shot_vs_few_shot.csv"
     output.parent.mkdir(parents=True, exist_ok=True)
     result.to_csv(output, index=False)
+    if not result.empty:
+        metric_rows = []
+        for split, group in [("all", result), *result.groupby("split")]:
+            available = group[group["few_shot_hint"] != "missing_pdf"]
+            if available.empty:
+                metric_rows.append({"split": split, "n": 0, "zero_shot_accuracy": np.nan, "few_shot_accuracy": np.nan})
+                continue
+            metric_rows.append(
+                {
+                    "split": split,
+                    "n": int(len(available)),
+                    "zero_shot_accuracy": float(available["zero_shot_matched"].astype(bool).mean()),
+                    "few_shot_accuracy": float(available["few_shot_matched"].astype(bool).mean()),
+                    "few_shot_low_relevance_rate": float((available["few_shot_ood_decision"] != "in_domain").mean()),
+                }
+            )
+        pd.DataFrame(metric_rows).to_csv(REPORT_PROCESSED_DIR / "zero_shot_vs_few_shot_split_metrics.csv", index=False)
     return result
 
 
@@ -840,13 +1097,14 @@ def write_summary_markdown(scores, summaries, linked):
         "",
         "PDF 보고서를 단순 요약하지 않고, 에너지 전환과 관련된 근거 문단을 찾습니다.",
         "사전학습 Transformer 임베딩으로 사람이 만든 예시 문장과 PDF 문단의 유사성을 비교하고, 주제별 점수로 변환합니다.",
-        "점수는 재생에너지, 화석연료 압력, 전력망/전기화, 기후 리스크를 나타냅니다.",
+        "raw classifier probability와 per-report normalized score를 함께 저장해, 모델 신뢰도와 시각화 점수를 분리합니다.",
         "",
         "## Pre-trained Transformer Embedding 연결",
         "",
         f"- 범용 임베딩 모델: `{EMBEDDING_MODEL}`",
         "- 역할: PDF 문단과 예시 문장의 의미를 벡터로 변환",
         "- Few-shot classifier: MiniLM 임베딩은 고정하고, 소수 라벨 예시로 Logistic Regression 분류 헤드를 학습",
+        "- OOD guard: 에너지 관련성이 낮은 문서는 강한 자산 신호로 해석하지 않음",
         "- Downstream task: 보고서 점수를 ETF/기업 주가 수익률과 연결",
         "",
         "## Report Signals",
@@ -968,6 +1226,10 @@ def run_report_pipeline():
     linked_path = REPORT_PROCESSED_DIR / "report_stock_link.csv"
     linked.to_csv(linked_path, index=False)
 
+    event_returns = event_window_stock_returns(scores)
+    event_returns_path = REPORT_PROCESSED_DIR / "report_event_window_returns.csv"
+    event_returns.to_csv(event_returns_path, index=False)
+
     fig_path = plot_report_signals(scores)
     md_path = write_summary_markdown(scores, summaries, linked)
 
@@ -977,6 +1239,7 @@ def run_report_pipeline():
     print(f"Saved report-news bridge: {news_bridge_path}")
     print(f"Saved report summaries: {summaries_path}")
     print(f"Saved downstream stock link: {linked_path}")
+    print(f"Saved event window returns: {event_returns_path}")
     print(f"Saved figure: {fig_path}")
     print(f"Saved markdown summary: {md_path}")
 

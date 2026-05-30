@@ -1,5 +1,6 @@
 import json
 import os
+import hashlib
 import sys
 import urllib.request
 import uuid
@@ -19,9 +20,11 @@ if str(SRC_DIR) not in sys.path:
 from config import FIGURES_DIR, PROCESSED_DIR, STOCK_WEEKLY_PATH  # noqa: E402
 from report_signal_pipeline import (  # noqa: E402
     EmbeddingModel,
+    EVENT_WINDOWS,
     ReportMeta,
     SCORING_REFERENCE_EXAMPLES,
     attach_news_context_to_report_scores,
+    compound_returns,
     extract_pdf_text_from_path,
     make_extractive_summaries,
     retrieve_evidence,
@@ -30,6 +33,7 @@ from report_signal_pipeline import (  # noqa: E402
 )
 
 UPLOAD_DIR = ROOT / "outputs" / "uploads"
+ANALYSIS_CACHE_DIR = ROOT / "outputs" / "cache"
 MARKET_COLUMNS = ["ET_SPREAD", "ICLN", "XLE", "NEE", "XOM", "ETN"]
 ALLOWED_FIGURES = {
     "fig1_timeseries.png",
@@ -88,12 +92,52 @@ def _compute_returns(scores: pd.DataFrame, horizons: list[int]) -> dict:
         for col, val in ((1 + future[MARKET_COLUMNS]).prod() - 1).items():
             result[f"forward_{h}w_{col}"] = round(float(val), 4)
 
+    market_assets = ["ICLN", "XLE", "NEE", "XOM", "ETN"]
+    for label, (start_offset, end_offset) in EVENT_WINDOWS.items():
+        if start_offset < 0:
+            start = report_date + pd.Timedelta(weeks=start_offset)
+            window = stock[(stock.index > start) & (stock.index <= report_date)]
+        else:
+            end = report_date + pd.Timedelta(weeks=end_offset)
+            window = stock[(stock.index > report_date) & (stock.index <= end)]
+        if window.empty:
+            continue
+        asset_returns = compound_returns(window, market_assets)
+        benchmark = float(asset_returns.mean())
+        result[f"{label}_benchmark_equal_weight"] = round(benchmark, 4)
+        result[f"{label}_n_weeks"] = int(len(window))
+        for col, value in asset_returns.items():
+            result[f"{label}_{col}"] = round(float(value), 4)
+            result[f"{label}_abnormal_{col}"] = round(float(value - benchmark), 4)
+
     return result
 
 
 def _json_records(df: pd.DataFrame) -> list[dict]:
     clean = df.astype(object).where(pd.notna(df), None)
     return clean.to_dict(orient="records")
+
+
+def _analysis_cache_key(pdf_bytes: bytes, params: dict) -> str:
+    digest = hashlib.sha256(pdf_bytes).hexdigest()
+    params_digest = hashlib.sha256(json.dumps(params, sort_keys=True).encode("utf-8")).hexdigest()[:16]
+    return f"{digest[:24]}_{params_digest}"
+
+
+def _read_analysis_cache(cache_key: str) -> dict | None:
+    path = ANALYSIS_CACHE_DIR / f"{cache_key}.json"
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _write_analysis_cache(cache_key: str, payload: dict) -> None:
+    ANALYSIS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    path = ANALYSIS_CACHE_DIR / f"{cache_key}.json"
+    path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
 
 def _interpret_evidence(theme: str, paragraph: str) -> str:
@@ -310,9 +354,24 @@ async def analyze_pdf(
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     safe_name = Path(file.filename).name.replace(" ", "_")
     pdf_path = UPLOAD_DIR / f"{uuid.uuid4().hex[:8]}_{safe_name}"
-    pdf_path.write_bytes(await file.read())
-
+    pdf_bytes = await file.read()
     horizon_list = [int(h.strip()) for h in horizons.split(",") if h.strip().isdigit()]
+    cache_params = {
+        "title": title,
+        "issuer": issuer,
+        "report_date": report_date,
+        "max_pages": max_pages,
+        "top_k": top_k,
+        "horizons": horizon_list,
+        "pipeline_version": "2026-05-30-ood-hybrid-v1",
+    }
+    cache_key = _analysis_cache_key(pdf_bytes, cache_params)
+    cached = _read_analysis_cache(cache_key)
+    if cached is not None:
+        cached["cache"] = {"hit": True, "key": cache_key}
+        return JSONResponse(cached)
+
+    pdf_path.write_bytes(pdf_bytes)
 
     try:
         report = ReportMeta(
@@ -329,11 +388,12 @@ async def analyze_pdf(
             raise ValueError("PDF에서 분석 가능한 문단을 추출하지 못했습니다.")
 
         paragraphs_df = pd.DataFrame(paragraphs)
-        evidence = retrieve_evidence(paragraphs_df, top_k=top_k)
+        embedder = get_embedder()
+        evidence = retrieve_evidence(paragraphs_df, top_k=top_k, embedder=embedder, hybrid=True)
         if evidence.empty:
             raise ValueError("에너지 전환 관련 근거 문단을 찾지 못했습니다.")
 
-        scores = score_evidence_with_few_shot_learning(evidence, get_embedder())
+        scores = score_evidence_with_few_shot_learning(evidence, embedder)
         summaries = make_extractive_summaries(evidence, scores, sentences_per_report=5)
 
         s = scores.iloc[0].to_dict()
@@ -344,6 +404,15 @@ async def analyze_pdf(
             "climate_risk": round(s["climate_risk"], 4),
             "transition_signal": round(s["transition_signal"], 4),
             "asset_hint": s["asset_hint"],
+            "energy_relevance": round(s["energy_relevance"], 4),
+            "ood_decision": s["ood_decision"],
+        }
+        raw_scores = {
+            "renewable_opportunity": round(s["renewable_opportunity_raw"], 4),
+            "fossil_pressure": round(s["fossil_pressure_raw"], 4),
+            "grid_infrastructure": round(s["grid_infrastructure_raw"], 4),
+            "climate_risk": round(s["climate_risk_raw"], 4),
+            "transition_signal": round(s["transition_signal_raw"], 4),
         }
         sorted_themes = sorted(
             [(k, theme_scores[k]) for k in THEME_KOREAN],
@@ -352,6 +421,8 @@ async def analyze_pdf(
         )
         margin = sorted_themes[0][1] - sorted_themes[1][1]
         confidence_level = "높음" if margin >= 0.25 else ("보통" if margin >= 0.10 else "낮음")
+        if s["ood_decision"] != "in_domain":
+            confidence_level = "낮음"
 
         evidence_by_theme = {
             theme: [
@@ -359,6 +430,8 @@ async def analyze_pdf(
                     "page": int(r["page"]),
                     "rank": int(r["rank"]),
                     "score": round(float(r["retrieval_score"]), 4),
+                    "tfidf_score": round(float(r.get("tfidf_score", 0.0)), 4),
+                    "embedding_score": round(float(r.get("embedding_score", 0.0)), 4),
                     "paragraph": r["paragraph"],
                     "interpretation": _interpret_evidence(theme, r["paragraph"]),
                 }
@@ -370,34 +443,40 @@ async def analyze_pdf(
             for theme in SCORING_REFERENCE_EXAMPLES
         }
 
-        return JSONResponse(
-            {
-                "status": "success",
-                "methodology": {
-                    "base_model": "sentence-transformers/all-MiniLM-L6-v2",
-                    "few_shot_learning": "Frozen MiniLM embeddings + logistic regression classifier heads.",
-                    "generative_model": "Gemini summary when GEMINI_API_KEY is configured; API/local fallbacks are also supported.",
-                },
-                "scores": theme_scores,
-                "confidence": {
-                    "level": confidence_level,
-                    "margin": round(margin, 4),
-                    "top_theme": sorted_themes[0][0],
-                },
-                "summary": {
-                    "korean": summaries.iloc[0]["plain_korean_explanation"],
-                    "bullets": summaries.iloc[0]["simple_summary"],
-                    "generative": _optional_generative_summary(title, evidence),
-                },
-                "evidence": evidence_by_theme,
-                "returns": _compute_returns(scores, horizon_list),
-                "stats": {
-                    "pages": len(pages),
-                    "paragraphs": len(paragraphs_df),
-                    "evidence_count": len(evidence),
-                },
-            }
-        )
+        payload = {
+            "status": "success",
+            "methodology": {
+                "base_model": "sentence-transformers/all-MiniLM-L6-v2",
+                "few_shot_learning": "Frozen MiniLM embeddings + cached logistic regression classifier heads.",
+                "retrieval": "TF-IDF + embedding hybrid evidence retrieval.",
+                "ood_guard": "Energy relevance score combines retrieval strength, keyword coverage, and raw classifier confidence.",
+                "generative_model": "Gemini summary when GEMINI_API_KEY is configured; API/local fallbacks are also supported.",
+            },
+            "scores": theme_scores,
+            "raw_scores": raw_scores,
+            "confidence": {
+                "level": confidence_level,
+                "margin": round(margin, 4),
+                "top_theme": sorted_themes[0][0],
+                "energy_relevance": round(s["energy_relevance"], 4),
+                "ood_decision": s["ood_decision"],
+            },
+            "summary": {
+                "korean": summaries.iloc[0]["plain_korean_explanation"],
+                "bullets": summaries.iloc[0]["simple_summary"],
+                "generative": _optional_generative_summary(title, evidence),
+            },
+            "evidence": evidence_by_theme,
+            "returns": _compute_returns(scores, horizon_list),
+            "stats": {
+                "pages": len(pages),
+                "paragraphs": len(paragraphs_df),
+                "evidence_count": len(evidence),
+            },
+            "cache": {"hit": False, "key": cache_key},
+        }
+        _write_analysis_cache(cache_key, payload)
+        return JSONResponse(payload)
     except ValueError as exc:
         raise HTTPException(422, str(exc))
     except Exception as exc:
