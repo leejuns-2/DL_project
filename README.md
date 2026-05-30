@@ -59,6 +59,8 @@ PDF Upload
 | News sentiment context | 실제 GDELT GKG weekly sample tone signal 포함 |
 | Report-stock link | 보고서 날짜 이후 4주 과거 수익률 연결 포함 |
 
+검증 요약은 `outputs/tables/model_validation_brief.md`에 정리되어 있습니다. 여기에는 핵심 지표, baseline 비교, 실패 사례, OOD 점검, Gemini 요약 검토, 라이브 웹 테스트 기록이 포함됩니다.
+
 뉴스 컨텍스트 CSV는 GDELT GKG 공개 파일에서 매주 금요일 12:00 UTC 파일을 표본 수집해 만든 실제 뉴스 tone 신호입니다. 전체 뉴스 모집단이 아니라 주간 1시점 샘플이므로, Bloomberg/NewsAPI 전체 히스토리와 같은 완전한 뉴스 원자료 분석으로 과장하면 안 됩니다.
 
 ## 해석 주의
@@ -77,6 +79,15 @@ uvicorn app:app --reload --port 8000
 ```
 
 브라우저에서 `http://localhost:8000` 접속
+
+## 검증 자료 재생성
+
+```bash
+python scripts/build_model_validation_brief.py
+python scripts/smoke_check.py
+```
+
+생성되는 핵심 문서는 `outputs/tables/model_validation_brief.md`입니다.
 
 ## Gemini 설정
 
