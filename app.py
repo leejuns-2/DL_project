@@ -16,6 +16,7 @@ SRC_DIR = ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
+from config import FIGURES_DIR, PROCESSED_DIR, STOCK_WEEKLY_PATH  # noqa: E402
 from report_signal_pipeline import (  # noqa: E402
     EmbeddingModel,
     ReportMeta,
@@ -27,7 +28,6 @@ from report_signal_pipeline import (  # noqa: E402
     score_evidence_with_few_shot_learning,
     split_paragraphs,
 )
-from config import FIGURES_DIR, PROCESSED_DIR, STOCK_WEEKLY_PATH  # noqa: E402
 
 UPLOAD_DIR = ROOT / "outputs" / "uploads"
 MARKET_COLUMNS = ["ET_SPREAD", "ICLN", "XLE", "NEE", "XOM", "ETN"]
@@ -42,7 +42,7 @@ ALLOWED_FIGURES = {
 THEME_KOREAN = {
     "renewable_opportunity": "재생에너지 기회",
     "fossil_pressure": "화석연료 전환 압력",
-    "grid_infrastructure": "전력망/전기화",
+    "grid_infrastructure": "전력망/전기화 인프라",
     "climate_risk": "기후 리스크",
 }
 
@@ -59,7 +59,6 @@ def get_embedder() -> EmbeddingModel:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    get_embedder()
     yield
 
 
@@ -100,11 +99,10 @@ def _json_records(df: pd.DataFrame) -> list[dict]:
 def _interpret_evidence(theme: str, paragraph: str) -> str:
     text = paragraph.lower()
     signals = []
-
     keyword_groups = [
         (["solar", "wind", "renewable", "clean energy", "capacity"], "재생에너지 확대 또는 청정에너지 투자"),
         (["oil", "gas", "fossil", "methane", "carbon", "emissions"], "화석연료 산업의 배출 감축 또는 전환 압력"),
-        (["grid", "transmission", "distribution", "electricity", "electrification", "power"], "전력망, 송배전, 전기화 인프라"),
+        (["grid", "transmission", "distribution", "electricity", "electrification", "power"], "전력망 확장 또는 전기화 인프라"),
         (["climate", "weather", "heat", "drought", "risk", "resilience"], "기후 변화와 물리적 리스크"),
         (["investment", "demand", "policy", "regulation", "cost"], "투자, 수요, 정책 변화"),
     ]
@@ -120,7 +118,7 @@ def _interpret_evidence(theme: str, paragraph: str) -> str:
     return (
         f"이 문단은 {signal_text} 요소를 포함하고 있어 "
         f"`{theme_label}` 신호의 근거로 선택되었습니다. "
-        "즉, 문서 안에서 해당 시장 테마와 연결될 수 있는 내용으로 해석할 수 있습니다."
+        "문서 안에서 해당 시장 테마와 연결될 수 있는 내용으로 해석할 수 있습니다."
     )
 
 
@@ -146,17 +144,14 @@ def _run_local_genai(model_id: str, title: str, evidence: pd.DataFrame) -> dict:
     tokenizer = bundle["tokenizer"]
     model = bundle["model"]
 
-    context = "\n".join(
-        f"- {row['theme']} p.{row['page']}: {row['paragraph'][:550]}"
-        for _, row in evidence.sort_values("retrieval_score", ascending=False).head(6).iterrows()
-    )
+    context = _evidence_context(evidence, limit=6, chars=550)
     messages = [
         {"role": "system", "content": "You are a cautious energy-market research assistant."},
         {
             "role": "user",
             "content": (
                 "다음 PDF 근거를 바탕으로 에너지 전환, 뉴스 분위기, 주가 downstream 연결 관점에서 "
-                "한국어로 3문장 이내로 요약해줘. 투자 추천이나 미래 수익률 예측처럼 말하지 마.\n\n"
+                "한국어로 3문장 이내로 요약해 주세요. 투자 추천이나 미래 수익률 예측처럼 말하지 마세요.\n\n"
                 f"보고서 제목: {title}\n근거:\n{context}"
             ),
         },
@@ -218,14 +213,10 @@ def _run_gemini_summary(api_key: str, model: str, title: str, evidence: pd.DataF
             "thinkingConfig": thinking_config,
         },
     }
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     request = urllib.request.Request(
-        url,
+        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
         data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "x-goog-api-key": api_key,
-            "Content-Type": "application/json",
-        },
+        headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
         method="POST",
     )
     try:
@@ -278,22 +269,20 @@ def _optional_generative_summary(title: str, evidence: pd.DataFrame) -> dict:
         "not make investment recommendations.\n\n"
         f"Report title: {title}\nEvidence:\n{context}"
     )
-    payload = {
-        "model": model,
-        "messages": [
-            {"role": "system", "content": "Use cautious research language."},
-            {"role": "user", "content": prompt},
-        ],
-        "temperature": 0.2,
-        "max_tokens": 500,
-    }
     request = urllib.request.Request(
         api_url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
+        data=json.dumps(
+            {
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": "Use cautious research language."},
+                    {"role": "user", "content": prompt},
+                ],
+                "temperature": 0.2,
+                "max_tokens": 500,
+            }
+        ).encode("utf-8"),
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
         method="POST",
     )
     try:
@@ -315,7 +304,7 @@ async def analyze_pdf(
     top_k: int = Form(10),
     horizons: str = Form("1,4,8"),
 ):
-    if not file.filename.lower().endswith(".pdf"):
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(400, "PDF 파일만 업로드할 수 있습니다.")
 
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -344,8 +333,7 @@ async def analyze_pdf(
         if evidence.empty:
             raise ValueError("에너지 전환 관련 근거 문단을 찾지 못했습니다.")
 
-        embedder = get_embedder()
-        scores = score_evidence_with_few_shot_learning(evidence, embedder)
+        scores = score_evidence_with_few_shot_learning(evidence, get_embedder())
         summaries = make_extractive_summaries(evidence, scores, sentences_per_report=5)
 
         s = scores.iloc[0].to_dict()
@@ -357,9 +345,8 @@ async def analyze_pdf(
             "transition_signal": round(s["transition_signal"], 4),
             "asset_hint": s["asset_hint"],
         }
-
         sorted_themes = sorted(
-            [(k, theme_scores[k]) for k in ["renewable_opportunity", "fossil_pressure", "grid_infrastructure", "climate_risk"]],
+            [(k, theme_scores[k]) for k in THEME_KOREAN],
             key=lambda x: x[1],
             reverse=True,
         )
@@ -388,8 +375,8 @@ async def analyze_pdf(
                 "status": "success",
                 "methodology": {
                     "base_model": "sentence-transformers/all-MiniLM-L6-v2",
-                    "few_shot_learning": "Frozen MiniLM embeddings + logistic regression classifier heads (top-30% evidence aggregation, per-report min-max normalization).",
-                    "generative_model": "Gemini 3.5 Flash summary when GEMINI_API_KEY is configured; API/local fallbacks are also supported.",
+                    "few_shot_learning": "Frozen MiniLM embeddings + logistic regression classifier heads.",
+                    "generative_model": "Gemini summary when GEMINI_API_KEY is configured; API/local fallbacks are also supported.",
                 },
                 "scores": theme_scores,
                 "confidence": {
@@ -411,86 +398,59 @@ async def analyze_pdf(
                 },
             }
         )
-
-    except ValueError as e:
-        raise HTTPException(422, str(e))
-    except Exception as e:
-        raise HTTPException(500, f"분석 중 오류가 발생했습니다: {e}")
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+    except Exception as exc:
+        raise HTTPException(500, f"분석 중 오류가 발생했습니다: {exc}")
     finally:
         pdf_path.unlink(missing_ok=True)
 
 
 @app.get("/api/dashboard")
 async def get_dashboard():
-    signals, stock_link, news_bridge, validation = [], [], [], []
-    actual_news_stock, actual_climate_news = [], []
-    pdf_metrics, pdf_confusion, label_rationale, failure_analysis, gemini_check = [], [], [], [], []
-    out_of_domain, zero_shot_vs_few_shot = [], []
-    signals_path = PROCESSED_DIR / "reports" / "report_signals.csv"
-    link_path = PROCESSED_DIR / "reports" / "report_stock_link.csv"
-    news_bridge_path = PROCESSED_DIR / "reports" / "report_news_bridge.csv"
-    validation_path = PROCESSED_DIR / "reports" / "expanded_pdf_validation.csv"
-    news_stock_path = PROCESSED_DIR / "reports" / "actual_news_stock_best_lag.csv"
-    climate_news_path = PROCESSED_DIR / "reports" / "actual_climate_news_lag_corr.csv"
-    pdf_metrics_path = PROCESSED_DIR / "reports" / "pdf_validation_metrics.csv"
-    pdf_confusion_path = PROCESSED_DIR / "reports" / "pdf_validation_confusion_matrix.csv"
-    rationale_path = PROCESSED_DIR / "reports" / "pdf_validation_label_rationale.csv"
-    failure_path = PROCESSED_DIR / "reports" / "pdf_validation_failure_analysis.csv"
-    gemini_check_path = PROCESSED_DIR / "reports" / "gemini_summary_human_check.csv"
-    ood_path = PROCESSED_DIR / "reports" / "out_of_domain_pdf_test.csv"
-    zero_shot_path = PROCESSED_DIR / "reports" / "zero_shot_vs_few_shot.csv"
-    if signals_path.exists():
-        signals_df = pd.read_csv(signals_path).round(4)
-        signals = _json_records(signals_df)
-        if news_bridge_path.exists():
-            news_bridge = _json_records(pd.read_csv(news_bridge_path).round(4))
+    paths = {
+        "signals": PROCESSED_DIR / "reports" / "report_signals.csv",
+        "stock_link": PROCESSED_DIR / "reports" / "report_stock_link.csv",
+        "news_bridge": PROCESSED_DIR / "reports" / "report_news_bridge.csv",
+        "validation": PROCESSED_DIR / "reports" / "expanded_pdf_validation.csv",
+        "actual_news_stock": PROCESSED_DIR / "reports" / "actual_news_stock_best_lag.csv",
+        "actual_climate_news": PROCESSED_DIR / "reports" / "actual_climate_news_lag_corr.csv",
+        "pdf_metrics": PROCESSED_DIR / "reports" / "pdf_validation_metrics.csv",
+        "pdf_confusion": PROCESSED_DIR / "reports" / "pdf_validation_confusion_matrix.csv",
+        "label_rationale": PROCESSED_DIR / "reports" / "pdf_validation_label_rationale.csv",
+        "failure_analysis": PROCESSED_DIR / "reports" / "pdf_validation_failure_analysis.csv",
+        "gemini_check": PROCESSED_DIR / "reports" / "gemini_summary_human_check.csv",
+        "out_of_domain": PROCESSED_DIR / "reports" / "out_of_domain_pdf_test.csv",
+        "zero_shot_vs_few_shot": PROCESSED_DIR / "reports" / "zero_shot_vs_few_shot.csv",
+    }
+    data = {key: [] for key in paths}
+    if paths["signals"].exists():
+        signals_df = pd.read_csv(paths["signals"]).round(4)
+        data["signals"] = _json_records(signals_df)
+        if paths["news_bridge"].exists():
+            data["news_bridge"] = _json_records(pd.read_csv(paths["news_bridge"]).round(4))
         else:
-            news_bridge = _json_records(attach_news_context_to_report_scores(signals_df).round(4))
-    if link_path.exists():
-        stock_link = _json_records(pd.read_csv(link_path).round(4))
-    if validation_path.exists():
-        validation = _json_records(pd.read_csv(validation_path))
-    if news_stock_path.exists():
-        actual_news_stock = _json_records(pd.read_csv(news_stock_path).round(4))
-    if climate_news_path.exists():
-        actual_climate_news = _json_records(pd.read_csv(climate_news_path).round(4))
-    if pdf_metrics_path.exists():
-        pdf_metrics = _json_records(pd.read_csv(pdf_metrics_path).round(4))
-    if pdf_confusion_path.exists():
-        pdf_confusion = _json_records(pd.read_csv(pdf_confusion_path).reset_index())
-    if rationale_path.exists():
-        label_rationale = _json_records(pd.read_csv(rationale_path))
-    if failure_path.exists():
-        failure_analysis = _json_records(pd.read_csv(failure_path))
-    if gemini_check_path.exists():
-        gemini_check = _json_records(pd.read_csv(gemini_check_path))
-    if ood_path.exists():
-        out_of_domain = _json_records(pd.read_csv(ood_path).round(4))
-    if zero_shot_path.exists():
-        zero_shot_vs_few_shot = _json_records(pd.read_csv(zero_shot_path).round(4))
-    return JSONResponse(
-        {
-            "signals": signals,
-            "stock_link": stock_link,
-            "news_bridge": news_bridge,
-            "validation": validation,
-            "actual_news_stock": actual_news_stock,
-            "actual_climate_news": actual_climate_news,
-            "pdf_metrics": pdf_metrics,
-            "pdf_confusion": pdf_confusion,
-            "label_rationale": label_rationale,
-            "failure_analysis": failure_analysis,
-            "gemini_check": gemini_check,
-            "out_of_domain": out_of_domain,
-            "zero_shot_vs_few_shot": zero_shot_vs_few_shot,
-            "methodology": {
-                "base_model": "sentence-transformers/all-MiniLM-L6-v2",
-                "few_shot_learning": "Frozen Transformer embeddings + few-shot logistic heads (top-30% aggregation, per-report min-max normalization). Dashboard scores are from the initial pipeline run (pre-normalization).",
-                "news_pdf_bridge": "Actual GDELT GKG weekly tone samples are aggregated around each report date and joined to PDF event scores.",
-                "generative_model": "Gemini 3.5 Flash summary with cautious research wording.",
-            },
-        }
-    )
+            data["news_bridge"] = _json_records(attach_news_context_to_report_scores(signals_df).round(4))
+
+    for key, path in paths.items():
+        if key in {"signals", "news_bridge"} or not path.exists():
+            continue
+        df = pd.read_csv(path)
+        if key == "pdf_confusion":
+            df = df.reset_index()
+        try:
+            df = df.round(4)
+        except TypeError:
+            pass
+        data[key] = _json_records(df)
+
+    data["methodology"] = {
+        "base_model": "sentence-transformers/all-MiniLM-L6-v2",
+        "few_shot_learning": "Frozen Transformer embeddings + few-shot logistic heads.",
+        "news_pdf_bridge": "GDELT weekly tone samples are joined to PDF event scores.",
+        "generative_model": "Gemini summary with cautious research wording.",
+    }
+    return JSONResponse(data)
 
 
 @app.get("/api/figures/{name}")
@@ -507,5 +467,5 @@ app.mount("/static", StaticFiles(directory=str(ROOT / "static")), name="static")
 
 
 @app.get("/{full_path:path}")
-async def catch_all():
+async def catch_all(full_path: str):
     return FileResponse(str(ROOT / "static" / "index.html"))

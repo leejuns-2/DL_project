@@ -651,7 +651,7 @@ def plain_korean_explanation(row):
         f"재생에너지 점수는 {row['renewable_opportunity']:.2f}, "
         f"전력망/전기화 점수는 {row['grid_infrastructure']:.2f}, "
         f"화석연료 압력 점수는 {row['fossil_pressure']:.2f}입니다. "
-        "쉽게 말해, 보고서 내용이 어떤 산업에 더 좋은 뉴스인지 숫자로 바꾼 것입니다."
+        "쉽게 말해, 보고서 내용을 어떤 산업에 좋은 또는 부담이 되는 신호인지 숫자로 바꾼 결과입니다."
     )
 
 
@@ -838,15 +838,15 @@ def write_summary_markdown(scores, summaries, linked):
         "",
         "## 쉬운 설명",
         "",
-        "PDF 보고서를 그냥 요약하는 데서 끝내지 않고, 보고서 안에서 에너지 전환과 관련된 근거 문단을 찾고,",
-        "범용 Transformer 임베딩 모델로 사람이 정의한 예시 문장과 PDF 문단의 의미 유사도를 비교해 산업별 점수로 바꿨습니다.",
-        "쉽게 말해, 긴 보고서를 읽어서 `재생에너지`, `화석연료 압력`, `전력망`, `기후 리스크` 점수표로 만든 것입니다.",
+        "PDF 보고서를 단순 요약하지 않고, 에너지 전환과 관련된 근거 문단을 찾습니다.",
+        "사전학습 Transformer 임베딩으로 사람이 만든 예시 문장과 PDF 문단의 유사성을 비교하고, 주제별 점수로 변환합니다.",
+        "점수는 재생에너지, 화석연료 압력, 전력망/전기화, 기후 리스크를 나타냅니다.",
         "",
         "## Pre-trained Transformer Embedding 연결",
         "",
         f"- 범용 임베딩 모델: `{EMBEDDING_MODEL}`",
         "- 역할: PDF 문단과 예시 문장의 의미를 벡터로 변환",
-        "- Few-shot classifier: MiniLM 임베딩은 고정하고, 사람이 만든 소수 라벨 예시로 Logistic Regression 분류 헤드를 학습",
+        "- Few-shot classifier: MiniLM 임베딩은 고정하고, 소수 라벨 예시로 Logistic Regression 분류 헤드를 학습",
         "- Downstream task: 보고서 점수를 ETF/기업 주가 수익률과 연결",
         "",
         "## Report Signals",

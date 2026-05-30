@@ -1,74 +1,80 @@
 'use strict';
 
-/* ── Constants ─────────────────────────────────── */
 const THEME_META = {
-  renewable_opportunity: { label: '재생에너지',   color: '#12805c', cls: 'score-renewable' },
-  fossil_pressure:       { label: '화석연료 압력', color: '#a15c10', cls: 'score-fossil'    },
-  grid_infrastructure:   { label: '전력망/전기화', color: '#2563eb', cls: 'score-grid'      },
-  climate_risk:          { label: '기후 리스크',   color: '#b42318', cls: 'score-climate'   },
+  renewable_opportunity: { label: '재생에너지', color: '#1f7a5c', cls: 'score-renewable' },
+  fossil_pressure: { label: '화석연료 압력', color: '#9a5b18', cls: 'score-fossil' },
+  grid_infrastructure: { label: '전력망/전기화', color: '#315f9f', cls: 'score-grid' },
+  climate_risk: { label: '기후 리스크', color: '#a33b32', cls: 'score-climate' },
 };
-const MARKET_LABELS = { ET_SPREAD: 'ET Spread', ICLN: 'ICLN', XLE: 'XLE', NEE: 'NEE', XOM: 'XOM', ETN: 'ETN' };
+
+const MARKET_LABELS = {
+  ET_SPREAD: 'ET Spread',
+  ICLN: 'ICLN',
+  XLE: 'XLE',
+  NEE: 'NEE',
+  XOM: 'XOM',
+  ETN: 'ETN',
+};
+
 const THEME_LABELS = Object.fromEntries(Object.entries(THEME_META).map(([key, meta]) => [key, meta.label]));
 
-/* ── State ─────────────────────────────────────── */
 let scoreChart = null;
 let returnsChart = null;
 let dashboardReturnsChart = null;
-let lastResult = null;
+let dashboardLoaded = false;
 
-/* ── Tab Switching ─────────────────────────────── */
 function initTabs() {
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.tab;
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
-      document.querySelectorAll('.tab-section').forEach(s => {
-        s.classList.toggle('active', s.id === `tab-${id}`);
-        s.classList.toggle('hidden', s.id !== `tab-${id}`);
+      document.querySelectorAll('.tab-btn').forEach(item => item.classList.toggle('active', item === btn));
+      document.querySelectorAll('.tab-section').forEach(section => {
+        section.classList.toggle('active', section.id === `tab-${id}`);
+        section.classList.toggle('hidden', section.id !== `tab-${id}`);
       });
       if (id === 'dashboard') loadDashboard();
     });
   });
 }
 
-/* ── Dropzone & File Selection ─────────────────── */
 function initUpload() {
-  const dropzone  = document.getElementById('dropzone');
+  const dropzone = document.getElementById('dropzone');
   const fileInput = document.getElementById('file-input');
-  const fileName  = document.getElementById('file-name');
+  const fileName = document.getElementById('file-name');
   const btnAnalyze = document.getElementById('btn-analyze');
 
   dropzone.addEventListener('click', () => fileInput.click());
-  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragover', event => {
+    event.preventDefault();
+    dropzone.classList.add('dragover');
+  });
   dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-  dropzone.addEventListener('drop', e => {
-    e.preventDefault();
+  dropzone.addEventListener('drop', event => {
+    event.preventDefault();
     dropzone.classList.remove('dragover');
-    const f = e.dataTransfer.files[0];
-    if (f && f.name.endsWith('.pdf')) setFile(f);
+    const file = event.dataTransfer.files[0];
+    if (file && file.name.toLowerCase().endsWith('.pdf')) setFile(file);
   });
   fileInput.addEventListener('change', () => {
     if (fileInput.files[0]) setFile(fileInput.files[0]);
   });
 
-  function setFile(f) {
-    fileInput._selectedFile = f;
-    fileName.textContent = f.name;
+  function setFile(file) {
+    fileInput._selectedFile = file;
+    fileName.textContent = file.name;
     btnAnalyze.disabled = false;
   }
 }
 
-/* ── Range Slider Labels ───────────────────────── */
 function initSliders() {
-  document.getElementById('inp-pages').addEventListener('input', e => {
-    document.getElementById('pages-val').textContent = e.target.value;
+  document.getElementById('inp-pages').addEventListener('input', event => {
+    document.getElementById('pages-val').textContent = event.target.value;
   });
-  document.getElementById('inp-topk').addEventListener('input', e => {
-    document.getElementById('topk-val').textContent = e.target.value;
+  document.getElementById('inp-topk').addEventListener('input', event => {
+    document.getElementById('topk-val').textContent = event.target.value;
   });
 }
 
-/* ── Analyze Form Submit ───────────────────────── */
 function initForm() {
   document.getElementById('btn-analyze').addEventListener('click', async () => {
     const fileInput = document.getElementById('file-input');
@@ -76,24 +82,23 @@ function initForm() {
     if (!file) return;
 
     const horizons = [...document.querySelectorAll('.checkbox-group input:checked')]
-      .map(cb => cb.value).join(',');
+      .map(checkbox => checkbox.value)
+      .join(',');
 
     const fd = new FormData();
-    fd.append('file',        file);
-    fd.append('title',       document.getElementById('inp-title').value);
-    fd.append('issuer',      document.getElementById('inp-issuer').value);
+    fd.append('file', file);
+    fd.append('title', document.getElementById('inp-title').value);
+    fd.append('issuer', document.getElementById('inp-issuer').value);
     fd.append('report_date', document.getElementById('inp-date').value);
-    fd.append('max_pages',   document.getElementById('inp-pages').value);
-    fd.append('top_k',       document.getElementById('inp-topk').value);
-    fd.append('horizons',    horizons || '4');
+    fd.append('max_pages', document.getElementById('inp-pages').value);
+    fd.append('top_k', document.getElementById('inp-topk').value);
+    fd.append('horizons', horizons || '4');
 
     setAnalyzeState('loading');
-
     try {
       const res = await fetch('/api/analyze', { method: 'POST', body: fd });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || '분석 실패');
-      lastResult = data;
+      if (!res.ok) throw new Error(data.detail || '분석에 실패했습니다.');
       renderResults(data);
       setAnalyzeState('done');
     } catch (err) {
@@ -104,83 +109,76 @@ function initForm() {
 }
 
 function setAnalyzeState(state) {
-  const btnText    = document.getElementById('btn-text');
+  const btnText = document.getElementById('btn-text');
   const btnSpinner = document.getElementById('btn-spinner');
   const btnAnalyze = document.getElementById('btn-analyze');
 
   if (state === 'loading') {
-    btnText.textContent = '분석 중…';
+    btnText.textContent = '분석 중';
     btnSpinner.classList.remove('hidden');
     btnAnalyze.disabled = true;
     showPanel('loading');
-  } else if (state === 'done') {
-    btnText.textContent = 'PDF 분석 실행';
-    btnSpinner.classList.add('hidden');
-    btnAnalyze.disabled = false;
-  } else {
-    btnText.textContent = 'PDF 분석 실행';
-    btnSpinner.classList.add('hidden');
-    btnAnalyze.disabled = false;
+    return;
   }
+
+  btnText.textContent = '분석 실행';
+  btnSpinner.classList.add('hidden');
+  btnAnalyze.disabled = false;
 }
 
 function showPanel(which) {
-  ['result-empty','result-loading','result-content','result-error'].forEach(id => {
+  ['result-empty', 'result-loading', 'result-content', 'result-error'].forEach(id => {
     document.getElementById(id).classList.toggle('hidden', id !== `result-${which}`);
   });
 }
 
-function showError(msg) {
-  document.getElementById('error-msg').textContent = msg;
+function showError(message) {
+  document.getElementById('error-msg').textContent = message;
   showPanel('error');
 }
 
-/* ── Render All Results ────────────────────────── */
 function renderResults(data) {
   renderScoreCards(data.scores);
   renderChart(data.scores);
   renderConfidence(data.scores, data.confidence);
   renderSummary(data.summary);
-  renderEvidence(data.evidence, parseInt(document.getElementById('inp-topk').value));
+  renderEvidence(data.evidence, parseInt(document.getElementById('inp-topk').value, 10));
   renderReturns(data.returns);
-  renderPortfolioSimulator(data.returns);
   renderStats(data.stats);
-  setupDownloads(data);
   showPanel('content');
 }
 
-/* ── Score Cards ───────────────────────────────── */
 function renderScoreCards(scores) {
   const container = document.getElementById('score-cards');
   const items = [
-    ...Object.entries(THEME_META).map(([k, m]) => ({ key: k, label: m.label, cls: m.cls, value: scores[k] })),
-    { key: 'transition_signal', label: '전환 신호', cls: 'score-signal', value: scores.transition_signal, raw: true },
+    ...Object.entries(THEME_META).map(([key, meta]) => ({ label: meta.label, cls: meta.cls, value: scores[key] })),
+    { label: '전환 신호', cls: 'score-signal', value: scores.transition_signal, raw: true },
   ];
+
   container.innerHTML = items.map(({ label, cls, value, raw }) => {
-    const pct = raw ? Math.abs(value / 2) * 100 : value * 100;
+    const pct = raw ? Math.min(Math.abs(value / 3) * 100, 100) : Math.min(value * 100, 100);
     return `
       <div class="score-card ${cls}">
-        <span class="sc-label">${label}</span>
-        <span class="sc-value">${value.toFixed(3)}</span>
-        <div class="sc-bar"><div class="sc-bar-fill" style="width:${Math.min(pct,100).toFixed(1)}%"></div></div>
+        <span class="sc-label">${escapeHtml(label)}</span>
+        <span class="sc-value">${Number(value).toFixed(3)}</span>
+        <div class="sc-bar"><div class="sc-bar-fill" style="width:${pct.toFixed(1)}%"></div></div>
       </div>`;
   }).join('');
 }
 
-/* ── Chart.js Bar Chart ────────────────────────── */
 function renderChart(scores) {
   const canvas = document.getElementById('score-chart');
   if (scoreChart) scoreChart.destroy();
   scoreChart = new Chart(canvas, {
     type: 'bar',
     data: {
-      labels: Object.values(THEME_META).map(m => m.label),
+      labels: Object.values(THEME_META).map(meta => meta.label),
       datasets: [{
-        data: Object.keys(THEME_META).map(k => scores[k]),
-        backgroundColor: Object.values(THEME_META).map(m => m.color + 'cc'),
-        borderColor:     Object.values(THEME_META).map(m => m.color),
+        data: Object.keys(THEME_META).map(key => scores[key]),
+        backgroundColor: Object.values(THEME_META).map(meta => `${meta.color}cc`),
+        borderColor: Object.values(THEME_META).map(meta => meta.color),
         borderWidth: 1,
-        borderRadius: 4,
+        borderRadius: 3,
       }],
     },
     options: {
@@ -188,257 +186,121 @@ function renderChart(scores) {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        y: {
-          min: 0, max: 1,
-          grid: { color: '#e4eaf0' },
-          ticks: { color: '#667085', font: { size: 11 } },
-        },
-        x: {
-          grid: { display: false },
-          ticks: { color: '#667085', font: { size: 11 } },
-        },
+        y: { min: 0, max: 1, grid: { color: '#e6e9ee' }, ticks: { color: '#667085' } },
+        x: { grid: { display: false }, ticks: { color: '#667085' } },
       },
     },
   });
 }
 
-/* ── Portfolio Simulator ───────────────────────── */
-function renderPortfolioSimulator(returns) {
-  const box = document.getElementById('portfolio-box');
-  if (!returns || Object.keys(returns).length === 0) {
-    box.innerHTML = '<p class="note">수익률 데이터가 없어 포트폴리오 시뮬레이션을 계산할 수 없습니다.</p>';
-    return;
-  }
-
-  const assets = ['ICLN', 'XLE', 'NEE', 'XOM', 'ETN'];
-  const periods = [];
-  if (assets.every(asset => returns[`pre_4w_${asset}`] !== undefined)) {
-    periods.push({ key: 'pre_4w', label: '보고서 이전 4주' });
-  }
-  [1, 4, 8].forEach(w => {
-    if (assets.every(asset => returns[`forward_${w}w_${asset}`] !== undefined)) {
-      periods.push({ key: `forward_${w}w`, label: `보고서 이후 ${w}주` });
-    }
-  });
-
-  if (!periods.length) {
-    box.innerHTML = '<p class="note">선택 가능한 수익률 기간이 없어 포트폴리오 시뮬레이션을 계산할 수 없습니다.</p>';
-    return;
-  }
-
-  box.innerHTML = `
-    <div class="portfolio-grid">
-      <div class="portfolio-control">
-        <label for="portfolio-amount">투자금</label>
-        <input id="portfolio-amount" type="number" min="0" step="10000" value="1000000" />
-      </div>
-      <div class="portfolio-control">
-        <label for="portfolio-period">적용 수익률 기간</label>
-        <select id="portfolio-period">
-          ${periods.map(p => `<option value="${p.key}">${p.label}</option>`).join('')}
-        </select>
-      </div>
-    </div>
-
-    <div class="portfolio-weights">
-      ${assets.map(asset => `
-        <label class="weight-row">
-          <span>${asset}</span>
-          <input class="weight-input" data-asset="${asset}" type="number" min="0" max="100" step="1" value="20" />
-          <em>%</em>
-        </label>
-      `).join('')}
-    </div>
-
-    <div id="portfolio-warning" class="portfolio-warning hidden"></div>
-    <div id="portfolio-result" class="portfolio-result"></div>
-  `;
-
-  const amountInput = document.getElementById('portfolio-amount');
-  const periodSelect = document.getElementById('portfolio-period');
-  const weightInputs = [...document.querySelectorAll('.weight-input')];
-  const warning = document.getElementById('portfolio-warning');
-  const result = document.getElementById('portfolio-result');
-  const money = new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW', maximumFractionDigits: 0 });
-
-  function update() {
-    const amount = Number(amountInput.value || 0);
-    const period = periodSelect.value;
-    const weights = weightInputs.map(input => ({
-      asset: input.dataset.asset,
-      weight: Math.max(0, Number(input.value || 0)),
-    }));
-    const totalWeight = weights.reduce((sum, item) => sum + item.weight, 0);
-
-    if (totalWeight <= 0) {
-      warning.classList.remove('hidden');
-      warning.textContent = '비중 합계가 0%입니다. 최소 한 자산의 비중을 입력하세요.';
-      result.innerHTML = '';
-      return;
-    }
-
-    const normalized = weights.map(item => ({ ...item, normalized: item.weight / totalWeight }));
-    const weightedReturn = normalized.reduce((sum, item) => {
-      const r = returns[`${period}_${item.asset}`] ?? 0;
-      return sum + item.normalized * r;
-    }, 0);
-    const finalValue = amount * (1 + weightedReturn);
-    const profit = finalValue - amount;
-
-    warning.classList.toggle('hidden', Math.abs(totalWeight - 100) < 0.001);
-    warning.textContent = `비중 합계가 ${totalWeight.toFixed(1)}%라서 내부적으로 100%로 정규화해 계산했습니다.`;
-
-    result.innerHTML = `
-      <div class="portfolio-metric">
-        <span>가중 수익률</span>
-        <strong class="${weightedReturn >= 0 ? 'pos' : 'neg'}">${weightedReturn >= 0 ? '+' : ''}${(weightedReturn * 100).toFixed(2)}%</strong>
-      </div>
-      <div class="portfolio-metric">
-        <span>시나리오 평가금</span>
-        <strong>${money.format(finalValue)}</strong>
-      </div>
-      <div class="portfolio-metric">
-        <span>가상 손익</span>
-        <strong class="${profit >= 0 ? 'pos' : 'neg'}">${profit >= 0 ? '+' : ''}${money.format(profit)}</strong>
-      </div>
-    `;
-  }
-
-  [amountInput, periodSelect, ...weightInputs].forEach(el => el.addEventListener('input', update));
-  periodSelect.addEventListener('change', update);
-  update();
-}
-
-/* ── Confidence Box ────────────────────────────── */
 function renderConfidence(scores, conf) {
   const box = document.getElementById('confidence-box');
-  const hint = scores.asset_hint;
   const topThemeLabel = THEME_LABELS[conf.top_theme] || conf.top_theme;
-  const confColor = { '높음': '#10b981', '보통': '#f59e0b', '낮음': '#ef4444' }[conf.level] || '#94a3b8';
+  const confColor = { 높음: '#1f7a5c', 보통: '#9a5b18', 낮음: '#a33b32' }[conf.level] || '#667085';
   box.innerHTML = `
-    가장 강한 자산 힌트: <strong>${hint}</strong> &nbsp;|&nbsp;
-    1등 주제: <strong>${topThemeLabel}</strong> &nbsp;|&nbsp;
-    모델 확신도: <strong style="color:${confColor}">${conf.level}</strong>
-    (점수 차이 ${conf.margin.toFixed(3)})
-    &nbsp;— 투자 추천이 아닌 의미 분류 결과입니다.`;
+    <strong>${escapeHtml(scores.asset_hint)}</strong>
+    <span>상위 테마: ${escapeHtml(topThemeLabel)}</span>
+    <span>확신도: <b style="color:${confColor}">${escapeHtml(conf.level)}</b></span>
+    <span>점수 차이: ${Number(conf.margin).toFixed(3)}</span>`;
 }
 
-/* ── Summary Box ───────────────────────────────── */
 function renderSummary(summary) {
   const box = document.getElementById('summary-box');
-  const bullets = summary.bullets.split(' | ').map(b => `<li>${b}</li>`).join('');
-  box.innerHTML = `
-    <p>${summary.korean}</p>
-    <ul class="summary-bullets">${bullets}</ul>`;
+  const bullets = String(summary.bullets || '')
+    .split(' | ')
+    .filter(Boolean)
+    .slice(0, 4)
+    .map(item => `<li>${escapeHtml(item)}</li>`)
+    .join('');
+  const gen = summary.generative && summary.generative.summary
+    ? `<p class="generated-summary">${escapeHtml(summary.generative.summary)}</p>`
+    : '';
+  box.innerHTML = `<p>${escapeHtml(summary.korean || '')}</p><ul class="summary-bullets">${bullets}</ul>${gen}`;
 }
 
-/* ── Evidence Tabs ─────────────────────────────── */
 function renderEvidence(evidence, topK) {
-  const tabsEl    = document.getElementById('evidence-tabs');
+  const tabsEl = document.getElementById('evidence-tabs');
   const contentEl = document.getElementById('evidence-content');
-  const keys      = Object.keys(THEME_META);
+  const keys = Object.keys(THEME_META);
+  const displayLimit = Math.min(topK, 5);
 
-  tabsEl.innerHTML = keys.map((k, i) =>
-    `<button class="ev-tab ${i === 0 ? 'active' : ''}" data-key="${k}">${THEME_META[k].label}</button>`
+  tabsEl.innerHTML = keys.map((key, index) =>
+    `<button class="ev-tab ${index === 0 ? 'active' : ''}" data-key="${key}">${THEME_META[key].label}</button>`
   ).join('');
 
-  contentEl.innerHTML = keys.map((k, i) => {
-    const items = (evidence[k] || []).slice(0, topK);
-    const rows  = items.map(item => `
+  contentEl.innerHTML = keys.map((key, index) => {
+    const rows = (evidence[key] || []).slice(0, displayLimit).map(item => `
       <div class="ev-item">
         <div class="ev-meta">
-          <span>페이지 ${item.page}</span>
-          <span>순위 #${item.rank}</span>
-          <span class="ev-score">관련도 ${item.score.toFixed(3)}</span>
+          <span>p.${item.page}</span>
+          <span>#${item.rank}</span>
+          <span class="ev-score">${Number(item.score).toFixed(3)}</span>
         </div>
         <div class="ev-text">${highlightKeywords(item.paragraph)}</div>
       </div>`).join('');
-    return `<div class="ev-list ${i === 0 ? 'active' : ''}" data-key="${k}">${rows || '<p style="color:var(--text-muted);font-size:.82rem">문단 없음</p>'}</div>`;
+    return `<div class="ev-list ${index === 0 ? 'active' : ''}" data-key="${key}">${rows || '<p class="note">근거 문단 없음</p>'}</div>`;
   }).join('');
 
-  tabsEl.addEventListener('click', e => {
-    const btn = e.target.closest('.ev-tab');
+  tabsEl.onclick = event => {
+    const btn = event.target.closest('.ev-tab');
     if (!btn) return;
-    tabsEl.querySelectorAll('.ev-tab').forEach(b => b.classList.toggle('active', b === btn));
-    contentEl.querySelectorAll('.ev-list').forEach(l => l.classList.toggle('active', l.dataset.key === btn.dataset.key));
-  });
+    tabsEl.querySelectorAll('.ev-tab').forEach(tab => tab.classList.toggle('active', tab === btn));
+    contentEl.querySelectorAll('.ev-list').forEach(list => list.classList.toggle('active', list.dataset.key === btn.dataset.key));
+  };
 }
 
-/* ── Returns Table ─────────────────────────────── */
 function renderReturns(returns) {
   const box = document.getElementById('returns-box');
   if (!returns || Object.keys(returns).length === 0) {
-    box.innerHTML = '<p class="note">주가 데이터 범위 밖이거나 데이터가 부족해 수익률을 계산하지 못했습니다.</p>';
+    box.innerHTML = '<p class="note">기준일에 연결할 수 있는 수익률 데이터가 없습니다.</p>';
     return;
   }
 
-  const preKeys = Object.keys(returns).filter(k => k.startsWith('pre_4w_'));
   const fwdGroups = {};
-  Object.keys(returns).filter(k => k.startsWith('forward_')).forEach(k => {
-    const [, w, col] = k.match(/^forward_(\d+)w_(.+)$/) || [];
-    if (w && col) { (fwdGroups[w] = fwdGroups[w] || {})[col] = returns[k]; }
+  Object.keys(returns).filter(key => key.startsWith('forward_')).forEach(key => {
+    const match = key.match(/^forward_(\d+)w_(.+)$/);
+    if (match) (fwdGroups[match[1]] = fwdGroups[match[1]] || {})[match[2]] = returns[key];
   });
 
   const cols = Object.keys(MARKET_LABELS);
   const periods = [];
-  if (preKeys.length) {
-    periods.push({ label: '이전 4주', prefix: 'pre_4w_' });
-  }
-  Object.keys(fwdGroups).sort((a, b) => +a - +b).forEach(w => {
-    periods.push({ label: `이후 ${w}주`, group: fwdGroups[w] });
+  if (cols.some(col => returns[`pre_4w_${col}`] !== undefined)) periods.push({ label: '이전 4주', prefix: 'pre_4w_' });
+  Object.keys(fwdGroups).sort((a, b) => Number(a) - Number(b)).forEach(weeks => {
+    periods.push({ label: `이후 ${weeks}주`, group: fwdGroups[weeks] });
   });
 
-  const graphCols = ['ET_SPREAD', 'ICLN', 'XLE', 'ETN'];
   const chartId = `returns-chart-${Date.now()}`;
-  let html = `<div class="chart-wrap returns-chart-wrap"><canvas id="${chartId}" height="170"></canvas></div>`;
-
-  const fmtCell = v => {
-    if (v === undefined || v === null) return '<td>—</td>';
-    const cls = v > 0.005 ? 'pos' : v < -0.005 ? 'neg' : '';
-    const sign = v > 0 ? '+' : '';
-    return `<td class="${cls}">${sign}${(v * 100).toFixed(2)}%</td>`;
+  const fmtCell = value => {
+    if (value === undefined || value === null) return '<td>-</td>';
+    const cls = value > 0.005 ? 'pos' : value < -0.005 ? 'neg' : '';
+    return `<td class="${cls}">${value > 0 ? '+' : ''}${(value * 100).toFixed(2)}%</td>`;
   };
 
-  html += `<div class="table-wrap"><table class="data-table">
-    <thead><tr><th>기간</th>${cols.map(c => `<th>${MARKET_LABELS[c]}</th>`).join('')}</tr></thead><tbody>`;
-
-  if (preKeys.length) {
-    html += `<tr><td>이전 4주</td>${cols.map(c => fmtCell(returns[`pre_4w_${c}`])).join('')}</tr>`;
-  }
-  Object.keys(fwdGroups).sort((a, b) => +a - +b).forEach(w => {
-    html += `<tr><td>이후 ${w}주</td>${cols.map(c => fmtCell(fwdGroups[w][c])).join('')}</tr>`;
+  let html = `<div class="chart-wrap returns-chart-wrap"><canvas id="${chartId}" height="170"></canvas></div>`;
+  html += `<div class="table-wrap"><table class="data-table compact-table">
+    <thead><tr><th>기간</th>${cols.map(col => `<th>${MARKET_LABELS[col]}</th>`).join('')}</tr></thead><tbody>`;
+  periods.forEach(period => {
+    html += `<tr><td>${period.label}</td>${cols.map(col => fmtCell(period.prefix ? returns[`${period.prefix}${col}`] : period.group[col])).join('')}</tr>`;
   });
-
   html += '</tbody></table></div>';
   box.innerHTML = html;
 
-  const chartData = periods.map(period => {
-    if (period.prefix) {
-      return graphCols.map(col => returns[`${period.prefix}${col}`] ?? null);
-    }
-    return graphCols.map(col => period.group[col] ?? null);
-  });
-  renderReturnsChart(chartId, periods.map(p => p.label), graphCols, chartData, false);
+  const graphCols = ['ET_SPREAD', 'ICLN', 'XLE', 'ETN'];
+  const chartData = periods.map(period => graphCols.map(col => period.prefix ? returns[`${period.prefix}${col}`] ?? null : period.group[col] ?? null));
+  renderReturnsChart(chartId, periods.map(period => period.label), graphCols, chartData, false);
 }
 
 function renderReturnsChart(canvasId, labels, columns, valuesByPeriod, dashboardMode) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  const palette = {
-    ET_SPREAD: '#126c6a',
-    ICLN: '#12805c',
-    XLE: '#a15c10',
-    ETN: '#2563eb',
-    NEE: '#475467',
-    XOM: '#b42318',
-  };
-  const datasets = columns.map((col, idx) => ({
+  const palette = { ET_SPREAD: '#364152', ICLN: '#1f7a5c', XLE: '#9a5b18', ETN: '#315f9f', NEE: '#667085', XOM: '#a33b32' };
+  const datasets = columns.map((col, index) => ({
     label: MARKET_LABELS[col] || col,
-    data: valuesByPeriod.map(row => row[idx] === null ? null : row[idx] * 100),
-    backgroundColor: (palette[col] || '#667085') + 'cc',
+    data: valuesByPeriod.map(row => row[index] === null ? null : row[index] * 100),
+    backgroundColor: `${palette[col] || '#667085'}cc`,
     borderColor: palette[col] || '#667085',
     borderWidth: 1,
-    borderRadius: 4,
+    borderRadius: 3,
   }));
 
   if (dashboardMode && dashboardReturnsChart) dashboardReturnsChart.destroy();
@@ -451,22 +313,12 @@ function renderReturnsChart(canvasId, labels, columns, valuesByPeriod, dashboard
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'bottom', labels: { color: '#667085', boxWidth: 14 } },
-        tooltip: {
-          callbacks: {
-            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y > 0 ? '+' : ''}${ctx.parsed.y.toFixed(2)}%`,
-          },
-        },
+        legend: { position: 'bottom', labels: { color: '#667085', boxWidth: 12 } },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y > 0 ? '+' : ''}${ctx.parsed.y.toFixed(2)}%` } },
       },
       scales: {
-        y: {
-          grid: { color: '#e4eaf0' },
-          ticks: { color: '#667085', callback: value => `${value}%` },
-        },
-        x: {
-          grid: { display: false },
-          ticks: { color: '#667085' },
-        },
+        y: { grid: { color: '#e6e9ee' }, ticks: { color: '#667085', callback: value => `${value}%` } },
+        x: { grid: { display: false }, ticks: { color: '#667085' } },
       },
     },
   });
@@ -475,54 +327,14 @@ function renderReturnsChart(canvasId, labels, columns, valuesByPeriod, dashboard
   else returnsChart = chart;
 }
 
-/* ── Stats Row ─────────────────────────────────── */
 function renderStats(stats) {
-  const row = document.getElementById('stats-row');
-  row.innerHTML = [
-    `추출 페이지: <strong>${stats.pages}</strong>`,
-    `분석 문단: <strong>${stats.paragraphs}</strong>`,
-    `근거 문단: <strong>${stats.evidence_count}</strong>`,
-  ].map(s => `<span class="stat-item">${s}</span>`).join('');
+  document.getElementById('stats-row').innerHTML = [
+    `추출 페이지 <strong>${stats.pages}</strong>`,
+    `분석 문단 <strong>${stats.paragraphs}</strong>`,
+    `근거 문단 <strong>${stats.evidence_count}</strong>`,
+  ].map(item => `<span class="stat-item">${item}</span>`).join('');
 }
 
-/* ── CSV Download ──────────────────────────────── */
-function setupDownloads(data) {
-  document.getElementById('btn-dl-scores').onclick = () => {
-    const s = data.scores;
-    const conf = data.confidence;
-    const rows = [
-      ['renewable_opportunity','fossil_pressure','grid_infrastructure','climate_risk','transition_signal','asset_hint','confidence_level','confidence_margin'],
-      [s.renewable_opportunity, s.fossil_pressure, s.grid_infrastructure, s.climate_risk, s.transition_signal, s.asset_hint, conf.level, conf.margin],
-    ];
-    downloadCSV(rows, 'pdf_signal_scores.csv');
-  };
-
-  document.getElementById('btn-dl-evidence').onclick = () => {
-    const header = ['theme','page','rank','retrieval_score','paragraph','korean_interpretation'];
-    const rows = [header];
-    Object.entries(data.evidence).forEach(([theme, items]) => {
-      items.forEach(item => rows.push([theme, item.page, item.rank, item.score, item.paragraph, item.interpretation || '']));
-    });
-    downloadCSV(rows, 'pdf_signal_evidence.csv');
-  };
-}
-
-function downloadCSV(rows, filename) {
-  const escapeCsv = value => {
-    const s = String(value ?? '');
-    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  const content = rows.map(r => r.map(escapeCsv).join(',')).join('\n');
-  const blob = new Blob(['﻿' + content], { type: 'text/csv;charset=utf-8;' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-/* ── Dashboard ─────────────────────────────────── */
-let dashboardLoaded = false;
 async function loadDashboard() {
   if (dashboardLoaded) return;
   dashboardLoaded = true;
@@ -535,151 +347,130 @@ async function loadDashboard() {
     renderLinkTable(data.stock_link);
     renderActualEvidenceTables(data);
     renderValidationTable(data.validation);
-  } catch (e) {
-    document.getElementById('signals-table-wrap').innerHTML = '<p class="note">데이터 로드 실패</p>';
+  } catch (err) {
+    document.getElementById('signals-table-wrap').innerHTML = '<p class="note">데이터를 불러오지 못했습니다.</p>';
   }
 }
 
 function renderActualEvidenceTables(data) {
   renderGenericTable('actual-climate-news-wrap', data.actual_climate_news, {
-    signal: '신호', target: '대상', lag_months: 'Lag(월)', n: 'n', r: 'r', p_value: 'p-value', data_source: '데이터'
+    signal: '신호', target: '대상', lag_months: 'Lag(월)', n: 'n', r: 'r', p_value: 'p-value',
   });
   renderGenericTable('actual-news-stock-wrap', data.actual_news_stock, {
-    target: '대상', lag_weeks: 'Best lag(주)', n: 'n', r: 'r', p_value: 'p-value', data_source: '데이터'
+    target: '대상', lag_weeks: 'Best lag(주)', n: 'n', r: 'r', p_value: 'p-value',
   });
   renderGenericTable('pdf-metrics-wrap', data.pdf_metrics, {
-    n: 'n', accuracy: '일치율', macro_f1: 'Macro-F1', weighted_f1: 'Weighted-F1', caveat: '주의'
+    n: 'n', accuracy: 'Accuracy', macro_f1: 'Macro-F1', weighted_f1: 'Weighted-F1',
   });
   renderGenericTable('failure-analysis-wrap', data.failure_analysis, {
-    title: 'PDF', expected_hint: 'Expected', predicted_hint: 'Predicted', failure_interpretation: '실패 해석'
+    title: 'PDF', expected_hint: 'Expected', predicted_hint: 'Predicted', failure_interpretation: '해석',
   });
   renderGenericTable('gemini-check-wrap', data.gemini_check, {
-    title: 'PDF', expected_theme: '테마', human_check_result: '점검', manual_evidence_alignment: '근거 일치', unsupported_investment_or_prediction: '위험 문구', model: '모델'
+    title: 'PDF', expected_theme: '테마', human_check_result: '점검', manual_evidence_alignment: '근거 일치', unsupported_investment_or_prediction: '위험 문구',
   });
   renderGenericTable('ood-test-wrap', data.out_of_domain, {
-    title: 'OOD PDF', asset_hint: '모델 신호', top_theme: '상위 테마', score_margin: '점수 차이', ood_decision: '판정', interpretation: '해석'
+    title: 'OOD PDF', asset_hint: '모델 신호', top_theme: '상위 테마', score_margin: '점수 차이', ood_decision: '판정',
   });
   renderGenericTable('zero-shot-wrap', data.zero_shot_vs_few_shot, {
-    title: 'PDF', expected_hint: 'Expected', zero_shot_hint: 'Zero-shot', few_shot_hint: 'Few-shot', zero_shot_matched: 'Zero-shot match', few_shot_matched: 'Few-shot match', zero_shot_margin: 'Zero margin', few_shot_margin: 'Few margin'
+    title: 'PDF', expected_hint: 'Expected', zero_shot_hint: 'Zero-shot', few_shot_hint: 'Few-shot', zero_shot_matched: 'Zero match', few_shot_matched: 'Few match', zero_shot_margin: 'Zero margin', few_shot_margin: 'Few margin',
   });
 }
 
 function renderGenericTable(id, rows, headers) {
   const wrap = document.getElementById(id);
   if (!wrap) return;
-  if (!rows || !rows.length) { wrap.innerHTML = '<p class="note">데이터 없음</p>'; return; }
-  const cols = Object.keys(headers).filter(c => c in rows[0]);
-  wrap.innerHTML = `<table class="data-table">
-    <thead><tr>${cols.map(c => `<th>${headers[c]}</th>`).join('')}</tr></thead>
-    <tbody>${rows.map(row => `<tr>${cols.map(c => {
-      const v = row[c];
-      if (typeof v === 'boolean') return `<td>${v ? '있음' : '없음'}</td>`;
-      if (typeof v === 'number') {
-        const cls = ['r', 'p_value'].includes(c) ? (v > 0 ? 'pos' : v < 0 ? 'neg' : '') : '';
-        const formatted = c === 'p_value' ? v.toFixed(4) : (Math.abs(v) < 10 ? v.toFixed(3) : v.toFixed(0));
-        return `<td class="${cls}">${formatted}</td>`;
-      }
-      const text = String(v ?? '');
-      return `<td>${escapeHtml(text.length > 120 ? text.slice(0, 120) + '…' : text)}</td>`;
-    }).join('')}</tr>`).join('')}</tbody>
+  if (!rows || !rows.length) {
+    wrap.innerHTML = '<p class="note">데이터 없음</p>';
+    return;
+  }
+  const cols = Object.keys(headers).filter(col => col in rows[0]);
+  wrap.innerHTML = `<table class="data-table compact-table">
+    <thead><tr>${cols.map(col => `<th>${headers[col]}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(row => `<tr>${cols.map(col => formatTableCell(row[col], col)).join('')}</tr>`).join('')}</tbody>
   </table>`;
 }
 
 function renderNewsBridgeTable(rows) {
-  const wrap = document.getElementById('news-bridge-wrap');
-  if (!wrap) return;
-  if (!rows || !rows.length) { wrap.innerHTML = '<p class="note">뉴스 컨텍스트 데이터 없음</p>'; return; }
-
-  const cols = ['title', 'date', 'asset_hint', 'news_context_available', 'news_window_mean', 'news_window_trend'];
-  const headers = {
+  renderGenericTable('news-bridge-wrap', rows, {
     title: '보고서',
     date: '날짜',
     asset_hint: 'PDF 신호',
-    news_context_available: '뉴스 연결',
-    news_window_mean: '4주 평균 감성',
+    news_context_available: '뉴스',
+    news_window_mean: '4주 평균',
     news_window_trend: '4주 추세',
-  };
-  wrap.innerHTML = `<table class="data-table">
-    <thead><tr>${cols.map(c => `<th>${headers[c]}</th>`).join('')}</tr></thead>
-    <tbody>${rows.map(row => `<tr>${cols.map(c => {
-      const v = row[c];
-      if (typeof v === 'boolean') return `<td>${v ? '연결됨' : '없음'}</td>`;
-      if (typeof v === 'number') {
-        const cls = v > 0 ? 'pos' : v < 0 ? 'neg' : '';
-        return `<td class="${cls}">${v.toFixed(3)}</td>`;
-      }
-      return `<td>${escapeHtml(String(v ?? ''))}</td>`;
-    }).join('')}</tr>`).join('')}</tbody>
-  </table>`;
+  });
 }
 
 function renderValidationTable(rows) {
-  const wrap = document.getElementById('validation-table-wrap');
-  if (!wrap) return;
-  if (!rows || !rows.length) return;
-
-  const cols = ['title', 'expected_hint', 'predicted_hint', 'matched'];
-  const headers = { title: '검증 PDF', expected_hint: '기대 방향', predicted_hint: '모델 결과', matched: '일치' };
-  wrap.innerHTML = `<table class="data-table">
-    <thead><tr>${cols.map(c => `<th>${headers[c]}</th>`).join('')}</tr></thead>
-    <tbody>${rows.map(row => `<tr>${cols.map(c => {
-      const v = row[c];
-      if (typeof v === 'boolean') return `<td class="${v ? 'match' : 'neg'}">${v ? '일치' : '불일치'}</td>`;
-      return `<td>${escapeHtml(String(v ?? ''))}</td>`;
-    }).join('')}</tr>`).join('')}</tbody>
-  </table>`;
+  renderGenericTable('validation-table-wrap', rows, {
+    title: '검증 PDF',
+    expected_hint: '기대 방향',
+    predicted_hint: '모델 결과',
+    matched: '일치',
+  });
 }
 
 function renderSignalsTable(signals) {
-  const wrap = document.getElementById('signals-table-wrap');
-  if (!signals || !signals.length) { wrap.innerHTML = '<p class="note">데이터 없음</p>'; return; }
-
-  const cols = ['title','date','renewable_opportunity','fossil_pressure','grid_infrastructure','climate_risk','transition_signal','asset_hint'];
-  const headers = { title:'보고서', date:'날짜', renewable_opportunity:'재생에너지', fossil_pressure:'화석연료 압력', grid_infrastructure:'전력망', climate_risk:'기후 리스크', transition_signal:'전환 신호', asset_hint:'자산 힌트' };
-
-  wrap.innerHTML = `<table class="data-table">
-    <thead><tr>${cols.map(c => `<th>${headers[c]}</th>`).join('')}</tr></thead>
-    <tbody>${signals.map(row => `<tr>${cols.map(c => {
-      const v = row[c];
-      if (typeof v === 'number') {
-        const cls = c === 'transition_signal' ? (v > 0 ? 'pos' : 'neg') : '';
-        return `<td class="${cls}">${v.toFixed(3)}</td>`;
-      }
-      return `<td>${escapeHtml(String(v ?? ''))}</td>`;
-    }).join('')}</tr>`).join('')}</tbody>
-  </table>`;
+  renderGenericTable('signals-table-wrap', signals, {
+    title: '보고서',
+    date: '날짜',
+    renewable_opportunity: '재생',
+    fossil_pressure: '화석',
+    grid_infrastructure: '전력망',
+    climate_risk: '기후',
+    transition_signal: '전환',
+    asset_hint: '자산 힌트',
+  });
 }
 
 function renderLinkTable(link) {
   const wrap = document.getElementById('link-table-wrap');
-  if (!link || !link.length) { wrap.innerHTML = '<p class="note">데이터 없음</p>'; return; }
+  if (!link || !link.length) {
+    wrap.innerHTML = '<p class="note">데이터 없음</p>';
+    return;
+  }
 
-  const cols = Object.keys(link[0]);
   const graphCols = ['forward_4w_ET_SPREAD', 'forward_4w_ICLN', 'forward_4w_XLE', 'forward_4w_ETN'];
   const labels = link.map(row => shortenTitle(row.title || row.report_id || 'Report'));
   const valuesByPeriod = link.map(row => graphCols.map(col => row[col] ?? null));
+  const cols = ['title', 'asset_hint', 'transition_signal', ...graphCols].filter(col => col in link[0]);
+
   wrap.innerHTML = `
-  <div class="chart-wrap returns-chart-wrap dashboard-return-chart">
-    <canvas id="dashboard-returns-chart" height="210"></canvas>
-  </div>
-  <table class="data-table">
-    <thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
-    <tbody>${link.map(row => `<tr>${cols.map(c => {
-      const v = row[c];
-      if (typeof v === 'number' && c !== 'transition_signal') {
-        const cls = v > 0.005 ? 'pos' : v < -0.005 ? 'neg' : '';
-        return `<td class="${cls}">${v > 0 ? '+' : ''}${(v * 100).toFixed(2)}%</td>`;
-      }
-      if (typeof v === 'number') return `<td>${v.toFixed(3)}</td>`;
-      return `<td>${escapeHtml(String(v ?? ''))}</td>`;
-    }).join('')}</tr>`).join('')}</tbody>
-  </table>`;
+    <div class="chart-wrap returns-chart-wrap dashboard-return-chart">
+      <canvas id="dashboard-returns-chart" height="210"></canvas>
+    </div>
+    <table class="data-table compact-table">
+      <thead><tr>${cols.map(col => `<th>${escapeHtml(prettyHeader(col))}</th>`).join('')}</tr></thead>
+      <tbody>${link.map(row => `<tr>${cols.map(col => formatTableCell(row[col], col)).join('')}</tr>`).join('')}</tbody>
+    </table>`;
   renderReturnsChart('dashboard-returns-chart', labels, ['ET_SPREAD', 'ICLN', 'XLE', 'ETN'], valuesByPeriod, true);
 }
 
-/* ── Utility ───────────────────────────────────── */
+function formatTableCell(value, col) {
+  if (typeof value === 'boolean') return `<td class="${value ? 'match' : 'neg'}">${value ? '일치' : '불일치'}</td>`;
+  if (typeof value === 'number') {
+    const cls = value > 0.005 ? 'pos' : value < -0.005 ? 'neg' : '';
+    if (col.includes('forward_') || col.includes('pre_')) return `<td class="${cls}">${value > 0 ? '+' : ''}${(value * 100).toFixed(2)}%</td>`;
+    return `<td class="${cls}">${Math.abs(value) < 10 ? value.toFixed(3) : value.toFixed(0)}</td>`;
+  }
+  const text = String(value ?? '');
+  return `<td>${escapeHtml(text.length > 110 ? `${text.slice(0, 110)}...` : text)}</td>`;
+}
+
+function prettyHeader(col) {
+  return col
+    .replace('forward_4w_', '4w ')
+    .replace('transition_signal', '전환')
+    .replace('asset_hint', '자산 힌트')
+    .replace('title', '보고서');
+}
+
 function escapeHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function highlightKeywords(str) {
@@ -690,7 +481,7 @@ function highlightKeywords(str) {
     'climate', 'weather', 'heat', 'drought', 'risk', 'resilience',
     'investment', 'demand', 'policy', 'regulation', 'cost',
   ];
-  let escaped = escapeHtml(str);
+  const escaped = escapeHtml(str);
   const pattern = new RegExp(`\\b(${keywords.map(escapeRegExp).join('|')})\\b`, 'gi');
   return escaped.replace(pattern, '<strong class="keyword-highlight">$1</strong>');
 }
@@ -708,7 +499,6 @@ function shortenTitle(title) {
     .replace('Eaton Annual Report 2023', 'Eaton Annual');
 }
 
-/* ── Init ──────────────────────────────────────── */
 initTabs();
 initUpload();
 initSliders();

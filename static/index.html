@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -11,33 +11,16 @@
 
 <header class="site-header">
   <div class="header-inner">
-    <div class="header-title">
-      <div>
-        <span class="eyebrow">Pre-trained Transformer MVP</span>
-        <h1>Energy Report-to-Market Signal Analyzer</h1>
-        <p>PDF 리포트를 업로드하면 문서 근거, few-shot topic classification, Gemini 요약, 시장 수익률 연결을 한 화면에서 확인합니다.</p>
-        <div class="hero-metrics">
-          <span><strong>25</strong> validation PDFs</span>
-          <span><strong>18/25</strong> few-shot match</span>
-          <span><strong>10/25</strong> zero-shot match</span>
-          <span><strong>313</strong> GDELT samples</span>
-        </div>
-      </div>
+    <div>
+      <span class="eyebrow">Research dashboard</span>
+      <h1>Energy Report-to-Market Signal Analyzer</h1>
+      <p>에너지 PDF 리포트를 문서 근거 기반 신호로 바꾸고, 뉴스 컨텍스트와 과거 시장 데이터를 연결해 검증하는 프로젝트입니다.</p>
     </div>
     <div class="header-badges">
-      <span class="badge badge-model">MiniLM-L6-v2</span>
-      <span class="badge badge-method">Few-shot classifier</span>
-      <span class="badge badge-safe">Research MVP</span>
+      <span class="badge">MiniLM-L6-v2</span>
+      <span class="badge">Few-shot head</span>
+      <span class="badge">GDELT + market data</span>
     </div>
-  </div>
-  <div class="header-flow">
-    <span>PDF</span>
-    <span>Text</span>
-    <span>Evidence</span>
-    <span>Embedding</span>
-    <span>Few-shot Head</span>
-    <span>Summary</span>
-    <span>Market Link</span>
   </div>
 </header>
 
@@ -47,24 +30,20 @@
 </nav>
 
 <main class="main-content">
-
-  <!-- ─── PDF 분석 탭 ─── -->
   <section id="tab-analyzer" class="tab-section active">
     <div class="notice-strip">
-      <strong>연구용 분석 도구</strong>
-      <span>본 결과는 투자 추천이 아니라, PDF 문서 내용을 시장 분석용 신호로 변환한 MVP 결과입니다.</span>
+      <strong>분석 범위</strong>
+      <span>업로드한 PDF에서 에너지 전환 근거 문단을 찾고, 주제 점수와 날짜 기준 시장 연결만 보여줍니다.</span>
     </div>
 
     <div class="analyzer-grid">
-
-      <!-- 왼쪽: 입력 폼 -->
-      <div class="panel panel-input">
+      <aside class="panel panel-input">
         <h2 class="panel-title">PDF 입력</h2>
 
         <div id="dropzone" class="dropzone">
           <input type="file" id="file-input" accept=".pdf" hidden />
           <div class="dropzone-inner">
-            <p class="dropzone-text">PDF를 여기에 드래그하거나<br /><strong>클릭하여 선택</strong></p>
+            <p class="dropzone-text">PDF를 드래그하거나<br /><strong>클릭하여 선택</strong></p>
             <p id="file-name" class="file-name"></p>
           </div>
         </div>
@@ -83,7 +62,7 @@
         </div>
 
         <details class="advanced-toggle">
-          <summary>고급 설정</summary>
+          <summary>분석 설정</summary>
           <div class="advanced-body">
             <div class="form-group">
               <label>최대 분석 페이지: <strong id="pages-val">80</strong></label>
@@ -94,7 +73,7 @@
               <input type="range" id="inp-topk" min="3" max="20" step="1" value="10" />
             </div>
             <div class="form-group">
-              <label>수익률 연결 기간 (주)</label>
+              <label>수익률 연결 기간</label>
               <div class="checkbox-group">
                 <label><input type="checkbox" value="1" checked /> 1주</label>
                 <label><input type="checkbox" value="4" checked /> 4주</label>
@@ -105,50 +84,42 @@
         </details>
 
         <button id="btn-analyze" class="btn-primary" disabled>
-          <span id="btn-text">PDF 분석 실행</span>
+          <span id="btn-text">분석 실행</span>
           <span id="btn-spinner" class="spinner hidden"></span>
         </button>
 
         <div class="input-note">
-          <strong>권장 입력</strong>
-          <p>에너지, 전력망, 기후, 기업 지속가능성 리포트처럼 텍스트가 포함된 PDF에서 가장 안정적으로 작동합니다.</p>
-          <p>첫 분석은 모델 로딩 때문에 1~2분 정도 걸릴 수 있습니다.</p>
-          <p><strong>Gemini 요약 활성화:</strong> HuggingFace Space → Settings → Repository secrets 에서 <code>GEMINI_API_KEY</code>를 추가하면 분석 결과에 AI 요약이 포함됩니다.</p>
+          <strong>테스트 팁</strong>
+          <p>IEA, 기업 지속가능성 보고서, 전력망·기후 관련 PDF에서 가장 안정적으로 작동합니다.</p>
+          <p>수익률 표는 PDF 내용이 아니라 입력한 보고서 기준일을 기준으로 계산됩니다.</p>
         </div>
-      </div>
+      </aside>
 
-      <!-- 오른쪽: 결과 패널 -->
-      <div class="panel panel-result" id="result-panel">
-
-        <!-- 초기 안내 -->
+      <section class="panel panel-result" id="result-panel">
         <div id="result-empty" class="result-empty">
-          <p class="empty-title">PDF를 넣으면 분석이 시작됩니다</p>
-          <p>문서에서 근거 문단을 찾고, 사전학습 Transformer 임베딩으로 주제 점수를 계산합니다.</p>
+          <p class="empty-title">PDF를 넣으면 분석 결과가 표시됩니다</p>
+          <p>문서 근거를 검색하고, MiniLM 임베딩과 few-shot 분류 헤드로 리포트 신호를 계산합니다.</p>
           <div class="pipeline-steps">
-            <div class="step">PDF 텍스트 추출</div>
-            <div class="step-arrow">→</div>
-            <div class="step">근거 문단 검색</div>
-            <div class="step-arrow">→</div>
-            <div class="step">MiniLM 임베딩</div>
-            <div class="step-arrow">→</div>
-            <div class="step">Few-shot classifier</div>
-            <div class="step-arrow">→</div>
+            <div class="step">PDF 텍스트</div>
+            <div class="step">근거 검색</div>
+            <div class="step">임베딩</div>
+            <div class="step">주제 점수</div>
             <div class="step">시장 연결</div>
           </div>
         </div>
 
-        <!-- 로딩 상태 -->
         <div id="result-loading" class="result-loading hidden">
           <div class="loader-ring"></div>
-          <p>분석 중입니다…<br /><small>첫 실행은 모델 로딩으로 1~2분 소요될 수 있습니다.</small></p>
+          <p>분석 중입니다<br /><small>첫 실행은 모델 로딩 때문에 조금 걸릴 수 있습니다.</small></p>
         </div>
 
-        <!-- 결과 표시 -->
         <div id="result-content" class="hidden">
-
           <div class="result-section">
-            <h3 class="result-section-title">1. 핵심 점수</h3>
-            <p class="section-help">전환 신호 = 재생에너지 + 전력망/전기화 + 기후 리스크 − 화석연료 압력 &nbsp;|&nbsp; 각 테마는 per-report min-max 정규화 [0, 1] → 전환 신호 범위: [−1, +3]</p>
+            <div class="section-heading">
+              <span class="section-kicker">01</span>
+              <h3 class="result-section-title">리포트 신호 점수</h3>
+            </div>
+            <p class="section-help">각 점수는 한 보고서 안에서 상대적으로 강한 테마를 보여줍니다. 보고서 간 절대 점수 비교용이 아닙니다.</p>
             <div class="score-cards" id="score-cards"></div>
             <div class="chart-wrap score-chart-wrap">
               <canvas id="score-chart" height="120"></canvas>
@@ -157,279 +128,223 @@
           </div>
 
           <div class="result-section">
-            <h3 class="result-section-title">2. 쉬운 요약</h3>
+            <div class="section-heading">
+              <span class="section-kicker">02</span>
+              <h3 class="result-section-title">문서 요약</h3>
+            </div>
             <div id="summary-box" class="summary-box"></div>
           </div>
 
           <div class="result-section">
-            <h3 class="result-section-title">3. 근거 문단</h3>
-            <p class="section-help">점수 계산에 사용된 PDF 원문 근거입니다. 중요한 에너지·기후 키워드는 빨간색 굵은 글씨로 강조됩니다.</p>
+            <div class="section-heading">
+              <span class="section-kicker">03</span>
+              <h3 class="result-section-title">점수 근거 문단</h3>
+            </div>
+            <p class="section-help">모델이 점수 계산에 사용한 PDF 원문 근거입니다.</p>
             <div class="evidence-tabs" id="evidence-tabs"></div>
             <div class="evidence-content" id="evidence-content"></div>
           </div>
 
           <div class="result-section">
-            <h3 class="result-section-title">4. 전후 수익률 연결</h3>
-            <p class="section-help">보고서 날짜 기준 전후 수익률입니다. 그래프는 방향을 빠르게 보기 위한 시각화이며 예측이나 투자 판단이 아닙니다.</p>
+            <div class="section-heading">
+              <span class="section-kicker">04</span>
+              <h3 class="result-section-title">보고서 날짜 기준 시장 연결</h3>
+            </div>
+            <p class="section-help">선택한 기준일 전후의 과거 수익률입니다. 예측이나 투자 판단이 아니라 프로젝트의 downstream 연결 예시입니다.</p>
             <div id="returns-box"></div>
           </div>
 
-          <div class="result-section">
-            <h3 class="result-section-title">5. 포트폴리오 시뮬레이터</h3>
-            <p class="section-help">선택한 기간의 과거 수익률을 사용해 투자금과 비중별 가상 손익을 계산합니다. 실제 미래 수익률 예측이 아닙니다.</p>
-            <div id="portfolio-box"></div>
-          </div>
-
-          <div class="result-section">
-            <h3 class="result-section-title">6. 결과 다운로드</h3>
-            <div class="download-row">
-              <button id="btn-dl-scores" class="btn-secondary">점수 CSV 다운로드</button>
-              <button id="btn-dl-evidence" class="btn-secondary">근거 문단 CSV 다운로드</button>
-            </div>
-          </div>
-
           <div class="result-section stats-row" id="stats-row"></div>
-
         </div>
 
-        <!-- 에러 -->
         <div id="result-error" class="result-error hidden">
-          <span>⚠️</span>
+          <span>!</span>
           <p id="error-msg"></p>
         </div>
-
-      </div>
+      </section>
     </div>
   </section>
 
-  <!-- ─── 대시보드 탭 ─── -->
   <section id="tab-dashboard" class="tab-section hidden">
+    <div class="dashboard-lede panel">
+      <div>
+        <span class="eyebrow dark">Project summary</span>
+        <h2>PDF 이벤트 신호와 시장 데이터를 연결한 연구용 MVP</h2>
+        <p>뉴스는 시장 분위기 신호, PDF는 리포트 이벤트 신호로 만들고, 두 신호를 실제 주가 수익률과 연결했습니다. 성능을 과장하지 않도록 검증 한계와 음성 대조군까지 함께 보여줍니다.</p>
+      </div>
+      <div class="lede-points">
+        <span>MiniLM 임베딩 고정</span>
+        <span>Few-shot logistic head</span>
+        <span>25개 PDF 방향 검증</span>
+      </div>
+    </div>
 
     <div class="dashboard-overview">
       <div class="ov-card">
-        <span class="ov-num">3</span>
-        <span class="ov-label">사용 모델</span>
-        <span class="ov-sub">MiniLM · Few-shot head · Gemini</span>
+        <span class="ov-num">18/25</span>
+        <span class="ov-label">Few-shot 일치</span>
+        <span class="ov-sub">검증 PDF 방향 일치</span>
       </div>
       <div class="ov-card">
-        <span class="ov-num">5</span>
-        <span class="ov-label">분석 PDF</span>
-        <span class="ov-sub">IEA 3개 · ExxonMobil · Eaton</span>
-      </div>
-      <div class="ov-card">
-        <span class="ov-num">312</span>
-        <span class="ov-label">주차 주가 데이터</span>
-        <span class="ov-sub">2019-01 ~ 2024-12</span>
+        <span class="ov-num">10/25</span>
+        <span class="ov-label">Zero-shot 일치</span>
+        <span class="ov-sub">baseline 대비 개선</span>
       </div>
       <div class="ov-card">
         <span class="ov-num">313</span>
-        <span class="ov-label">GDELT 주간 샘플</span>
-        <span class="ov-sub">2019-2024 actual GKG</span>
+        <span class="ov-label">GDELT 샘플</span>
+        <span class="ov-sub">2019-2024 주간 tone</span>
       </div>
       <div class="ov-card">
-        <span class="ov-num">18/25</span>
-        <span class="ov-label">PDF 검증 일치</span>
-        <span class="ov-sub">few-shot head 기준</span>
+        <span class="ov-num">312</span>
+        <span class="ov-label">주가 주차 데이터</span>
+        <span class="ov-sub">ETF 및 기업 수익률</span>
       </div>
     </div>
 
     <div class="panel">
-      <h2 class="panel-title">프로젝트 해석 기준</h2>
-      <div class="interpret-grid">
-        <div class="interpret-card">
-          <strong>무엇을 만들었나</strong>
-          <p>뉴스는 시장 분위기 시계열 신호로, PDF는 리포트 기반 이벤트 신호로 변환해 주가 데이터와 연결하는 파이프라인입니다.</p>
-        </div>
-        <div class="interpret-card">
-          <strong>모델 활용 범위</strong>
-          <p>MiniLM은 사전학습 Transformer 임베딩 모델이며, MiniLM 본체는 고정하고 소수 라벨 예시로 downstream 분류 헤드를 학습합니다. Gemini는 근거 문단 요약에 사용합니다.</p>
-        </div>
-        <div class="interpret-card">
-          <strong>주의할 해석</strong>
-          <p>수익률 연결과 포트폴리오 계산은 과거 수익률 기반 시나리오이며, 미래 예측·투자 추천·인과관계 증명이 아닙니다.</p>
-        </div>
+      <h2 class="panel-title">프로젝트 흐름</h2>
+      <div class="workflow-grid">
+        <div><strong>1. PDF</strong><span>텍스트 추출과 문단 분할</span></div>
+        <div><strong>2. Evidence</strong><span>TF-IDF로 주제별 근거 검색</span></div>
+        <div><strong>3. Model</strong><span>MiniLM 임베딩 + few-shot head</span></div>
+        <div><strong>4. Link</strong><span>뉴스 tone과 과거 수익률 연결</span></div>
       </div>
     </div>
 
     <div class="panel">
-      <h2 class="panel-title">방법론 정정 및 논리적 주의</h2>
-      <table class="data-table">
+      <h2 class="panel-title">방법론 핵심</h2>
+      <table class="data-table compact-table">
         <thead>
-          <tr><th>항목</th><th>잘못 말하면 위험한 표현</th><th>이 프로젝트의 정확한 표현</th></tr>
+          <tr><th>항목</th><th>정확한 표현</th><th>주의할 점</th></tr>
         </thead>
         <tbody>
           <tr>
             <td>Few-shot</td>
-            <td>대형 foundation model 전체를 fine-tuning했다</td>
-            <td>MiniLM 임베딩은 고정하고, 소수 라벨 예시로 Logistic Regression 분류 헤드를 few-shot 방식으로 학습</td>
+            <td>MiniLM 임베딩은 고정하고, 소수 라벨 예시로 Logistic Regression head를 학습</td>
+            <td>대형 모델 전체 fine-tuning이 아님</td>
           </tr>
           <tr>
-            <td>MiniLM</td>
-            <td>대형 생성형 LLM을 사용했다</td>
-            <td>사전학습 Transformer 기반 범용 문장 임베딩 모델을 사용했다</td>
+            <td>점수</td>
+            <td>보고서 내부 테마 간 상대 강도를 min-max 정규화</td>
+            <td>보고서 간 절대값 직접 비교 불가</td>
           </tr>
           <tr>
-            <td>검증</td>
-            <td>소규모 일치 결과를 정량 정확도로 일반화했다</td>
-            <td>25개 공개 PDF 점검에서 18개가 기대 방향과 일치했다. 다만 정량 일반화 성능으로 과장하지 않는다</td>
-          </tr>
-          <tr>
-            <td>뉴스·PDF 연결</td>
-            <td>뉴스 분석과 PDF 앱이 따로 존재한다</td>
-            <td>뉴스는 시장 분위기 신호, PDF는 리포트 이벤트 신호, 주가는 downstream 연결 대상</td>
-          </tr>
-          <tr>
-            <td>Few-shot 검증</td>
-            <td>테스트 셋에서 정확도를 측정했다</td>
-            <td>별도의 held-out test set이 없음. 25개 검증 PDF는 방향 일치 여부를 확인하는 MVP 탐색 수준이며, 정량 일반화 성능 평가가 아님</td>
-          </tr>
-          <tr>
-            <td>점수 정규화</td>
-            <td>각 테마 점수가 절대 확률이다</td>
-            <td>분류기 출력 확률을 per-report min-max 정규화하여 상대적 순위로 변환. 보고서 간 점수 직접 비교 불가</td>
+            <td>수익률 연결</td>
+            <td>보고서 날짜 기준 과거 실제 수익률을 downstream 예시로 연결</td>
+            <td>미래 예측이나 투자 추천이 아님</td>
           </tr>
         </tbody>
       </table>
     </div>
 
+    <div class="dashboard-columns">
+      <section class="panel">
+        <h2 class="panel-title">리포트 신호</h2>
+        <div id="signals-table-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중...</p></div>
+      </section>
+      <section class="panel">
+        <h2 class="panel-title">검증 요약</h2>
+        <div id="pdf-metrics-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중...</p></div>
+        <div id="validation-table-wrap" class="table-wrap table-spaced"><p class="loading-text">데이터 로딩 중...</p></div>
+      </section>
+    </div>
+
     <div class="panel">
-      <h2 class="panel-title">리포트 신호 (기존 분석 결과)</h2>
-      <div id="signals-table-wrap" class="table-wrap">
-        <p class="loading-text">데이터 로딩 중…</p>
+      <h2 class="panel-title">Zero-shot vs Few-shot</h2>
+      <p class="section-help">같은 PDF 25개에서 baseline과 few-shot head를 비교한 결과입니다.</p>
+      <div id="zero-shot-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중...</p></div>
+    </div>
+
+    <div class="panel">
+      <h2 class="panel-title">뉴스 컨텍스트와 주가 연결</h2>
+      <p class="section-help">GDELT 주간 샘플 기반 tone 신호와 PDF 이벤트 신호를 보고서 기준일 주변에서 연결합니다. 표본 기반 예비 분석입니다.</p>
+      <div class="dashboard-columns">
+        <div id="news-bridge-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중...</p></div>
+        <div id="link-table-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중...</p></div>
       </div>
     </div>
 
     <div class="panel">
-      <h2 class="panel-title">뉴스 컨텍스트 → PDF 신호 연결</h2>
-      <div class="synthetic-data-banner">
-        ⚠ <strong>뉴스 데이터 출처 공개:</strong> 이 섹션의 NSS_ADJ 값은 <strong>실제 GDELT GKG 공개 원자료</strong>에서 2019-2024 매주 금요일 12:00 UTC 파일을 표본 수집해 계산한 tone 신호입니다.
-        전체 뉴스 데이터베이스가 아니라 주간 샘플이므로, Bloomberg Terminal·NewsAPI 히스토리 플랜 같은 완전한 원자료 기반 분석보다 제한적입니다.
-        통계 결과는 예비 분석으로만 해석해야 합니다.
-      </div>
-      <p class="section-help">보고서 기준일 이전 4주 뉴스 컨텍스트 신호와 PDF 이벤트 신호를 연결하는 파이프라인 구조를 보여줍니다. 미래 예측이나 투자 추천이 아닙니다.</p>
-      <div id="news-bridge-wrap" class="table-wrap">
-        <p class="loading-text">데이터 로딩 중…</p>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h2 class="panel-title">리포트 신호 → 이후 4주 수익률</h2>
-      <p class="section-help caution-note">⚠ 현재 분석 대상 보고서는 <strong>5개(n=5)</strong>입니다. 이 수준에서는 어떤 상관·회귀 결과도 통계적 신뢰도가 극히 낮으며, 과적합 위험이 높습니다. 수익률 연결은 방향성 가설 탐색 목적의 파이프라인 시연으로만 해석해야 합니다.</p>
-      <div id="link-table-wrap" class="table-wrap">
-        <p class="loading-text">데이터 로딩 중…</p>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h2 class="panel-title">가설 검증 설계 및 예비 분석</h2>
-      <div class="synthetic-data-banner">
-        ⚠ <strong>분석 한계 공개:</strong> H1은 NASA GISTEMP 월별 기온 이상치와 실제 GDELT GKG 뉴스 tone 샘플을 월별로 연결했고, H2는 실제 GDELT GKG 주간 뉴스 tone 샘플과 주가 수익률을 연결했습니다.
-        다만 GDELT는 매주 1개 시점 파일만 표본 수집했으므로 완전한 뉴스 원자료 분석이 아니라 실제 데이터 기반 예비 검증입니다.
-      </div>
+      <h2 class="panel-title">가설 검증</h2>
       <div class="hypothesis-grid">
-        <div class="hyp-card hyp-rejected">
+        <div class="hyp-card">
           <span class="hyp-label">H1</span>
-          <p class="hyp-claim">TAI → 뉴스 감성 선행</p>
+          <p class="hyp-claim">기후 이상치 → 뉴스 감성 선행</p>
           <span class="hyp-result partial">예비 지지</span>
-          <p class="hyp-detail">실제 NASA + GDELT 샘플 월별 분석: lag +1개월 r≈0.406, p≈0.0004</p>
+          <p class="hyp-detail">NASA + GDELT 샘플 월별 분석: lag +1개월 r≈0.406</p>
         </div>
-        <div class="hyp-card hyp-rejected">
+        <div class="hyp-card">
           <span class="hyp-label">H2</span>
-          <p class="hyp-claim">NSS_ADJ → ET_SPREAD 양의 방향</p>
+          <p class="hyp-claim">뉴스 tone → ET_SPREAD 양의 방향</p>
           <span class="hyp-result rejected">방향 불일치</span>
-          <p class="hyp-detail">실제 GDELT 샘플 주간 분석: best lag +2주 r≈−0.130, p≈0.022</p>
+          <p class="hyp-detail">GDELT 샘플 주간 분석: best lag +2주 r≈-0.130</p>
         </div>
-        <div class="hyp-card hyp-partial">
+        <div class="hyp-card">
           <span class="hyp-label">H3</span>
           <p class="hyp-claim">이벤트 기간 관계 강화</p>
           <span class="hyp-result partial">기술적 관찰</span>
-          <p class="hyp-detail">실제 GDELT 샘플 + 실제 주가 수익률 — rolling correlation 패턴 참고용 (인과 불명)</p>
+          <p class="hyp-detail">rolling correlation 패턴 참고용. 인과관계로 해석하지 않음</p>
         </div>
       </div>
-      <div class="corr-table-wrap">
-        <p class="note" style="margin-bottom:.5rem">아래 표는 실제 공개 데이터 기반 예비 분석입니다. GDELT 주간 1시점 샘플링이므로 전체 뉴스 모집단 분석으로 과장하면 안 됩니다.</p>
-        <h4>H1: 실제 기후 이상치 → 실제 뉴스 tone</h4>
-        <div id="actual-climate-news-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중…</p></div>
-        <h4>H2: 실제 뉴스 tone → 주가 수익률</h4>
-        <div id="actual-news-stock-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중…</p></div>
+      <div class="dashboard-columns table-spaced">
+        <div>
+          <h3 class="subsection-title">기후 → 뉴스</h3>
+          <div id="actual-climate-news-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중...</p></div>
+        </div>
+        <div>
+          <h3 class="subsection-title">뉴스 → 주가</h3>
+          <div id="actual-news-stock-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중...</p></div>
+        </div>
       </div>
     </div>
 
     <div class="panel">
       <h2 class="panel-title">분석 그래프</h2>
-      <p class="section-help">Figure 1~4는 실제 GDELT GKG 주간 샘플, NASA GISTEMP, 주가 데이터를 사용해 재생성한 고정 산출물입니다. 표본 뉴스 샘플 기반이므로 통계적 결론이 아니라 예비 분석으로 해석해야 합니다.</p>
       <div class="figures-grid">
         <div class="fig-card">
-          <h4>Figure 1: 시계열 비교</h4>
+          <h4>시계열 비교</h4>
           <img src="/api/figures/fig1_timeseries.png" alt="Figure 1" loading="lazy" />
-          <p>기후 지표(TAI), 뉴스 감성(NSS_ADJ), 에너지 전환 스프레드(ET_SPREAD)의 시간 흐름</p>
         </div>
         <div class="fig-card">
-          <h4>Figure 2: 시차 상관 히트맵</h4>
+          <h4>시차 상관 히트맵</h4>
           <img src="/api/figures/fig2_lag_heatmap.png" alt="Figure 2" loading="lazy" />
-          <p>시차별(lag) 신호 간 상관관계 강도. 특정 lag에서 약한 관계가 보임</p>
         </div>
         <div class="fig-card">
-          <h4>Figure 3: 이동 상관관계</h4>
+          <h4>이동 상관관계</h4>
           <img src="/api/figures/fig3_rolling_corr.png" alt="Figure 3" loading="lazy" />
-          <p>NSS_ADJ ↔ ET_SPREAD 이동 상관. 2022 H2 · 2023 초에 음의 관계가 강해짐</p>
         </div>
         <div class="fig-card">
-          <h4>Figure 4: 기업별 감성 민감도</h4>
+          <h4>기업별 감성 민감도</h4>
           <img src="/api/figures/fig4_company_sensitivity.png" alt="Figure 4" loading="lazy" />
-          <p>뉴스 감성 신호와 개별 기업(NEE, XOM, ETN) 수익률의 best-lag 상관</p>
         </div>
         <div class="fig-card fig-card-wide">
-          <h4>Figure 5: PDF 리포트 주제 점수</h4>
+          <h4>PDF 리포트 주제 점수</h4>
           <img src="/api/figures/fig5_report_signals.png" alt="Figure 5" loading="lazy" />
-          <p>5개 보고서의 재생에너지·화석연료 압력·전력망·기후 리스크 점수 비교<br /><small style="color:var(--text-muted)">※ per-report min-max 정규화 점수. 각 보고서 내 테마 간 상대적 순위를 나타내며, 보고서 간 절대값 직접 비교는 불가합니다.</small></p>
         </div>
       </div>
     </div>
 
-    <div class="panel">
-      <h2 class="panel-title">PDF 일반화 검증</h2>
-      <div id="pdf-metrics-wrap" class="table-wrap">
-        <p class="loading-text">정량 지표 로딩 중…</p>
-      </div>
-      <div id="validation-table-wrap" class="table-wrap">
-        <p class="loading-text">데이터 로딩 중…</p>
-      </div>
-      <p class="note">현재 재현 가능한 검증 결과는 25개 중 18개 일치, accuracy 0.72입니다. 실패 사례는 복합 테마 문서 또는 단일 라벨 기준이 애매한 문서에서 주로 발생합니다. 단, <strong>검증 표본은 여전히 작으므로</strong> 일반화 성능으로 과장하면 안 됩니다.</p>
-      <div id="failure-analysis-wrap" class="table-wrap">
-        <p class="loading-text">실패 분석 로딩 중…</p>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h2 class="panel-title">Zero-shot vs Few-shot 비교</h2>
-      <p class="section-help">같은 PDF 25개를 대상으로 사전학습 임베딩 유사도만 사용한 zero-shot baseline과, 사람이 만든 소수 예시로 학습한 few-shot classifier head를 비교했습니다. 이 표는 전이학습을 붙였을 때 downstream 분류가 어떻게 달라지는지 보여주는 과제 핵심 실험입니다.</p>
-      <div id="zero-shot-wrap" class="table-wrap">
-        <p class="loading-text">데이터 로딩 중…</p>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h2 class="panel-title">비에너지 PDF 음성 대조군</h2>
-      <p class="section-help">WHO 보건 통계와 OECD 교육 보고서를 넣어, 에너지·기후가 아닌 PDF에서도 모델이 신호를 억지로 만드는지 확인했습니다. WHO는 climate-health 표현 때문에 기후 리스크로 흡수되는 false-positive domain overlap이 관찰됐고, OECD는 점수 차이가 낮아 저확신 판정이 나왔습니다.</p>
-      <div id="ood-test-wrap" class="table-wrap">
-        <p class="loading-text">데이터 로딩 중…</p>
-      </div>
+    <div class="dashboard-columns">
+      <section class="panel">
+        <h2 class="panel-title">실패 사례</h2>
+        <div id="failure-analysis-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중...</p></div>
+      </section>
+      <section class="panel">
+        <h2 class="panel-title">음성 대조군</h2>
+        <div id="ood-test-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중...</p></div>
+      </section>
     </div>
 
     <div class="panel">
       <h2 class="panel-title">Gemini 요약 근거 점검</h2>
-      <p class="section-help">표본 PDF 5개에 대해 Gemini 요약이 추출 근거와 어긋나는지, 투자 추천·수익률 예측 표현이 있는지 점검했습니다.</p>
-      <div id="gemini-check-wrap" class="table-wrap">
-        <p class="loading-text">데이터 로딩 중…</p>
-      </div>
+      <div id="gemini-check-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중...</p></div>
     </div>
-
   </section>
 </main>
 
 <footer class="site-footer">
-  <p>Energy Report-to-Market Signal Analyzer · News context signal · PDF event signal · MiniLM embedding · Few-shot classifier · Gemini summary</p>
+  <p>Energy Report-to-Market Signal Analyzer</p>
 </footer>
 
 <script src="/static/app.js"></script>
