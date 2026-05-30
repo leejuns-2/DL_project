@@ -4,12 +4,14 @@ __pycache__/
 .env
 .venv/
 .vscode/
+.devcontainer/
 
 data/raw/**/*.csv
 data/raw/**/*.pdf
 data/processed/**/*.csv
 outputs/figures/*
 outputs/tables/*
+outputs/cache/
 outputs/uploads/
 outputs/test_*.json
 *.pdf
