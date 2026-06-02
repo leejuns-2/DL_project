@@ -156,6 +156,7 @@ a {
 
 .button:focus-visible,
 .btn-primary:focus-visible,
+.btn-secondary:focus-visible,
 .tab-btn:focus-visible,
 input:focus-visible,
 summary:focus-visible,
@@ -601,6 +602,26 @@ summary:focus-visible,
   color: #fffaf0;
   font-size: 14px;
   font-weight: 780;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 40px;
+  margin-top: 9px;
+  border: 1px solid rgba(47,93,80,0.26);
+  border-radius: 7px;
+  background: rgba(255,252,244,0.72);
+  color: var(--green);
+  font-size: 14px;
+  font-weight: 780;
+}
+
+.btn-secondary:hover {
+  background: rgba(255,252,244,0.94);
+  border-color: rgba(47,93,80,0.42);
 }
 
 .btn-primary:hover:not(:disabled) {

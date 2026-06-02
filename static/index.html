@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Energy Report-to-Market Signal Analyzer</title>
-    <link rel="stylesheet" href="/static/style.css?v=sage-panel-1" />
+    <link rel="stylesheet" href="/static/style.css?v=sample-demo-2" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
   </head>
   <body>
@@ -30,14 +30,15 @@
           <div class="hero-copy">
             <div class="paper-meta" aria-label="Prototype metadata">
               <span>Energy Intelligence Lab</span>
-              <span>Prototype v0.2</span>
+              <span>Prototype v0.3</span>
               <span>Historical context only</span>
             </div>
             <p class="kicker">Research question</p>
             <h2 id="hero-title">Can energy report sentences become traceable market-context signals?</h2>
             <p>
-              이 도구는 PDF 전체를 요약하거나 미래 수익률을 예측하지 않습니다. 에너지 전환과 관련된 근거 문단을 찾고,
-              그 문단이 어떤 테마 신호로 읽히는지 보고서 날짜 주변의 과거 시장 데이터와 함께 보여줍니다.
+              This prototype retrieves energy-transition evidence from PDF reports, converts that evidence into theme signals,
+              and places the report date beside historical market data. It does not forecast future returns or provide
+              investment advice.
             </p>
             <p class="scope-disclaimer">Market windows are historical context only. No forecasting. No investment advice.</p>
           </div>
@@ -104,22 +105,22 @@
           <article>
             <span>Retrieval</span>
             <strong>TF-IDF evidence search</strong>
-            <p>테마 질의로 후보 문단을 찾고, 근거 문장 중심으로 분석합니다.</p>
+            <p>Theme queries retrieve candidate paragraphs, then the strongest evidence fragments are scored.</p>
           </article>
           <article>
             <span>Representation</span>
             <strong>MiniLM-L6-v2 embedding</strong>
-            <p>PDF 문단을 sentence-level vector로 변환합니다.</p>
+            <p>PDF paragraphs are represented as sentence-level vectors for comparable evidence scoring.</p>
           </article>
           <article>
             <span>Classifier</span>
             <strong>Few-shot logistic head</strong>
-            <p>고정 임베딩 위의 작은 head가 테마 신호를 계산합니다.</p>
+            <p>A small logistic head over frozen embeddings estimates relative theme strength.</p>
           </article>
           <article>
             <span>Context</span>
             <strong>Report-date market window</strong>
-            <p>과거 수익률은 downstream context로만 표시합니다.</p>
+            <p>Returns are displayed only as historical downstream context, anchored to the report date.</p>
           </article>
         </section>
 
@@ -135,7 +136,7 @@
               <input type="file" id="file-input" accept=".pdf" hidden />
               <div class="dropzone-inner">
                 <span class="drop-icon">PDF</span>
-                <p class="dropzone-text">PDF를 드래그하거나 <strong>클릭해서 선택</strong></p>
+                <p class="dropzone-text">Drag a PDF here or <strong>click to choose</strong></p>
                 <p id="file-name" class="file-name"></p>
               </div>
             </div>
@@ -179,18 +180,19 @@
               <span id="btn-text">Analyze evidence</span>
               <span id="btn-spinner" class="spinner hidden"></span>
             </button>
+            <button id="btn-sample" class="btn-secondary" type="button">Try sample report</button>
 
             <div class="input-note">
               <strong>Scope</strong>
-              <p>IEA, 기업 지속가능성 보고서, 전력망/에너지 전환 PDF에서 가장 안정적으로 작동합니다.</p>
-              <p>수익률 표는 PDF 내용의 예측이 아니라 입력한 보고서 날짜 기준의 과거 시장 연결입니다.</p>
+              <p>Works best for IEA, company sustainability, utility, and energy-transition PDFs.</p>
+              <p>Return windows are descriptive historical context, not a prediction or investment recommendation.</p>
             </div>
           </aside>
 
           <section class="panel panel-result" id="result-panel">
             <div id="result-empty" class="result-empty">
-              <p class="empty-title">PDF를 넣으면 분석 결과가 여기에 표시됩니다.</p>
-              <p>문서 근거를 검색하고 MiniLM 임베딩과 few-shot head로 리포트 신호를 계산합니다.</p>
+              <p class="empty-title">Sample analysis is ready.</p>
+              <p>Use the sample report preview, or upload a PDF to run the evidence retrieval pipeline.</p>
               <div class="pipeline-steps">
                 <div class="step">PDF text</div>
                 <div class="step">Evidence</div>
@@ -202,7 +204,7 @@
 
             <div id="result-loading" class="result-loading hidden">
               <div class="loader-ring"></div>
-              <p>분석 중입니다<br /><small>첫 실행은 모델 로딩 때문에 조금 걸릴 수 있습니다.</small></p>
+              <p>Analyzing evidence<br /><small>The first run may take a little longer while models load.</small></p>
             </div>
 
             <div id="result-content" class="hidden">
@@ -211,7 +213,7 @@
                   <span class="section-kicker">01</span>
                   <h3 class="result-section-title">Report signal scores</h3>
                 </div>
-                <p class="section-help">각 점수는 한 보고서 내부에서 상대적으로 강한 테마를 보여줍니다.</p>
+                <p class="section-help">Scores show which themes are relatively strongest inside the report evidence.</p>
                 <div class="score-cards" id="score-cards"></div>
                 <div class="chart-wrap score-chart-wrap">
                   <canvas id="score-chart" height="120"></canvas>
@@ -232,7 +234,7 @@
                   <span class="section-kicker">03</span>
                   <h3 class="result-section-title">Evidence fragments</h3>
                 </div>
-                <p class="section-help">모델 점수 계산에 사용된 PDF 원문 근거입니다.</p>
+                <p class="section-help">PDF text fragments used by the model scoring step.</p>
                 <div class="evidence-tabs" id="evidence-tabs"></div>
                 <div class="evidence-content" id="evidence-content"></div>
               </div>
@@ -242,7 +244,7 @@
                   <span class="section-kicker">04</span>
                   <h3 class="result-section-title">Historical stock window</h3>
                 </div>
-                <p class="section-help">보고서 날짜 기준의 과거 수익률입니다. 예측이나 투자 판단이 아닙니다.</p>
+                <p class="section-help">Historical returns around the report date. This is not forecasting or investment advice.</p>
                 <div id="returns-box"></div>
               </div>
 
@@ -264,8 +266,8 @@
             <p class="eyebrow">Project summary</p>
             <h2>PDF event signals connected to market-context evidence.</h2>
             <p>
-              PDF 리포트의 근거 문단을 주제 신호로 바꾸고, 뉴스 tone과 과거 주가 수익률에 연결해 연구용 MVP로 검증합니다.
-              한계와 실패 사례를 함께 보여주는 것이 이 페이지의 핵심입니다.
+              The validation view converts report evidence into topic signals, links those signals to news-tone samples and
+              historical return windows, and keeps visible where the method succeeds or fails.
             </p>
           </div>
           <div class="lede-points">
@@ -337,27 +339,27 @@
         <div class="dashboard-columns">
           <section class="panel">
             <h2 class="panel-title">Report signals</h2>
-            <div id="signals-table-wrap" class="table-wrap"><p class="loading-text">Loading data...</p></div>
+            <div id="signals-table-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
           </section>
           <section class="panel">
             <h2 class="panel-title">Validation summary</h2>
-            <div id="pdf-metrics-wrap" class="table-wrap"><p class="loading-text">Loading data...</p></div>
-            <div id="validation-table-wrap" class="table-wrap table-spaced"><p class="loading-text">Loading data...</p></div>
+            <div id="pdf-metrics-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
+            <div id="validation-table-wrap" class="table-wrap table-spaced"><p class="loading-text">Preview data ready.</p></div>
           </section>
         </div>
 
         <div class="panel">
           <h2 class="panel-title">Zero-shot vs Few-shot</h2>
           <p class="section-help">Same PDF set, compared between embedding similarity baseline and few-shot head.</p>
-          <div id="zero-shot-wrap" class="table-wrap"><p class="loading-text">Loading data...</p></div>
+          <div id="zero-shot-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
         </div>
 
         <div class="panel">
           <h2 class="panel-title">News context and stock link</h2>
           <p class="section-help">GDELT weekly tone samples and historical return context around report dates.</p>
           <div class="dashboard-columns">
-            <div id="news-bridge-wrap" class="table-wrap"><p class="loading-text">Loading data...</p></div>
-            <div id="link-table-wrap" class="table-wrap"><p class="loading-text">Loading data...</p></div>
+            <div id="news-bridge-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
+            <div id="link-table-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
           </div>
         </div>
 
@@ -386,11 +388,11 @@
           <div class="dashboard-columns table-spaced">
             <div>
               <h3 class="subsection-title">Climate -> news</h3>
-              <div id="actual-climate-news-wrap" class="table-wrap"><p class="loading-text">Loading data...</p></div>
+              <div id="actual-climate-news-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
             </div>
             <div>
               <h3 class="subsection-title">News -> stocks</h3>
-              <div id="actual-news-stock-wrap" class="table-wrap"><p class="loading-text">Loading data...</p></div>
+              <div id="actual-news-stock-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
             </div>
           </div>
         </div>
@@ -424,17 +426,17 @@
         <div class="dashboard-columns">
           <section class="panel">
             <h2 class="panel-title">Failure analysis</h2>
-            <div id="failure-analysis-wrap" class="table-wrap"><p class="loading-text">Loading data...</p></div>
+            <div id="failure-analysis-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
           </section>
           <section class="panel">
             <h2 class="panel-title">OOD controls</h2>
-            <div id="ood-test-wrap" class="table-wrap"><p class="loading-text">Loading data...</p></div>
+            <div id="ood-test-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
           </section>
         </div>
 
         <div class="panel">
           <h2 class="panel-title">Gemini summary evidence check</h2>
-          <div id="gemini-check-wrap" class="table-wrap"><p class="loading-text">Loading data...</p></div>
+          <div id="gemini-check-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
         </div>
       </section>
     </main>
@@ -444,6 +446,6 @@
       <span>Historical context only. Not investment advice.</span>
     </footer>
 
-    <script src="/static/app.js?v=sage-panel-1"></script>
+    <script src="/static/app.js?v=sample-demo-2"></script>
   </body>
 </html>

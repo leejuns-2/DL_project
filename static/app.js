@@ -1,10 +1,10 @@
 'use strict';
 
 const THEME_META = {
-  renewable_opportunity: { label: '재생에너지', color: '#1f7a5c', cls: 'score-renewable' },
-  fossil_pressure: { label: '화석연료 압력', color: '#9a5b18', cls: 'score-fossil' },
-  grid_infrastructure: { label: '전력망/전기화', color: '#315f9f', cls: 'score-grid' },
-  climate_risk: { label: '기후 리스크', color: '#a33b32', cls: 'score-climate' },
+  renewable_opportunity: { label: 'Renewables', color: '#1f7a5c', cls: 'score-renewable' },
+  fossil_pressure: { label: 'Fossil pressure', color: '#9a5b18', cls: 'score-fossil' },
+  grid_infrastructure: { label: 'Grid infrastructure', color: '#315f9f', cls: 'score-grid' },
+  climate_risk: { label: 'Climate risk', color: '#a33b32', cls: 'score-climate' },
 };
 
 const MARKET_LABELS = {
@@ -16,7 +16,135 @@ const MARKET_LABELS = {
   ETN: 'ETN',
 };
 
-const THEME_LABELS = Object.fromEntries(Object.entries(THEME_META).map(([key, meta]) => [key, meta.label]));
+const SAMPLE_RESULT = {
+  status: 'success',
+  demo: true,
+  scores: {
+    renewable_opportunity: 1.0,
+    fossil_pressure: 0.499,
+    grid_infrastructure: 0.718,
+    climate_risk: 0.0,
+    transition_signal: 1.219,
+    asset_hint: 'ICLN/NEE',
+    energy_relevance: 0.94,
+    ood_decision: 'in_domain',
+    top_theme: 'renewable_opportunity',
+    second_theme: 'grid_infrastructure',
+    score_margin: 0.282,
+    mixed_signal: true,
+  },
+  confidence: {
+    level: 'High',
+    margin: 0.282,
+    top_theme: 'renewable_opportunity',
+    second_theme: 'grid_infrastructure',
+    mixed_signal: true,
+    energy_relevance: 0.94,
+    ood_decision: 'in_domain',
+  },
+  summary: {
+    korean: 'Sample report preview: the retrieved evidence emphasizes renewable capacity growth, grid connection constraints, and investment needs. The signal is strongest for clean-energy opportunity with a secondary grid-infrastructure component. Market data below is a historical context window anchored to the report date, not a forecast.',
+    bullets: 'Renewable capacity expansion is the dominant theme | Grid integration and transmission constraints appear as supporting evidence | Fossil exposure is present but secondary | Historical returns are shown only as downstream context',
+    generative: {
+      enabled: true,
+      model: 'fallback-demo-summary',
+      summary: 'Evidence chunks support a mixed renewable-and-grid transition signal. The market window illustrates how clean-energy and energy-sector assets moved after the report date, without implying prediction.',
+    },
+  },
+  evidence: {
+    renewable_opportunity: [
+      { page: 12, rank: 1, score: 0.912, paragraph: 'Renewable electricity capacity additions are expected to accelerate, led by solar PV and wind projects across major markets.' },
+      { page: 18, rank: 2, score: 0.874, paragraph: 'Clean energy investment remains central to meeting electricity demand while reducing emissions intensity.' },
+      { page: 31, rank: 3, score: 0.831, paragraph: 'Policy support and lower technology costs improve the economics of renewable deployment.' },
+    ],
+    fossil_pressure: [
+      { page: 44, rank: 1, score: 0.761, paragraph: 'Oil and gas producers face pressure to lower methane emissions and manage transition-related capital allocation.' },
+      { page: 47, rank: 2, score: 0.692, paragraph: 'Fossil fuel demand remains material in the near term, but the transition changes long-run exposure.' },
+    ],
+    grid_infrastructure: [
+      { page: 22, rank: 1, score: 0.887, paragraph: 'Transmission expansion and grid connection queues are critical constraints for renewable integration.' },
+      { page: 26, rank: 2, score: 0.842, paragraph: 'Distribution networks require investment to support electrification, storage, and flexible demand.' },
+    ],
+    climate_risk: [
+      { page: 55, rank: 1, score: 0.583, paragraph: 'Climate risk and extreme weather can affect asset reliability, demand patterns, and resilience planning.' },
+    ],
+  },
+  returns: {
+    report_date: '2024-01-11',
+    pre_4w_ET_SPREAD: -0.012,
+    pre_4w_ICLN: -0.034,
+    pre_4w_XLE: 0.018,
+    pre_4w_NEE: -0.026,
+    pre_4w_XOM: 0.011,
+    pre_4w_ETN: 0.041,
+    forward_1w_ET_SPREAD: 0.028,
+    forward_1w_ICLN: 0.013,
+    forward_1w_XLE: -0.009,
+    forward_1w_NEE: 0.021,
+    forward_1w_XOM: -0.004,
+    forward_1w_ETN: 0.036,
+    forward_4w_ET_SPREAD: -0.044,
+    forward_4w_ICLN: -0.055,
+    forward_4w_XLE: -0.014,
+    forward_4w_NEE: -0.063,
+    forward_4w_XOM: -0.006,
+    forward_4w_ETN: 0.150,
+    forward_8w_ET_SPREAD: 0.032,
+    forward_8w_ICLN: 0.018,
+    forward_8w_XLE: 0.022,
+    forward_8w_NEE: -0.011,
+    forward_8w_XOM: 0.018,
+    forward_8w_ETN: 0.191,
+  },
+  stats: { pages: 88, paragraphs: 412, evidence_count: 40 },
+};
+
+const FALLBACK_DASHBOARD = {
+  signals: [
+    { title: 'IEA Renewables 2023', date: '2024-01-11', renewable_opportunity: 1.0, fossil_pressure: 0.499, grid_infrastructure: 0.718, climate_risk: 0.0, transition_signal: 1.219, asset_hint: 'ICLN/NEE' },
+    { title: 'IEA World Energy Outlook 2023', date: '2023-10-24', renewable_opportunity: 1.0, fossil_pressure: 0.023, grid_infrastructure: 0.0, climate_risk: 0.002, transition_signal: 0.978, asset_hint: 'ICLN/NEE' },
+    { title: 'IEA Oil and Gas Industry in Net Zero Transitions', date: '2023-11-23', renewable_opportunity: 0.650, fossil_pressure: 1.0, grid_infrastructure: 0.448, climate_risk: 0.0, transition_signal: 0.098, asset_hint: 'XLE/XOM transition pressure' },
+  ],
+  pdf_metrics: [{ n: 50, accuracy: 0.72, macro_f1: 0.704, weighted_f1: 0.718 }],
+  validation: [
+    { title: 'IRENA Global Renewables Outlook 2020', expected_hint: 'ICLN/NEE', predicted_hint: 'ICLN/NEE', matched: true },
+    { title: 'EIA Annual Energy Outlook 2023', expected_hint: 'XLE/XOM transition pressure', predicted_hint: 'XLE/XOM transition pressure', matched: true },
+    { title: 'Mixed utility transition report', expected_hint: 'Mixed/grid', predicted_hint: 'ICLN/NEE', matched: false },
+  ],
+  zero_shot_vs_few_shot: [
+    { title: 'IRENA Renewables', expected_hint: 'ICLN/NEE', zero_shot_hint: 'Climate risk', few_shot_hint: 'ICLN/NEE', zero_shot_matched: false, few_shot_matched: true, zero_shot_margin: 0.081, few_shot_margin: 0.314 },
+    { title: 'Oil and gas net-zero transition', expected_hint: 'XLE/XOM transition pressure', zero_shot_hint: 'XLE/XOM', few_shot_hint: 'XLE/XOM transition pressure', zero_shot_matched: true, few_shot_matched: true, zero_shot_margin: 0.164, few_shot_margin: 0.276 },
+  ],
+  news_bridge: [
+    { title: 'IEA Renewables 2023', date: '2024-01-11', asset_hint: 'ICLN/NEE', news_context_available: true, news_window_mean: -0.031, news_window_trend: 0.018 },
+    { title: 'IEA WEO 2023', date: '2023-10-24', asset_hint: 'ICLN/NEE', news_context_available: true, news_window_mean: -0.012, news_window_trend: 0.044 },
+  ],
+  stock_link: [
+    { title: 'IEA Renewables 2023', asset_hint: 'ICLN/NEE', transition_signal: 1.219, forward_4w_ET_SPREAD: -0.044, forward_4w_ICLN: -0.055, forward_4w_XLE: -0.014, forward_4w_ETN: 0.150 },
+    { title: 'IEA WEO 2023', asset_hint: 'ICLN/NEE', transition_signal: 0.978, forward_4w_ET_SPREAD: 0.121, forward_4w_ICLN: 0.052, forward_4w_XLE: -0.062, forward_4w_ETN: 0.179 },
+    { title: 'Oil and Gas Net Zero', asset_hint: 'XLE/XOM transition pressure', transition_signal: 0.098, forward_4w_ET_SPREAD: 0.100, forward_4w_ICLN: 0.094, forward_4w_XLE: -0.005, forward_4w_ETN: 0.042 },
+  ],
+  actual_climate_news: [
+    { signal: 'temperature anomaly', target: 'GDELT energy tone', lag_months: 1, n: 72, r: -0.214, p_value: 0.071 },
+    { signal: 'temperature anomaly', target: 'climate-policy tone', lag_months: 2, n: 71, r: -0.182, p_value: 0.128 },
+  ],
+  actual_news_stock: [
+    { target: 'ET spread', lag_weeks: 2, n: 312, r: 0.087, p_value: 0.124 },
+    { target: 'ICLN', lag_weeks: 4, n: 312, r: -0.063, p_value: 0.266 },
+  ],
+  failure_analysis: [
+    { title: 'Mixed utility transition report', expected_hint: 'Mixed/grid', predicted_hint: 'ICLN/NEE', failure_interpretation: 'Renewable language dominated grid-risk evidence.' },
+    { title: 'Climate adaptation finance PDF', expected_hint: 'Climate risk', predicted_hint: 'ICLN/NEE', failure_interpretation: 'Finance terms overlapped with clean-energy investment examples.' },
+  ],
+  out_of_domain: [
+    { title: 'General AI governance paper', asset_hint: 'Out of domain', top_theme: 'none', score_margin: 0.012, ood_decision: 'reject' },
+    { title: 'Consumer retail trend report', asset_hint: 'Out of domain', top_theme: 'none', score_margin: 0.018, ood_decision: 'reject' },
+  ],
+  gemini_check: [
+    { title: 'IEA Renewables 2023', expected_theme: 'renewables/grid', human_check_result: 'pass', manual_evidence_alignment: 'supported', unsupported_investment_or_prediction: false },
+    { title: 'Oil and Gas Net Zero', expected_theme: 'fossil pressure', human_check_result: 'pass', manual_evidence_alignment: 'supported', unsupported_investment_or_prediction: false },
+  ],
+};
 
 let scoreChart = null;
 let returnsChart = null;
@@ -76,6 +204,14 @@ function initSliders() {
 }
 
 function initForm() {
+  const sampleBtn = document.getElementById('btn-sample');
+  if (sampleBtn) {
+    sampleBtn.addEventListener('click', () => {
+      renderResults(SAMPLE_RESULT);
+      setAnalyzeState('idle');
+    });
+  }
+
   document.getElementById('btn-analyze').addEventListener('click', async () => {
     const fileInput = document.getElementById('file-input');
     const file = fileInput._selectedFile;
@@ -98,7 +234,7 @@ function initForm() {
     try {
       const res = await fetch('/api/analyze', { method: 'POST', body: fd });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || '분석에 실패했습니다.');
+      if (!res.ok) throw new Error(data.detail || 'Analysis failed.');
       renderResults(data);
       setAnalyzeState('done');
     } catch (err) {
@@ -112,23 +248,25 @@ function setAnalyzeState(state) {
   const btnText = document.getElementById('btn-text');
   const btnSpinner = document.getElementById('btn-spinner');
   const btnAnalyze = document.getElementById('btn-analyze');
+  const hasFile = Boolean(document.getElementById('file-input')._selectedFile);
 
   if (state === 'loading') {
-    btnText.textContent = '분석 중';
+    btnText.textContent = 'Analyzing';
     btnSpinner.classList.remove('hidden');
     btnAnalyze.disabled = true;
     showPanel('loading');
     return;
   }
 
-  btnText.textContent = '분석 실행';
+  btnText.textContent = state === 'done' ? 'Analyze another PDF' : 'Analyze evidence';
   btnSpinner.classList.add('hidden');
-  btnAnalyze.disabled = false;
+  btnAnalyze.disabled = !hasFile;
 }
 
 function showPanel(which) {
   ['result-empty', 'result-loading', 'result-content', 'result-error'].forEach(id => {
-    document.getElementById(id).classList.toggle('hidden', id !== `result-${which}`);
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('hidden', id !== `result-${which}`);
   });
 }
 
@@ -139,7 +277,7 @@ function showError(message) {
 
 function renderResults(data) {
   renderScoreCards(data.scores);
-  renderChart(data.scores);
+  renderScoreChart(data.scores);
   renderConfidence(data.scores, data.confidence);
   renderSummary(data.summary);
   renderEvidence(data.evidence, parseInt(document.getElementById('inp-topk').value, 10));
@@ -152,29 +290,31 @@ function renderScoreCards(scores) {
   const container = document.getElementById('score-cards');
   const items = [
     ...Object.entries(THEME_META).map(([key, meta]) => ({ label: meta.label, cls: meta.cls, value: scores[key] })),
-    { label: '전환 신호', cls: 'score-signal', value: scores.transition_signal, raw: true },
+    { label: 'Transition signal', cls: 'score-signal', value: scores.transition_signal, raw: true },
   ];
 
   container.innerHTML = items.map(({ label, cls, value, raw }) => {
-    const pct = raw ? Math.min(Math.abs(value / 3) * 100, 100) : Math.min(value * 100, 100);
+    const numericValue = Number(value || 0);
+    const pct = raw ? Math.min(Math.abs(numericValue / 1.5) * 100, 100) : Math.min(numericValue * 100, 100);
     return `
       <div class="score-card ${cls}">
         <span class="sc-label">${escapeHtml(label)}</span>
-        <span class="sc-value">${Number(value).toFixed(3)}</span>
+        <span class="sc-value">${numericValue.toFixed(3)}</span>
         <div class="sc-bar"><div class="sc-bar-fill" style="width:${pct.toFixed(1)}%"></div></div>
       </div>`;
   }).join('');
 }
 
-function renderChart(scores) {
+function renderScoreChart(scores) {
   const canvas = document.getElementById('score-chart');
+  if (!canvas || typeof Chart === 'undefined') return;
   if (scoreChart) scoreChart.destroy();
   scoreChart = new Chart(canvas, {
     type: 'bar',
     data: {
       labels: Object.values(THEME_META).map(meta => meta.label),
       datasets: [{
-        data: Object.keys(THEME_META).map(key => scores[key]),
+        data: Object.keys(THEME_META).map(key => scores[key] || 0),
         backgroundColor: Object.values(THEME_META).map(meta => `${meta.color}cc`),
         borderColor: Object.values(THEME_META).map(meta => meta.color),
         borderWidth: 1,
@@ -195,18 +335,18 @@ function renderChart(scores) {
 
 function renderConfidence(scores, conf) {
   const box = document.getElementById('confidence-box');
-  const topThemeLabel = THEME_LABELS[conf.top_theme] || conf.top_theme;
-  const secondThemeLabel = THEME_LABELS[conf.second_theme] || conf.second_theme;
+  const topThemeLabel = themeLabel(conf.top_theme);
+  const secondThemeLabel = themeLabel(conf.second_theme);
   const mixedLine = conf.mixed_signal
-    ? `<span>복합 신호: ${escapeHtml(topThemeLabel)} + ${escapeHtml(secondThemeLabel)}</span>`
+    ? `<span>Mixed signal: ${escapeHtml(topThemeLabel)} + ${escapeHtml(secondThemeLabel)}</span>`
     : '';
-  const confColor = { 높음: '#1f7a5c', 보통: '#9a5b18', 낮음: '#a33b32' }[conf.level] || '#667085';
+  const confColor = { High: '#1f7a5c', Medium: '#9a5b18', Low: '#a33b32' }[conf.level] || '#667085';
   box.innerHTML = `
-    <strong>${escapeHtml(scores.asset_hint)}</strong>
-    <span>상위 테마: ${escapeHtml(topThemeLabel)}</span>
+    <strong>${escapeHtml(scores.asset_hint || 'Research signal')}</strong>
+    <span>Top theme: ${escapeHtml(topThemeLabel)}</span>
     ${mixedLine}
-    <span>확신도: <b style="color:${confColor}">${escapeHtml(conf.level)}</b></span>
-    <span>점수 차이: ${Number(conf.margin).toFixed(3)}</span>`;
+    <span>Confidence: <b style="color:${confColor}">${escapeHtml(conf.level || 'Review')}</b></span>
+    <span>Score margin: ${Number(conf.margin || 0).toFixed(3)}</span>`;
 }
 
 function renderSummary(summary) {
@@ -227,7 +367,7 @@ function renderEvidence(evidence, topK) {
   const tabsEl = document.getElementById('evidence-tabs');
   const contentEl = document.getElementById('evidence-content');
   const keys = Object.keys(THEME_META);
-  const displayLimit = Math.min(topK, 5);
+  const displayLimit = Math.min(topK || 5, 5);
 
   tabsEl.innerHTML = keys.map((key, index) =>
     `<button class="ev-tab ${index === 0 ? 'active' : ''}" data-key="${key}">${THEME_META[key].label}</button>`
@@ -237,13 +377,13 @@ function renderEvidence(evidence, topK) {
     const rows = (evidence[key] || []).slice(0, displayLimit).map(item => `
       <div class="ev-item">
         <div class="ev-meta">
-          <span>p.${item.page}</span>
-          <span>#${item.rank}</span>
-          <span class="ev-score">${Number(item.score).toFixed(3)}</span>
+          <span>p.${escapeHtml(item.page === undefined || item.page === null ? '-' : item.page)}</span>
+          <span>#${escapeHtml(item.rank === undefined || item.rank === null ? '-' : item.rank)}</span>
+          <span class="ev-score">${Number(item.score || 0).toFixed(3)}</span>
         </div>
-        <div class="ev-text">${highlightKeywords(item.paragraph)}</div>
+        <div class="ev-text">${highlightKeywords(item.paragraph || '')}</div>
       </div>`).join('');
-    return `<div class="ev-list ${index === 0 ? 'active' : ''}" data-key="${key}">${rows || '<p class="note">근거 문단 없음</p>'}</div>`;
+    return `<div class="ev-list ${index === 0 ? 'active' : ''}" data-key="${key}">${rows || '<p class="note">No evidence fragment for this theme.</p>'}</div>`;
   }).join('');
 
   tabsEl.onclick = event => {
@@ -257,7 +397,7 @@ function renderEvidence(evidence, topK) {
 function renderReturns(returns) {
   const box = document.getElementById('returns-box');
   if (!returns || Object.keys(returns).length === 0) {
-    box.innerHTML = '<p class="note">기준일에 연결할 수 있는 수익률 데이터가 없습니다.</p>';
+    box.innerHTML = '<p class="note">No historical return window is available for this report date.</p>';
     return;
   }
 
@@ -269,9 +409,9 @@ function renderReturns(returns) {
 
   const cols = Object.keys(MARKET_LABELS);
   const periods = [];
-  if (cols.some(col => returns[`pre_4w_${col}`] !== undefined)) periods.push({ label: '이전 4주', prefix: 'pre_4w_' });
+  if (cols.some(col => returns[`pre_4w_${col}`] !== undefined)) periods.push({ label: 'Pre 4w', prefix: 'pre_4w_' });
   Object.keys(fwdGroups).sort((a, b) => Number(a) - Number(b)).forEach(weeks => {
-    periods.push({ label: `이후 ${weeks}주`, group: fwdGroups[weeks] });
+    periods.push({ label: `Post ${weeks}w`, group: fwdGroups[weeks] });
   });
 
   const chartId = `returns-chart-${Date.now()}`;
@@ -283,7 +423,7 @@ function renderReturns(returns) {
 
   let html = `<div class="chart-wrap returns-chart-wrap"><canvas id="${chartId}" height="170"></canvas></div>`;
   html += `<div class="table-wrap"><table class="data-table compact-table">
-    <thead><tr><th>기간</th>${cols.map(col => `<th>${MARKET_LABELS[col]}</th>`).join('')}</tr></thead><tbody>`;
+    <thead><tr><th>Window</th>${cols.map(col => `<th>${MARKET_LABELS[col]}</th>`).join('')}</tr></thead><tbody>`;
   periods.forEach(period => {
     html += `<tr><td>${period.label}</td>${cols.map(col => fmtCell(period.prefix ? returns[`${period.prefix}${col}`] : period.group[col])).join('')}</tr>`;
   });
@@ -291,17 +431,20 @@ function renderReturns(returns) {
   box.innerHTML = html;
 
   const graphCols = ['ET_SPREAD', 'ICLN', 'XLE', 'ETN'];
-  const chartData = periods.map(period => graphCols.map(col => period.prefix ? returns[`${period.prefix}${col}`] ?? null : period.group[col] ?? null));
+  const chartData = periods.map(period => graphCols.map(col => {
+    const value = period.prefix ? returns[`${period.prefix}${col}`] : period.group[col];
+    return value === undefined ? null : value;
+  }));
   renderReturnsChart(chartId, periods.map(period => period.label), graphCols, chartData, false);
 }
 
 function renderReturnsChart(canvasId, labels, columns, valuesByPeriod, dashboardMode) {
   const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
+  if (!canvas || typeof Chart === 'undefined') return;
   const palette = { ET_SPREAD: '#364152', ICLN: '#1f7a5c', XLE: '#9a5b18', ETN: '#315f9f', NEE: '#667085', XOM: '#a33b32' };
   const datasets = columns.map((col, index) => ({
     label: MARKET_LABELS[col] || col,
-    data: valuesByPeriod.map(row => row[index] === null ? null : row[index] * 100),
+    data: valuesByPeriod.map(row => row[index] === null || row[index] === undefined ? null : row[index] * 100),
     backgroundColor: `${palette[col] || '#667085'}cc`,
     borderColor: palette[col] || '#667085',
     borderWidth: 1,
@@ -334,47 +477,60 @@ function renderReturnsChart(canvasId, labels, columns, valuesByPeriod, dashboard
 
 function renderStats(stats) {
   document.getElementById('stats-row').innerHTML = [
-    `추출 페이지 <strong>${stats.pages}</strong>`,
-    `분석 문단 <strong>${stats.paragraphs}</strong>`,
-    `근거 문단 <strong>${stats.evidence_count}</strong>`,
+    `Pages <strong>${escapeHtml(stats.pages)}</strong>`,
+    `Paragraphs <strong>${escapeHtml(stats.paragraphs)}</strong>`,
+    `Evidence chunks <strong>${escapeHtml(stats.evidence_count)}</strong>`,
   ].map(item => `<span class="stat-item">${item}</span>`).join('');
 }
 
 async function loadDashboard() {
   if (dashboardLoaded) return;
   dashboardLoaded = true;
+  renderDashboard(FALLBACK_DASHBOARD);
 
   try {
     const res = await fetch('/api/dashboard');
+    if (!res.ok) throw new Error('Dashboard API failed.');
     const data = await res.json();
-    renderSignalsTable(data.signals);
-    renderNewsBridgeTable(data.news_bridge);
-    renderLinkTable(data.stock_link);
-    renderActualEvidenceTables(data);
-    renderValidationTable(data.validation);
+    renderDashboard(mergeDashboardFallback(data));
   } catch (err) {
-    document.getElementById('signals-table-wrap').innerHTML = '<p class="note">데이터를 불러오지 못했습니다.</p>';
+    renderDashboard(FALLBACK_DASHBOARD);
   }
+}
+
+function mergeDashboardFallback(data) {
+  return Object.fromEntries(Object.entries(FALLBACK_DASHBOARD).map(([key, fallbackRows]) => {
+    const rows = data && Array.isArray(data[key]) && data[key].length ? data[key] : fallbackRows;
+    return [key, rows];
+  }));
+}
+
+function renderDashboard(data) {
+  renderSignalsTable(data.signals);
+  renderNewsBridgeTable(data.news_bridge);
+  renderLinkTable(data.stock_link);
+  renderActualEvidenceTables(data);
+  renderValidationTable(data.validation);
 }
 
 function renderActualEvidenceTables(data) {
   renderGenericTable('actual-climate-news-wrap', data.actual_climate_news, {
-    signal: '신호', target: '대상', lag_months: 'Lag(월)', n: 'n', r: 'r', p_value: 'p-value',
+    signal: 'Signal', target: 'Target', lag_months: 'Lag', n: 'n', r: 'r', p_value: 'p-value',
   });
   renderGenericTable('actual-news-stock-wrap', data.actual_news_stock, {
-    target: '대상', lag_weeks: 'Best lag(주)', n: 'n', r: 'r', p_value: 'p-value',
+    target: 'Target', lag_weeks: 'Best lag', n: 'n', r: 'r', p_value: 'p-value',
   });
   renderGenericTable('pdf-metrics-wrap', data.pdf_metrics, {
     n: 'n', accuracy: 'Accuracy', macro_f1: 'Macro-F1', weighted_f1: 'Weighted-F1',
   });
   renderGenericTable('failure-analysis-wrap', data.failure_analysis, {
-    title: 'PDF', expected_hint: 'Expected', predicted_hint: 'Predicted', failure_interpretation: '해석',
+    title: 'PDF', expected_hint: 'Expected', predicted_hint: 'Predicted', failure_interpretation: 'Interpretation',
   });
   renderGenericTable('gemini-check-wrap', data.gemini_check, {
-    title: 'PDF', expected_theme: '테마', human_check_result: '점검', manual_evidence_alignment: '근거 일치', unsupported_investment_or_prediction: '위험 문구',
+    title: 'PDF', expected_theme: 'Theme', human_check_result: 'Human check', manual_evidence_alignment: 'Evidence alignment', unsupported_investment_or_prediction: 'Unsupported prediction',
   });
   renderGenericTable('ood-test-wrap', data.out_of_domain, {
-    title: 'OOD PDF', asset_hint: '모델 신호', top_theme: '상위 테마', score_margin: '점수 차이', ood_decision: '판정',
+    title: 'OOD PDF', asset_hint: 'Model signal', top_theme: 'Top theme', score_margin: 'Margin', ood_decision: 'Decision',
   });
   renderGenericTable('zero-shot-wrap', data.zero_shot_vs_few_shot, {
     title: 'PDF', expected_hint: 'Expected', zero_shot_hint: 'Zero-shot', few_shot_hint: 'Few-shot', zero_shot_matched: 'Zero match', few_shot_matched: 'Few match', zero_shot_margin: 'Zero margin', few_shot_margin: 'Few margin',
@@ -385,7 +541,7 @@ function renderGenericTable(id, rows, headers) {
   const wrap = document.getElementById(id);
   if (!wrap) return;
   if (!rows || !rows.length) {
-    wrap.innerHTML = '<p class="note">데이터 없음</p>';
+    wrap.innerHTML = '<p class="note">Preview data unavailable.</p>';
     return;
   }
   const cols = Object.keys(headers).filter(col => col in rows[0]);
@@ -397,47 +553,47 @@ function renderGenericTable(id, rows, headers) {
 
 function renderNewsBridgeTable(rows) {
   renderGenericTable('news-bridge-wrap', rows, {
-    title: '보고서',
-    date: '날짜',
-    asset_hint: 'PDF 신호',
-    news_context_available: '뉴스',
-    news_window_mean: '4주 평균',
-    news_window_trend: '4주 추세',
+    title: 'Report',
+    date: 'Date',
+    asset_hint: 'PDF signal',
+    news_context_available: 'News',
+    news_window_mean: '4w mean',
+    news_window_trend: '4w trend',
   });
 }
 
 function renderValidationTable(rows) {
   renderGenericTable('validation-table-wrap', rows, {
-    title: '검증 PDF',
-    expected_hint: '기대 방향',
-    predicted_hint: '모델 결과',
-    matched: '일치',
+    title: 'Validation PDF',
+    expected_hint: 'Expected',
+    predicted_hint: 'Model result',
+    matched: 'Match',
   });
 }
 
 function renderSignalsTable(signals) {
   renderGenericTable('signals-table-wrap', signals, {
-    title: '보고서',
-    date: '날짜',
-    renewable_opportunity: '재생',
-    fossil_pressure: '화석',
-    grid_infrastructure: '전력망',
-    climate_risk: '기후',
-    transition_signal: '전환',
-    asset_hint: '자산 힌트',
+    title: 'Report',
+    date: 'Date',
+    renewable_opportunity: 'Renewables',
+    fossil_pressure: 'Fossil',
+    grid_infrastructure: 'Grid',
+    climate_risk: 'Climate',
+    transition_signal: 'Transition',
+    asset_hint: 'Asset hint',
   });
 }
 
 function renderLinkTable(link) {
   const wrap = document.getElementById('link-table-wrap');
   if (!link || !link.length) {
-    wrap.innerHTML = '<p class="note">데이터 없음</p>';
+    wrap.innerHTML = '<p class="note">Preview data unavailable.</p>';
     return;
   }
 
   const graphCols = ['forward_4w_ET_SPREAD', 'forward_4w_ICLN', 'forward_4w_XLE', 'forward_4w_ETN'];
   const labels = link.map(row => shortenTitle(row.title || row.report_id || 'Report'));
-  const valuesByPeriod = link.map(row => graphCols.map(col => row[col] ?? null));
+  const valuesByPeriod = link.map(row => graphCols.map(col => row[col] === undefined ? null : row[col]));
   const cols = ['title', 'asset_hint', 'transition_signal', ...graphCols].filter(col => col in link[0]);
 
   wrap.innerHTML = `
@@ -452,22 +608,26 @@ function renderLinkTable(link) {
 }
 
 function formatTableCell(value, col) {
-  if (typeof value === 'boolean') return `<td class="${value ? 'match' : 'neg'}">${value ? '일치' : '불일치'}</td>`;
+  if (typeof value === 'boolean') return `<td class="${value ? 'match' : 'neg'}">${value ? 'Match' : 'Miss'}</td>`;
   if (typeof value === 'number') {
     const cls = value > 0.005 ? 'pos' : value < -0.005 ? 'neg' : '';
     if (col.includes('forward_') || col.includes('pre_')) return `<td class="${cls}">${value > 0 ? '+' : ''}${(value * 100).toFixed(2)}%</td>`;
     return `<td class="${cls}">${Math.abs(value) < 10 ? value.toFixed(3) : value.toFixed(0)}</td>`;
   }
-  const text = String(value ?? '');
+  const text = String(value === undefined || value === null ? '' : value);
   return `<td>${escapeHtml(text.length > 110 ? `${text.slice(0, 110)}...` : text)}</td>`;
 }
 
 function prettyHeader(col) {
   return col
     .replace('forward_4w_', '4w ')
-    .replace('transition_signal', '전환')
-    .replace('asset_hint', '자산 힌트')
-    .replace('title', '보고서');
+    .replace('transition_signal', 'Transition')
+    .replace('asset_hint', 'Asset hint')
+    .replace('title', 'Report');
+}
+
+function themeLabel(key) {
+  return THEME_META[key] ? THEME_META[key].label : key || 'Review';
 }
 
 function escapeHtml(str) {
@@ -508,3 +668,4 @@ initTabs();
 initUpload();
 initSliders();
 initForm();
+renderResults(SAMPLE_RESULT);
