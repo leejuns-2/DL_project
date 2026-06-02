@@ -26,6 +26,7 @@ from config import (
 
 REPORT_DIR = RAW_DIR / "reports"
 REPORT_PROCESSED_DIR = PROCESSED_DIR / "reports"
+VALIDATION_PDF_CATALOG_PATH = REPORT_PROCESSED_DIR / "validation_pdf_catalog.csv"
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 MARKET_RETURN_COLUMNS = ["ICLN", "XLE", "NEE", "XOM", "ETN"]
 EVENT_WINDOWS = {
@@ -127,6 +128,31 @@ ENERGY_RELEVANCE_KEYWORDS = {
     "electrification",
     "utility",
     "fuel",
+}
+CLIMATE_HEALTH_KEYWORDS = {
+    "health",
+    "disease",
+    "mortality",
+    "morbidity",
+    "hospital",
+    "who",
+    "malaria",
+    "nutrition",
+    "sanitation",
+    "epidemiology",
+}
+NON_ENERGY_OOD_KEYWORDS = {
+    "education",
+    "school",
+    "student",
+    "teacher",
+    "curriculum",
+    "classroom",
+    "health",
+    "hospital",
+    "disease",
+    "statistics",
+    "survey",
 }
 
 
@@ -391,6 +417,21 @@ VALIDATION_SAMPLE_PDFS = [
 ]
 
 
+def load_validation_sample_pdfs():
+    """Load the validation PDF catalog when present, otherwise use the built-in pilot set."""
+    if VALIDATION_PDF_CATALOG_PATH.exists():
+        catalog = pd.read_csv(VALIDATION_PDF_CATALOG_PATH)
+        required = {"report_id", "title", "date", "issuer", "path", "expected_hint"}
+        missing = required - set(catalog.columns)
+        if missing:
+            raise ValueError(f"Validation PDF catalog is missing columns: {sorted(missing)}")
+        rows = []
+        for _, row in catalog.iterrows():
+            rows.append({col: row[col] for col in required})
+        return rows
+    return VALIDATION_SAMPLE_PDFS
+
+
 def validation_split_for_report(report_id, test_ratio=0.28):
     """Stable split so validation/test membership does not change across runs."""
     bucket = zlib.crc32(str(report_id).encode("utf-8")) % 100
@@ -460,6 +501,7 @@ def extract_pdf_text(report, max_pages=120):
 
 def split_paragraphs(report, pages):
     records = []
+    chunk_idx = 0
     for page in pages:
         chunks = re.split(r"(?<=[.!?])\s+(?=[A-Z0-9])", page["text"])
         buffer = []
@@ -471,9 +513,11 @@ def split_paragraphs(report, pages):
             if len(" ".join(buffer)) >= 350:
                 paragraph = " ".join(buffer)
                 if 120 <= len(paragraph) <= 1600:
+                    chunk_idx += 1
                     records.append(
                         {
                             "report_id": report.report_id,
+                            "chunk_id": f"{report.report_id}_chunk_{chunk_idx:04d}",
                             "title": report.title,
                             "date": report.date,
                             "issuer": report.issuer,
@@ -485,9 +529,11 @@ def split_paragraphs(report, pages):
         if buffer:
             paragraph = " ".join(buffer)
             if 120 <= len(paragraph) <= 1600:
+                chunk_idx += 1
                 records.append(
                     {
                         "report_id": report.report_id,
+                        "chunk_id": f"{report.report_id}_chunk_{chunk_idx:04d}",
                         "title": report.title,
                         "date": report.date,
                         "issuer": report.issuer,
@@ -665,10 +711,13 @@ def estimate_energy_relevance(evidence_group, raw_scores=None):
     retrieval_component = np.clip(retrieval_relevance / 0.18, 0, 1)
     classifier_component = np.clip((classifier_relevance - 0.35) / 0.25, 0, 1)
     energy_relevance = float(np.clip(0.45 * retrieval_component + 0.35 * keyword_relevance + 0.20 * classifier_component, 0, 1))
+    ood_subtype = infer_ood_subtype(evidence_group, energy_relevance)
     if energy_relevance < 0.35:
         ood_decision = "out_of_domain"
     elif energy_relevance < 0.55:
         ood_decision = "low_relevance"
+    elif ood_subtype == "climate_health_overlap" and keyword_relevance < 0.70:
+        ood_decision = "domain_overlap_review"
     else:
         ood_decision = "in_domain"
 
@@ -678,6 +727,110 @@ def estimate_energy_relevance(evidence_group, raw_scores=None):
         "keyword_relevance": keyword_relevance,
         "classifier_relevance": classifier_relevance,
         "ood_decision": ood_decision,
+        "ood_subtype": ood_subtype,
+    }
+
+
+def infer_ood_subtype(evidence_group, energy_relevance):
+    paragraphs = " ".join(
+        evidence_group.drop_duplicates(subset=["paragraph"])["paragraph"].astype(str).str.lower().head(24).tolist()
+    )
+    tokens = set(re.findall(r"[a-zA-Z]+", paragraphs))
+    energy_hits = len(tokens & ENERGY_RELEVANCE_KEYWORDS)
+    health_hits = len(tokens & CLIMATE_HEALTH_KEYWORDS)
+    non_energy_hits = len(tokens & NON_ENERGY_OOD_KEYWORDS)
+    climate_present = "climate" in tokens or "weather" in tokens
+
+    if climate_present and health_hits >= 2 and energy_hits <= 3:
+        return "climate_health_overlap"
+    if non_energy_hits >= 3 and energy_hits <= 2:
+        return "non_energy_policy_or_admin"
+    if energy_relevance < 0.35:
+        return "low_energy_evidence"
+    return "energy_domain"
+
+
+def label_evidence_chunks(evidence, min_score=0.35, relative_floor=0.72):
+    """Create paragraph-level multi-label annotations from retrieved evidence.
+
+    This is a weak-label evaluation aid, not a replacement for human annotation.
+    It records which themes have direct retrieved evidence in each chunk so mixed
+    PDFs can be audited below the document level.
+    """
+    if evidence.empty:
+        return pd.DataFrame()
+
+    id_cols = ["report_id", "chunk_id", "title", "date", "issuer", "page", "paragraph"]
+    available_id_cols = [col for col in id_cols if col in evidence.columns]
+    rows = []
+    for keys, group in evidence.groupby([col for col in ["report_id", "chunk_id", "paragraph"] if col in evidence.columns]):
+        best_by_theme = group.sort_values("retrieval_score", ascending=False).drop_duplicates("theme")
+        scores = {row["theme"]: float(row["retrieval_score"]) for _, row in best_by_theme.iterrows()}
+        top_score = max(scores.values()) if scores else 0.0
+        labels = [
+            theme
+            for theme, score in sorted(scores.items(), key=lambda item: item[1], reverse=True)
+            if score >= min_score and score >= top_score * relative_floor
+        ]
+        if not labels and scores:
+            labels = [max(scores, key=scores.get)]
+
+        base = best_by_theme.iloc[0][available_id_cols].to_dict()
+        for theme in THEME_KEYS:
+            base[f"{theme}_evidence_score"] = scores.get(theme, 0.0)
+        base.update(
+            {
+                "labels": ";".join(labels),
+                "primary_label": labels[0] if labels else "no_signal",
+                "label_count": int(len(labels)),
+                "is_mixed_signal_chunk": bool(len(labels) > 1),
+                "evidence_span": str(base.get("paragraph", ""))[:360],
+                "weak_label_note": "retrieval-derived weak label; human multi-label annotation still required",
+            }
+        )
+        rows.append(base)
+
+    return pd.DataFrame(rows)
+
+
+def summarize_chunk_labels(chunk_labels):
+    if chunk_labels.empty:
+        return {}
+    counts = {theme: 0 for theme in THEME_KEYS}
+    for labels in chunk_labels["labels"].fillna(""):
+        for label in str(labels).split(";"):
+            if label in counts:
+                counts[label] += 1
+    total = int(len(chunk_labels))
+    ranked = sorted(counts.items(), key=lambda item: item[1], reverse=True)
+    primary = ranked[0][0] if ranked and ranked[0][1] else "no_signal"
+    secondary = ranked[1][0] if len(ranked) > 1 and ranked[1][1] else ""
+    return {
+        "chunk_count": total,
+        "multi_label_chunk_count": int(chunk_labels["is_mixed_signal_chunk"].astype(bool).sum()),
+        "multi_label_chunk_rate": float(chunk_labels["is_mixed_signal_chunk"].astype(bool).mean()),
+        "chunk_primary_label": primary,
+        "chunk_secondary_label": secondary,
+        **{f"chunk_{theme}_count": int(count) for theme, count in counts.items()},
+    }
+
+
+def evidence_support_metadata(evidence, limit=6):
+    if evidence.empty:
+        return {"evidence_chunk_ids": [], "support_level": "none", "support_note": "No evidence paragraphs were retrieved."}
+    selected = evidence.sort_values("retrieval_score", ascending=False).drop_duplicates(subset=["paragraph"]).head(limit)
+    chunk_ids = selected["chunk_id"].tolist() if "chunk_id" in selected.columns else [f"p{int(p)}" for p in selected["page"]]
+    mean_score = float(selected["retrieval_score"].mean())
+    if mean_score >= 0.60:
+        support_level = "strong"
+    elif mean_score >= 0.35:
+        support_level = "moderate"
+    else:
+        support_level = "weak"
+    return {
+        "evidence_chunk_ids": chunk_ids,
+        "support_level": support_level,
+        "support_note": "Summary must be checked against the linked evidence chunks; unsupported claims should be removed.",
     }
 
 
@@ -782,7 +935,7 @@ def ranked_theme_scores(row):
 
 
 def infer_single_market_theme_hint(row):
-    if row.get("ood_decision") in {"out_of_domain", "low_relevance"}:
+    if row.get("ood_decision") in {"out_of_domain", "low_relevance", "domain_overlap_review"}:
         return "Out-of-domain / low energy relevance"
 
     renewable = row["renewable_opportunity"]
@@ -815,7 +968,7 @@ def infer_signal_profile(row, mixed_margin=0.10, mixed_min_second_score=0.80):
     margin = top_score - second_score
     ood_decision = row.get("ood_decision")
 
-    if ood_decision in {"out_of_domain", "low_relevance"}:
+    if ood_decision in {"out_of_domain", "low_relevance", "domain_overlap_review"}:
         return {
             "asset_hint": "Out-of-domain / low energy relevance",
             "top_theme": top_theme,
@@ -871,6 +1024,7 @@ def make_extractive_summaries(evidence, scores, sentences_per_report=5):
             paragraph = row["paragraph"]
             sentence = re.split(r"(?<=[.!?])\s+", paragraph)[0]
             bullets.append(sentence[:280].strip())
+        support = evidence_support_metadata(selected, limit=sentences_per_report)
         rows.append(
             {
                 "report_id": report_id,
@@ -878,6 +1032,9 @@ def make_extractive_summaries(evidence, scores, sentences_per_report=5):
                 "date": score_row["date"],
                 "simple_summary": " | ".join(bullets),
                 "plain_korean_explanation": plain_korean_explanation(score_row),
+                "evidence_chunk_ids": ";".join(support["evidence_chunk_ids"]),
+                "support_level": support["support_level"],
+                "support_note": support["support_note"],
             }
         )
     return pd.DataFrame(rows)
@@ -1029,7 +1186,8 @@ def attach_news_context_to_report_scores(scores, window_weeks=4):
 def validate_sample_pdfs(embedder=None, max_pages=40, top_k=10, hybrid_retrieval=True):
     embedder = embedder or EmbeddingModel()
     rows = []
-    for sample in VALIDATION_SAMPLE_PDFS:
+    chunk_label_frames = []
+    for sample in load_validation_sample_pdfs():
         split = validation_split_for_report(sample["report_id"])
         path = Path(sample["path"])
         if not path.exists():
@@ -1061,6 +1219,10 @@ def validate_sample_pdfs(embedder=None, max_pages=40, top_k=10, hybrid_retrieval
         paragraphs = pd.DataFrame(split_paragraphs(report, pages))
         evidence = retrieve_evidence(paragraphs, top_k=top_k, embedder=embedder, hybrid=hybrid_retrieval)
         scores = score_evidence_with_few_shot_learning(evidence, embedder)
+        chunk_labels = label_evidence_chunks(evidence)
+        if not chunk_labels.empty:
+            chunk_label_frames.append(chunk_labels)
+        chunk_summary = summarize_chunk_labels(chunk_labels)
         predicted = scores.iloc[0]["asset_hint"] if not scores.empty else "no_signal"
         score_row = scores.iloc[0] if not scores.empty else {}
         rows.append(
@@ -1073,8 +1235,10 @@ def validate_sample_pdfs(embedder=None, max_pages=40, top_k=10, hybrid_retrieval
                 "matched": asset_hint_matches_expected(predicted, sample["expected_hint"]),
                 "energy_relevance": float(score_row.get("energy_relevance", 0.0)),
                 "ood_decision": score_row.get("ood_decision", "no_signal"),
+                "ood_subtype": score_row.get("ood_subtype", "unknown"),
                 "paragraphs": int(len(paragraphs)),
                 "evidence": int(len(evidence)),
+                **chunk_summary,
             }
         )
 
@@ -1082,6 +1246,9 @@ def validate_sample_pdfs(embedder=None, max_pages=40, top_k=10, hybrid_retrieval
     output = REPORT_PROCESSED_DIR / "expanded_pdf_validation.csv"
     output.parent.mkdir(parents=True, exist_ok=True)
     result.to_csv(output, index=False)
+    chunk_output = REPORT_PROCESSED_DIR / "pdf_validation_chunk_labels.csv"
+    chunk_result = pd.concat(chunk_label_frames, ignore_index=True) if chunk_label_frames else pd.DataFrame()
+    chunk_result.to_csv(chunk_output, index=False)
     split_metrics = summarize_validation_results(result)
     split_metrics.to_csv(REPORT_PROCESSED_DIR / "pdf_validation_split_metrics.csv", index=False)
     return result
@@ -1091,7 +1258,7 @@ def compare_zero_shot_vs_few_shot(embedder=None, max_pages=40, top_k=10, hybrid_
     embedder = embedder or EmbeddingModel()
     rows = []
 
-    for sample in VALIDATION_SAMPLE_PDFS:
+    for sample in load_validation_sample_pdfs():
         split = validation_split_for_report(sample["report_id"])
         path = Path(sample["path"])
         base = {
@@ -1291,6 +1458,10 @@ def run_report_pipeline():
     evidence_path = REPORT_PROCESSED_DIR / "report_evidence.csv"
     evidence.to_csv(evidence_path, index=False)
 
+    chunk_labels = label_evidence_chunks(evidence)
+    chunk_labels_path = REPORT_PROCESSED_DIR / "report_chunk_labels.csv"
+    chunk_labels.to_csv(chunk_labels_path, index=False)
+
     embedder = EmbeddingModel()
     scores = score_evidence_with_few_shot_learning(evidence, embedder)
     scores_path = REPORT_PROCESSED_DIR / "report_signals.csv"
@@ -1317,6 +1488,7 @@ def run_report_pipeline():
 
     print(f"Saved paragraphs: {paragraphs_path}")
     print(f"Saved evidence: {evidence_path}")
+    print(f"Saved chunk labels: {chunk_labels_path}")
     print(f"Saved report signals: {scores_path}")
     print(f"Saved report-news bridge: {news_bridge_path}")
     print(f"Saved report summaries: {summaries_path}")

@@ -11,13 +11,16 @@ import app  # noqa: E402
 from report_signal_pipeline import (  # noqa: E402
     EmbeddingModel,
     ReportMeta,
+    evidence_support_metadata,
     infer_signal_profile,
     event_window_stock_returns,
     extract_pdf_text_from_path,
+    label_evidence_chunks,
     retrieve_evidence,
     score_evidence_with_few_shot_learning,
     split_paragraphs,
     summarize_validation_results,
+    summarize_chunk_labels,
 )
 
 
@@ -98,6 +101,41 @@ def check_mixed_signal_profile():
     check("XLE/XOM" in profile["asset_hint"], "mixed signal keeps fossil component visible")
 
 
+def check_chunk_multilabel_helpers():
+    evidence = pd.DataFrame(
+        [
+            {
+                "report_id": "chunk_smoke",
+                "chunk_id": "chunk_smoke_chunk_0001",
+                "title": "Chunk Smoke",
+                "date": "2024-01-01",
+                "issuer": "Test",
+                "page": 1,
+                "paragraph": "Solar generation needs transmission expansion and grid flexibility.",
+                "theme": "renewable_opportunity",
+                "retrieval_score": 0.90,
+            },
+            {
+                "report_id": "chunk_smoke",
+                "chunk_id": "chunk_smoke_chunk_0001",
+                "title": "Chunk Smoke",
+                "date": "2024-01-01",
+                "issuer": "Test",
+                "page": 1,
+                "paragraph": "Solar generation needs transmission expansion and grid flexibility.",
+                "theme": "grid_infrastructure",
+                "retrieval_score": 0.82,
+            },
+        ]
+    )
+    labels = label_evidence_chunks(evidence)
+    summary = summarize_chunk_labels(labels)
+    support = evidence_support_metadata(evidence)
+    check(bool(labels.iloc[0]["is_mixed_signal_chunk"]) is True, "chunk weak labels can mark multi-label evidence")
+    check(summary["multi_label_chunk_count"] == 1, "chunk label summary counts mixed chunks")
+    check(support["evidence_chunk_ids"], "summary support metadata includes evidence chunk ids")
+
+
 def main():
     check(app.app.title == "Energy Report-to-Market Signal Analyzer", "FastAPI app imports")
     check_event_returns()
@@ -106,6 +144,7 @@ def main():
     check_sample_pdf(embedder)
     check_validation_metrics()
     check_mixed_signal_profile()
+    check_chunk_multilabel_helpers()
     print("smoke check complete")
 
 

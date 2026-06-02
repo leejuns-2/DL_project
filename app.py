@@ -25,11 +25,14 @@ from report_signal_pipeline import (  # noqa: E402
     SCORING_REFERENCE_EXAMPLES,
     attach_news_context_to_report_scores,
     compound_returns,
+    evidence_support_metadata,
     extract_pdf_text_from_path,
+    label_evidence_chunks,
     make_extractive_summaries,
     retrieve_evidence,
     score_evidence_with_few_shot_learning,
     split_paragraphs,
+    summarize_chunk_labels,
 )
 
 UPLOAD_DIR = ROOT / "outputs" / "uploads"
@@ -221,7 +224,7 @@ def _run_local_genai(model_id: str, title: str, evidence: pd.DataFrame) -> dict:
 
 def _evidence_context(evidence: pd.DataFrame, limit: int, chars: int) -> str:
     return "\n".join(
-        f"- {row['theme']} p.{row['page']}: {row['paragraph'][:chars]}"
+        f"- {row['theme']} {row.get('chunk_id', 'p.' + str(row['page']))}: {row['paragraph'][:chars]}"
         for _, row in evidence.sort_values("retrieval_score", ascending=False).head(limit).iterrows()
     )
 
@@ -231,7 +234,8 @@ def _run_gemini_summary(api_key: str, model: str, title: str, evidence: pd.DataF
     prompt = (
         "Summarize the following PDF evidence in Korean within 3-5 sentences. "
         "Connect it to energy transition, news-sentiment context, and downstream stock-return analysis. "
-        "Use cautious research wording. Do not provide investment advice or future return predictions.\n\n"
+        "Use cautious research wording. Do not provide investment advice or future return predictions. "
+        "Only use claims supported by the evidence chunks shown below. If evidence is weak or mixed, say so explicitly.\n\n"
         f"Report title: {title}\nEvidence:\n{context}"
     )
     thinking_config = {}
@@ -246,7 +250,8 @@ def _run_gemini_summary(api_key: str, model: str, title: str, evidence: pd.DataF
                 {
                     "text": (
                         "You are a cautious energy-market research assistant. "
-                        "Explain model outputs as research signals, not investment recommendations."
+                        "Explain model outputs as research signals, not investment recommendations. "
+                        "Do not add facts that are absent from the provided evidence chunks."
                     )
                 }
             ]
@@ -294,15 +299,20 @@ def _optional_generative_summary(title: str, evidence: pd.DataFrame) -> dict:
     model = os.getenv("GENAI_MODEL", "large-generative-model")
     local_model = os.getenv("LOCAL_GENAI_MODEL")
     if gemini_key and (provider in {"", "gemini", "google"} or not api_url):
-        return _run_gemini_summary(gemini_key, gemini_model, title, evidence)
+        result = _run_gemini_summary(gemini_key, gemini_model, title, evidence)
+        result.update(evidence_support_metadata(evidence))
+        return result
     if not api_url or not api_key:
         if local_model:
-            return _run_local_genai(local_model, title, evidence)
+            result = _run_local_genai(local_model, title, evidence)
+            result.update(evidence_support_metadata(evidence))
+            return result
         return {
             "enabled": False,
             "model": gemini_model,
             "summary": "",
             "note": "Set GEMINI_API_KEY, GENAI_API_URL/GENAI_API_KEY, or LOCAL_GENAI_MODEL to enable generative summaries.",
+            **evidence_support_metadata(evidence),
         }
 
     context = _evidence_context(evidence, limit=8, chars=700)
@@ -333,9 +343,13 @@ def _optional_generative_summary(title: str, evidence: pd.DataFrame) -> dict:
         with urllib.request.urlopen(request, timeout=45) as response:
             data = json.loads(response.read().decode("utf-8"))
         content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-        return {"enabled": True, "model": model, "summary": content.strip(), "note": ""}
+        result = {"enabled": True, "model": model, "summary": content.strip(), "note": ""}
+        result.update(evidence_support_metadata(evidence))
+        return result
     except Exception as exc:
-        return {"enabled": False, "model": model, "summary": "", "note": f"Generative model call failed: {exc}"}
+        result = {"enabled": False, "model": model, "summary": "", "note": f"Generative model call failed: {exc}"}
+        result.update(evidence_support_metadata(evidence))
+        return result
 
 
 @app.post("/api/analyze")
@@ -363,7 +377,7 @@ async def analyze_pdf(
         "max_pages": max_pages,
         "top_k": top_k,
         "horizons": horizon_list,
-        "pipeline_version": "2026-05-30-mixed-signal-v3",
+        "pipeline_version": "2026-06-02-chunk-multilabel-ood-evidence-v4",
     }
     cache_key = _analysis_cache_key(pdf_bytes, cache_params)
     cached = _read_analysis_cache(cache_key)
@@ -394,6 +408,8 @@ async def analyze_pdf(
             raise ValueError("에너지 전환 관련 근거 문단을 찾지 못했습니다.")
 
         scores = score_evidence_with_few_shot_learning(evidence, embedder)
+        chunk_labels = label_evidence_chunks(evidence)
+        chunk_label_summary = summarize_chunk_labels(chunk_labels)
         summaries = make_extractive_summaries(evidence, scores, sentences_per_report=5)
 
         s = scores.iloc[0].to_dict()
@@ -406,6 +422,7 @@ async def analyze_pdf(
             "asset_hint": s["asset_hint"],
             "energy_relevance": round(s["energy_relevance"], 4),
             "ood_decision": s["ood_decision"],
+            "ood_subtype": s.get("ood_subtype", "unknown"),
         }
         raw_scores = {
             "renewable_opportunity": round(s["renewable_opportunity_raw"], 4),
@@ -459,7 +476,8 @@ async def analyze_pdf(
                 "few_shot_learning": "Frozen MiniLM embeddings + cached logistic regression classifier heads.",
                 "retrieval": "TF-IDF + embedding hybrid evidence retrieval.",
                 "ood_guard": "Energy relevance score combines retrieval strength, keyword coverage, and raw classifier confidence.",
-                "generative_model": "Gemini summary when GEMINI_API_KEY is configured; API/local fallbacks are also supported.",
+                "generative_model": "Gemini summary when GEMINI_API_KEY is configured; summaries include evidence chunk IDs for review.",
+                "chunk_multilabel": "Retrieved paragraphs are weak-labeled by theme so mixed PDFs can be audited below document level.",
             },
             "scores": theme_scores,
             "raw_scores": raw_scores,
@@ -472,13 +490,19 @@ async def analyze_pdf(
                 "mixed_components": s.get("mixed_components", ""),
                 "energy_relevance": round(s["energy_relevance"], 4),
                 "ood_decision": s["ood_decision"],
+                "ood_subtype": s.get("ood_subtype", "unknown"),
             },
             "summary": {
                 "korean": summaries.iloc[0]["plain_korean_explanation"],
                 "bullets": summaries.iloc[0]["simple_summary"],
+                "evidence_chunk_ids": summaries.iloc[0].get("evidence_chunk_ids", ""),
+                "support_level": summaries.iloc[0].get("support_level", ""),
+                "support_note": summaries.iloc[0].get("support_note", ""),
                 "generative": _optional_generative_summary(title, evidence),
             },
             "evidence": evidence_by_theme,
+            "chunk_labels": _json_records(chunk_labels.head(200)),
+            "chunk_label_summary": chunk_label_summary,
             "returns": _compute_returns(scores, horizon_list),
             "stats": {
                 "pages": len(pages),
@@ -513,6 +537,7 @@ async def get_dashboard():
         "gemini_check": PROCESSED_DIR / "reports" / "gemini_summary_human_check.csv",
         "out_of_domain": PROCESSED_DIR / "reports" / "out_of_domain_pdf_test.csv",
         "zero_shot_vs_few_shot": PROCESSED_DIR / "reports" / "zero_shot_vs_few_shot.csv",
+        "pdf_chunk_labels": PROCESSED_DIR / "reports" / "pdf_validation_chunk_labels.csv",
     }
     data = {key: [] for key in paths}
     if paths["signals"].exists():
@@ -540,6 +565,7 @@ async def get_dashboard():
         "few_shot_learning": "Frozen Transformer embeddings + few-shot logistic heads.",
         "news_pdf_bridge": "GDELT weekly tone samples are joined to PDF event scores.",
         "generative_model": "Gemini summary with cautious research wording.",
+        "chunk_multilabel": "Validation includes paragraph-level weak multi-labels; human multi-label annotation is still required.",
     }
     return JSONResponse(data)
 

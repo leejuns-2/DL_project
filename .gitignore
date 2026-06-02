@@ -30,6 +30,7 @@ outputs/test_*.json
 !data/processed/reports/report_news_bridge.csv
 !data/processed/reports/expanded_pdf_validation.csv
 !data/processed/reports/sample_pdf_manifest.csv
+!data/processed/reports/validation_pdf_catalog.csv
 !data/processed/reports/actual_news_stock_lag_corr.csv
 !data/processed/reports/actual_news_stock_best_lag.csv
 !data/processed/reports/actual_climate_news_lag_corr.csv
