@@ -14,6 +14,10 @@
   --dark-fg: #e4dfd7;
   --dark-muted: #7d9189;
   --dark-green: #6fbda5;
+  --sage-panel: #e8f1df;
+  --sage-panel-soft: #f5f8ef;
+  --sage-panel-line: #cbd8bd;
+  --sage-panel-muted: #66715f;
   --sh-sm: 0 4px 16px rgba(44,37,26,0.08);
   --sh-md: 0 12px 32px rgba(44,37,26,0.11);
   --sh-lg: 0 24px 56px rgba(44,37,26,0.15);
@@ -447,21 +451,22 @@ summary:focus-visible,
 
 .dark-panel {
   background:
-    radial-gradient(circle, rgba(111,189,165,0.1) 1px, transparent 1px) 0 0 / 20px 20px,
-    var(--dark-bg);
-  border-color: var(--dark-line);
-  color: var(--dark-fg);
+    radial-gradient(circle, rgba(47,93,80,0.08) 1px, transparent 1px) 0 0 / 22px 22px,
+    linear-gradient(145deg, rgba(255,252,244,0.65), transparent 42%),
+    var(--sage-panel);
+  border-color: var(--sage-panel-line);
+  color: var(--ink);
 }
 
 .dark-panel .panel-title,
 .dark-panel h2,
 .dark-panel strong {
-  color: var(--dark-fg);
+  color: var(--ink);
 }
 
 .dark-panel label,
 .dark-panel .input-note p {
-  color: var(--dark-muted);
+  color: var(--sage-panel-muted);
 }
 
 .dropzone {
@@ -471,16 +476,16 @@ summary:focus-visible,
   min-height: 170px;
   margin-bottom: 16px;
   padding: 20px;
-  border: 1px dashed rgba(111,189,165,0.35);
+  border: 1px dashed rgba(47,93,80,0.34);
   border-radius: 8px;
-  background: rgba(255,255,255,0.025);
+  background: rgba(255,252,244,0.52);
   text-align: center;
 }
 
 .dropzone:hover,
 .dropzone.dragover {
-  border-color: rgba(111,189,165,0.64);
-  background: rgba(111,189,165,0.07);
+  border-color: rgba(47,93,80,0.6);
+  background: rgba(255,252,244,0.78);
 }
 
 .dropzone-inner {
@@ -494,10 +499,10 @@ summary:focus-visible,
   place-items: center;
   width: 50px;
   height: 64px;
-  border: 1px solid rgba(255,255,255,0.14);
+  border: 1px solid rgba(47,93,80,0.18);
   border-radius: 5px;
-  background: rgba(255,255,255,0.08);
-  color: var(--dark-green);
+  background: var(--surface);
+  color: var(--green);
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 12px;
   font-weight: 800;
@@ -506,13 +511,13 @@ summary:focus-visible,
 .dropzone-text,
 .file-name {
   margin: 0;
-  color: var(--dark-muted);
+  color: var(--sage-panel-muted);
   font-size: 13px;
 }
 
 .file-name {
   max-width: 100%;
-  color: var(--dark-green);
+  color: var(--green);
   font-weight: 700;
   word-break: break-word;
 }
@@ -534,10 +539,10 @@ summary:focus-visible,
   width: 100%;
   min-height: 40px;
   padding: 9px 11px;
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(47,93,80,0.18);
   border-radius: 6px;
-  background: rgba(255,255,255,0.05);
-  color: var(--dark-fg);
+  background: rgba(255,252,244,0.76);
+  color: var(--ink);
 }
 
 .panel-result input,
@@ -566,21 +571,21 @@ summary:focus-visible,
 .advanced-toggle {
   overflow: hidden;
   margin-bottom: 15px;
-  border: 1px solid var(--dark-line);
+  border: 1px solid var(--sage-panel-line);
   border-radius: 8px;
 }
 
 .advanced-toggle summary {
   padding: 10px 12px;
-  background: rgba(255,255,255,0.03);
-  color: var(--dark-green);
+  background: rgba(255,252,244,0.44);
+  color: var(--green);
   font-size: 13px;
   font-weight: 760;
 }
 
 .advanced-body {
   padding: 13px;
-  border-top: 1px solid var(--dark-line);
+  border-top: 1px solid var(--sage-panel-line);
 }
 
 .btn-primary {
@@ -603,8 +608,8 @@ summary:focus-visible,
 }
 
 .btn-primary:disabled {
-  background: rgba(255,255,255,0.16);
-  color: var(--dark-muted);
+  background: rgba(47,93,80,0.14);
+  color: rgba(31,42,36,0.5);
   cursor: not-allowed;
 }
 
@@ -624,9 +629,9 @@ summary:focus-visible,
 .input-note {
   margin-top: 16px;
   padding: 12px;
-  border: 1px solid var(--dark-line);
+  border: 1px solid var(--sage-panel-line);
   border-radius: 8px;
-  background: rgba(255,255,255,0.03);
+  background: rgba(255,252,244,0.48);
   font-size: 12.5px;
 }
 
