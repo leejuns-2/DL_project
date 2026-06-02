@@ -1,352 +1,449 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Energy Report-to-Market Signal Analyzer</title>
-  <link rel="stylesheet" href="/static/style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-</head>
-<body>
-
-<header class="site-header">
-  <div class="header-inner">
-    <div>
-      <span class="eyebrow">Research dashboard</span>
-      <h1>Energy Report-to-Market Signal Analyzer</h1>
-      <p>에너지 PDF 리포트를 문서 근거 기반 신호로 바꾸고, 뉴스 컨텍스트와 과거 시장 데이터를 연결해 검증하는 프로젝트입니다.</p>
-    </div>
-    <div class="header-badges">
-      <span class="badge">MiniLM-L6-v2</span>
-      <span class="badge">Few-shot head</span>
-      <span class="badge">GDELT + market data</span>
-    </div>
-  </div>
-</header>
-
-<nav class="tab-nav">
-  <button class="tab-btn active" data-tab="analyzer">PDF 분석</button>
-  <button class="tab-btn" data-tab="dashboard">프로젝트 대시보드</button>
-</nav>
-
-<main class="main-content">
-  <section id="tab-analyzer" class="tab-section active">
-    <div class="notice-strip">
-      <strong>분석 범위</strong>
-      <span>업로드한 PDF에서 에너지 전환 근거 문단을 찾고, 주제 점수와 날짜 기준 시장 연결만 보여줍니다.</span>
-    </div>
-
-    <div class="analyzer-grid">
-      <aside class="panel panel-input">
-        <h2 class="panel-title">PDF 입력</h2>
-
-        <div id="dropzone" class="dropzone">
-          <input type="file" id="file-input" accept=".pdf" hidden />
-          <div class="dropzone-inner">
-            <p class="dropzone-text">PDF를 드래그하거나<br /><strong>클릭하여 선택</strong></p>
-            <p id="file-name" class="file-name"></p>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Energy Report-to-Market Signal Analyzer</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="header-inner">
+        <div class="brand-block">
+          <span class="brand-dot" aria-hidden="true"></span>
+          <div>
+            <p class="eyebrow">Energy Intelligence Lab</p>
+            <h1>Report-to-Market Signal Analyzer</h1>
           </div>
         </div>
+        <nav class="tab-nav" aria-label="Primary views">
+          <button class="tab-btn active" data-tab="analyzer">Analyzer</button>
+          <button class="tab-btn" data-tab="dashboard">Validation Dashboard</button>
+        </nav>
+      </div>
+    </header>
 
-        <div class="form-group">
-          <label for="inp-title">보고서 제목</label>
-          <input type="text" id="inp-title" value="Uploaded Energy Report" />
-        </div>
-        <div class="form-group">
-          <label for="inp-issuer">발행 기관/기업</label>
-          <input type="text" id="inp-issuer" value="User Upload" />
-        </div>
-        <div class="form-group">
-          <label for="inp-date">보고서 기준일</label>
-          <input type="date" id="inp-date" value="2024-01-01" />
-        </div>
+    <main class="main-content">
+      <section id="tab-analyzer" class="tab-section active">
+        <section class="hero" aria-labelledby="hero-title">
+          <div class="hero-copy">
+            <div class="paper-meta" aria-label="Prototype metadata">
+              <span>Energy Intelligence Lab</span>
+              <span>Prototype v0.2</span>
+              <span>Historical context only</span>
+            </div>
+            <p class="kicker">Research question</p>
+            <h2 id="hero-title">Can energy report sentences become traceable market-context signals?</h2>
+            <p>
+              이 도구는 PDF 전체를 요약하거나 미래 수익률을 예측하지 않습니다. 에너지 전환과 관련된 근거 문단을 찾고,
+              그 문단이 어떤 테마 신호로 읽히는지 보고서 날짜 주변의 과거 시장 데이터와 함께 보여줍니다.
+            </p>
+            <p class="scope-disclaimer">Market windows are historical context only. No forecasting. No investment advice.</p>
+          </div>
 
-        <details class="advanced-toggle">
-          <summary>분석 설정</summary>
-          <div class="advanced-body">
-            <div class="form-group">
-              <label>최대 분석 페이지: <strong id="pages-val">80</strong></label>
-              <input type="range" id="inp-pages" min="10" max="200" step="10" value="80" />
+          <div class="hero-chart" role="img" aria-labelledby="hero-chart-title hero-chart-desc">
+            <div class="chart-card-header">
+              <div>
+                <span class="chart-ticker" id="hero-chart-title">PDF Evidence -> Theme Signal -> Market Context</span>
+                <span class="chart-subtitle">Report-date anchored historical window</span>
+              </div>
+              <span class="domain-tag">Research MVP</span>
             </div>
-            <div class="form-group">
-              <label>주제별 근거 문단 수: <strong id="topk-val">10</strong></label>
-              <input type="range" id="inp-topk" min="3" max="20" step="1" value="10" />
+            <p class="sr-only" id="hero-chart-desc">
+              A stylized historical market chart with a report-date marker, used as a visual explanation only.
+            </p>
+            <svg class="market-svg" viewBox="0 0 480 240" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+              <defs>
+                <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#2f5d50" stop-opacity="0.18" />
+                  <stop offset="100%" stop-color="#2f5d50" stop-opacity="0" />
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="240" height="240" fill="rgba(31,42,36,0.028)" />
+              <path
+                d="M0,172 C40,177 80,188 120,192 S165,186 200,190 S228,187 240,178 S262,162 292,146 S332,128 362,118 S422,108 480,100 L480,240 L0,240 Z"
+                fill="url(#areaFill)"
+              />
+              <path
+                d="M0,186 C40,190 80,198 120,202 S165,198 200,202 S228,199 240,192 S262,178 292,167 S332,152 362,144 S422,136 480,130"
+                fill="none"
+                stroke="#2f5d50"
+                stroke-width="1.2"
+                stroke-opacity="0.28"
+                stroke-dasharray="3 2.5"
+              />
+              <path
+                d="M0,172 C40,177 80,188 120,192 S165,186 200,190 S228,187 240,178 S262,162 292,146 S332,128 362,118 S422,108 480,100"
+                fill="none"
+                stroke="#2f5d50"
+                stroke-width="2.5"
+                stroke-linejoin="round"
+                stroke-linecap="round"
+              />
+              <line x1="240" y1="4" x2="240" y2="220" stroke="#c58a32" stroke-width="1.5" stroke-dasharray="4 3" />
+              <circle cx="240" cy="178" r="5" fill="#fffcf4" stroke="#c58a32" stroke-width="2.5" />
+              <circle cx="240" cy="178" r="10" fill="none" stroke="#c58a32" stroke-width="1" opacity="0.36" />
+              <text x="8" y="234" font-size="10" fill="#6f756d" font-family="ui-monospace,SFMono-Regular,monospace">-4w</text>
+              <text x="240" y="234" font-size="10" fill="#c58a32" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="middle">report</text>
+              <text x="472" y="234" font-size="10" fill="#6f756d" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="end">+8w</text>
+            </svg>
+            <div class="pipeline-row">
+              <ol>
+                <li><span>01</span>PDF paragraphs</li>
+                <li><span>02</span>Evidence retrieval</li>
+                <li><span>03</span>Theme signal</li>
+                <li><span>04</span>Market context</li>
+              </ol>
             </div>
-            <div class="form-group">
-              <label>수익률 연결 기간</label>
-              <div class="checkbox-group">
-                <label><input type="checkbox" value="1" checked /> 1주</label>
-                <label><input type="checkbox" value="4" checked /> 4주</label>
-                <label><input type="checkbox" value="8" checked /> 8주</label>
+          </div>
+        </section>
+
+        <div class="section-rule" aria-hidden="true"><span>§ 01 · Method</span></div>
+        <section class="method-strip" aria-label="Method summary">
+          <article>
+            <span>Retrieval</span>
+            <strong>TF-IDF evidence search</strong>
+            <p>테마 질의로 후보 문단을 찾고, 근거 문장 중심으로 분석합니다.</p>
+          </article>
+          <article>
+            <span>Representation</span>
+            <strong>MiniLM-L6-v2 embedding</strong>
+            <p>PDF 문단을 sentence-level vector로 변환합니다.</p>
+          </article>
+          <article>
+            <span>Classifier</span>
+            <strong>Few-shot logistic head</strong>
+            <p>고정 임베딩 위의 작은 head가 테마 신호를 계산합니다.</p>
+          </article>
+          <article>
+            <span>Context</span>
+            <strong>Report-date market window</strong>
+            <p>과거 수익률은 downstream context로만 표시합니다.</p>
+          </article>
+        </section>
+
+        <div class="section-rule" aria-hidden="true"><span>§ 02 · Analyzer</span></div>
+        <div class="analyzer-grid">
+          <aside class="panel panel-input dark-panel">
+            <div class="panel-heading">
+              <p class="eyebrow eyebrow-light">Live analyzer</p>
+              <h2 class="panel-title">Load a report</h2>
+            </div>
+
+            <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="PDF upload dropzone">
+              <input type="file" id="file-input" accept=".pdf" hidden />
+              <div class="dropzone-inner">
+                <span class="drop-icon">PDF</span>
+                <p class="dropzone-text">PDF를 드래그하거나 <strong>클릭해서 선택</strong></p>
+                <p id="file-name" class="file-name"></p>
               </div>
             </div>
-          </div>
-        </details>
 
-        <button id="btn-analyze" class="btn-primary" disabled>
-          <span id="btn-text">분석 실행</span>
-          <span id="btn-spinner" class="spinner hidden"></span>
-        </button>
-
-        <div class="input-note">
-          <strong>테스트 팁</strong>
-          <p>IEA, 기업 지속가능성 보고서, 전력망·기후 관련 PDF에서 가장 안정적으로 작동합니다.</p>
-          <p>수익률 표는 PDF 내용이 아니라 입력한 보고서 기준일을 기준으로 계산됩니다.</p>
-        </div>
-      </aside>
-
-      <section class="panel panel-result" id="result-panel">
-        <div id="result-empty" class="result-empty">
-          <p class="empty-title">PDF를 넣으면 분석 결과가 표시됩니다</p>
-          <p>문서 근거를 검색하고, MiniLM 임베딩과 few-shot 분류 헤드로 리포트 신호를 계산합니다.</p>
-          <div class="pipeline-steps">
-            <div class="step">PDF 텍스트</div>
-            <div class="step">근거 검색</div>
-            <div class="step">임베딩</div>
-            <div class="step">주제 점수</div>
-            <div class="step">시장 연결</div>
-          </div>
-        </div>
-
-        <div id="result-loading" class="result-loading hidden">
-          <div class="loader-ring"></div>
-          <p>분석 중입니다<br /><small>첫 실행은 모델 로딩 때문에 조금 걸릴 수 있습니다.</small></p>
-        </div>
-
-        <div id="result-content" class="hidden">
-          <div class="result-section">
-            <div class="section-heading">
-              <span class="section-kicker">01</span>
-              <h3 class="result-section-title">리포트 신호 점수</h3>
+            <div class="form-group">
+              <label for="inp-title">Report title</label>
+              <input type="text" id="inp-title" value="Uploaded Energy Report" />
             </div>
-            <p class="section-help">각 점수는 한 보고서 안에서 상대적으로 강한 테마를 보여줍니다. 보고서 간 절대 점수 비교용이 아닙니다.</p>
-            <div class="score-cards" id="score-cards"></div>
-            <div class="chart-wrap score-chart-wrap">
-              <canvas id="score-chart" height="120"></canvas>
+            <div class="form-group">
+              <label for="inp-issuer">Issuer</label>
+              <input type="text" id="inp-issuer" value="User Upload" />
             </div>
-            <div id="confidence-box" class="confidence-box"></div>
-          </div>
-
-          <div class="result-section">
-            <div class="section-heading">
-              <span class="section-kicker">02</span>
-              <h3 class="result-section-title">문서 요약</h3>
+            <div class="form-group">
+              <label for="inp-date">Report date</label>
+              <input type="date" id="inp-date" value="2024-01-01" />
             </div>
-            <div id="summary-box" class="summary-box"></div>
-          </div>
 
-          <div class="result-section">
-            <div class="section-heading">
-              <span class="section-kicker">03</span>
-              <h3 class="result-section-title">점수 근거 문단</h3>
+            <details class="advanced-toggle">
+              <summary>Analysis settings</summary>
+              <div class="advanced-body">
+                <div class="form-group">
+                  <label>Max pages: <strong id="pages-val">80</strong></label>
+                  <input type="range" id="inp-pages" min="10" max="200" step="10" value="80" />
+                </div>
+                <div class="form-group">
+                  <label>Evidence chunks per theme: <strong id="topk-val">10</strong></label>
+                  <input type="range" id="inp-topk" min="3" max="20" step="1" value="10" />
+                </div>
+                <div class="form-group">
+                  <label>Return horizons</label>
+                  <div class="checkbox-group">
+                    <label><input type="checkbox" value="1" checked /> 1w</label>
+                    <label><input type="checkbox" value="4" checked /> 4w</label>
+                    <label><input type="checkbox" value="8" checked /> 8w</label>
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <button id="btn-analyze" class="btn-primary" disabled>
+              <span id="btn-text">Analyze evidence</span>
+              <span id="btn-spinner" class="spinner hidden"></span>
+            </button>
+
+            <div class="input-note">
+              <strong>Scope</strong>
+              <p>IEA, 기업 지속가능성 보고서, 전력망/에너지 전환 PDF에서 가장 안정적으로 작동합니다.</p>
+              <p>수익률 표는 PDF 내용의 예측이 아니라 입력한 보고서 날짜 기준의 과거 시장 연결입니다.</p>
             </div>
-            <p class="section-help">모델이 점수 계산에 사용한 PDF 원문 근거입니다.</p>
-            <div class="evidence-tabs" id="evidence-tabs"></div>
-            <div class="evidence-content" id="evidence-content"></div>
-          </div>
+          </aside>
 
-          <div class="result-section">
-            <div class="section-heading">
-              <span class="section-kicker">04</span>
-              <h3 class="result-section-title">보고서 날짜 기준 시장 연결</h3>
+          <section class="panel panel-result" id="result-panel">
+            <div id="result-empty" class="result-empty">
+              <p class="empty-title">PDF를 넣으면 분석 결과가 여기에 표시됩니다.</p>
+              <p>문서 근거를 검색하고 MiniLM 임베딩과 few-shot head로 리포트 신호를 계산합니다.</p>
+              <div class="pipeline-steps">
+                <div class="step">PDF text</div>
+                <div class="step">Evidence</div>
+                <div class="step">Embedding</div>
+                <div class="step">Theme score</div>
+                <div class="step">Market link</div>
+              </div>
             </div>
-            <p class="section-help">선택한 기준일 전후의 과거 수익률입니다. 예측이나 투자 판단이 아니라 프로젝트의 downstream 연결 예시입니다.</p>
-            <div id="returns-box"></div>
-          </div>
 
-          <div class="result-section stats-row" id="stats-row"></div>
-        </div>
+            <div id="result-loading" class="result-loading hidden">
+              <div class="loader-ring"></div>
+              <p>분석 중입니다<br /><small>첫 실행은 모델 로딩 때문에 조금 걸릴 수 있습니다.</small></p>
+            </div>
 
-        <div id="result-error" class="result-error hidden">
-          <span>!</span>
-          <p id="error-msg"></p>
+            <div id="result-content" class="hidden">
+              <div class="result-section">
+                <div class="section-heading">
+                  <span class="section-kicker">01</span>
+                  <h3 class="result-section-title">Report signal scores</h3>
+                </div>
+                <p class="section-help">각 점수는 한 보고서 내부에서 상대적으로 강한 테마를 보여줍니다.</p>
+                <div class="score-cards" id="score-cards"></div>
+                <div class="chart-wrap score-chart-wrap">
+                  <canvas id="score-chart" height="120"></canvas>
+                </div>
+                <div id="confidence-box" class="confidence-box"></div>
+              </div>
+
+              <div class="result-section">
+                <div class="section-heading">
+                  <span class="section-kicker">02</span>
+                  <h3 class="result-section-title">Document summary</h3>
+                </div>
+                <div id="summary-box" class="summary-box"></div>
+              </div>
+
+              <div class="result-section">
+                <div class="section-heading">
+                  <span class="section-kicker">03</span>
+                  <h3 class="result-section-title">Evidence fragments</h3>
+                </div>
+                <p class="section-help">모델 점수 계산에 사용된 PDF 원문 근거입니다.</p>
+                <div class="evidence-tabs" id="evidence-tabs"></div>
+                <div class="evidence-content" id="evidence-content"></div>
+              </div>
+
+              <div class="result-section">
+                <div class="section-heading">
+                  <span class="section-kicker">04</span>
+                  <h3 class="result-section-title">Historical stock window</h3>
+                </div>
+                <p class="section-help">보고서 날짜 기준의 과거 수익률입니다. 예측이나 투자 판단이 아닙니다.</p>
+                <div id="returns-box"></div>
+              </div>
+
+              <div class="result-section stats-row" id="stats-row"></div>
+            </div>
+
+            <div id="result-error" class="result-error hidden">
+              <span>!</span>
+              <p id="error-msg"></p>
+            </div>
+          </section>
         </div>
       </section>
-    </div>
-  </section>
 
-  <section id="tab-dashboard" class="tab-section hidden">
-    <div class="dashboard-lede panel">
-      <div>
-        <span class="eyebrow dark">Project summary</span>
-        <h2>PDF 이벤트 신호와 시장 데이터를 연결한 연구용 MVP</h2>
-        <p>뉴스는 시장 분위기 신호, PDF는 리포트 이벤트 신호로 만들고, 두 신호를 실제 주가 수익률과 연결했습니다. 성능을 과장하지 않도록 검증 한계와 음성 대조군까지 함께 보여줍니다.</p>
-      </div>
-      <div class="lede-points">
-        <span>MiniLM 임베딩 고정</span>
-        <span>Few-shot logistic head</span>
-        <span>25개 PDF 방향 검증</span>
-      </div>
-    </div>
+      <section id="tab-dashboard" class="tab-section hidden">
+        <div class="section-rule" aria-hidden="true"><span>§ 03 · Validation dashboard</span></div>
+        <div class="dashboard-lede panel">
+          <div>
+            <p class="eyebrow">Project summary</p>
+            <h2>PDF event signals connected to market-context evidence.</h2>
+            <p>
+              PDF 리포트의 근거 문단을 주제 신호로 바꾸고, 뉴스 tone과 과거 주가 수익률에 연결해 연구용 MVP로 검증합니다.
+              한계와 실패 사례를 함께 보여주는 것이 이 페이지의 핵심입니다.
+            </p>
+          </div>
+          <div class="lede-points">
+            <span>MiniLM embeddings frozen</span>
+            <span>Few-shot logistic head</span>
+            <span>50 PDF validation catalog</span>
+          </div>
+        </div>
 
-    <div class="dashboard-overview">
-      <div class="ov-card">
-        <span class="ov-num">18/25</span>
-        <span class="ov-label">Few-shot 일치</span>
-        <span class="ov-sub">검증 PDF 방향 일치</span>
-      </div>
-      <div class="ov-card">
-        <span class="ov-num">10/25</span>
-        <span class="ov-label">Zero-shot 일치</span>
-        <span class="ov-sub">baseline 대비 개선</span>
-      </div>
-      <div class="ov-card">
-        <span class="ov-num">313</span>
-        <span class="ov-label">GDELT 샘플</span>
-        <span class="ov-sub">2019-2024 주간 tone</span>
-      </div>
-      <div class="ov-card">
-        <span class="ov-num">312</span>
-        <span class="ov-label">주가 주차 데이터</span>
-        <span class="ov-sub">ETF 및 기업 수익률</span>
-      </div>
-    </div>
+        <div class="dashboard-overview">
+          <div class="ov-card">
+            <span class="ov-num">50</span>
+            <span class="ov-label">PDF catalog</span>
+            <span class="ov-sub">local validation set</span>
+          </div>
+          <div class="ov-card">
+            <span class="ov-num">18/25</span>
+            <span class="ov-label">Pilot match</span>
+            <span class="ov-sub">existing benchmark</span>
+          </div>
+          <div class="ov-card">
+            <span class="ov-num">313</span>
+            <span class="ov-label">GDELT samples</span>
+            <span class="ov-sub">weekly tone context</span>
+          </div>
+          <div class="ov-card">
+            <span class="ov-num">312</span>
+            <span class="ov-label">Market weeks</span>
+            <span class="ov-sub">ETF and company returns</span>
+          </div>
+        </div>
 
-    <div class="panel">
-      <h2 class="panel-title">프로젝트 흐름</h2>
-      <div class="workflow-grid">
-        <div><strong>1. PDF</strong><span>텍스트 추출과 문단 분할</span></div>
-        <div><strong>2. Evidence</strong><span>TF-IDF로 주제별 근거 검색</span></div>
-        <div><strong>3. Model</strong><span>MiniLM 임베딩 + few-shot head</span></div>
-        <div><strong>4. Link</strong><span>뉴스 tone과 과거 수익률 연결</span></div>
-      </div>
-    </div>
+        <div class="panel">
+          <h2 class="panel-title">Project workflow</h2>
+          <div class="workflow-grid">
+            <div><strong>1. PDF</strong><span>Text extraction and paragraph splitting</span></div>
+            <div><strong>2. Evidence</strong><span>Theme evidence retrieval</span></div>
+            <div><strong>3. Model</strong><span>MiniLM embedding + few-shot head</span></div>
+            <div><strong>4. Link</strong><span>News tone and historical return context</span></div>
+          </div>
+        </div>
 
-    <div class="panel">
-      <h2 class="panel-title">방법론 핵심</h2>
-      <table class="data-table compact-table">
-        <thead>
-          <tr><th>항목</th><th>정확한 표현</th><th>주의할 점</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Few-shot</td>
-            <td>MiniLM 임베딩은 고정하고, 소수 라벨 예시로 Logistic Regression head를 학습</td>
-            <td>대형 모델 전체 fine-tuning이 아님</td>
-          </tr>
-          <tr>
-            <td>점수</td>
-            <td>보고서 내부 테마 간 상대 강도를 min-max 정규화</td>
-            <td>보고서 간 절대값 직접 비교 불가</td>
-          </tr>
-          <tr>
-            <td>수익률 연결</td>
-            <td>보고서 날짜 기준 과거 실제 수익률을 downstream 예시로 연결</td>
-            <td>미래 예측이나 투자 추천이 아님</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+        <div class="panel">
+          <h2 class="panel-title">Method notes</h2>
+          <table class="data-table compact-table">
+            <thead>
+              <tr><th>Item</th><th>Exact meaning</th><th>Caution</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Few-shot</td>
+                <td>Frozen MiniLM embeddings with a logistic regression head trained from small human examples</td>
+                <td>Not full foundation-model fine-tuning</td>
+              </tr>
+              <tr>
+                <td>Score</td>
+                <td>Relative theme strength inside one report</td>
+                <td>Not directly comparable across every report without context</td>
+              </tr>
+              <tr>
+                <td>Returns</td>
+                <td>Historical downstream example around the report date</td>
+                <td>Not a future prediction or recommendation</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-    <div class="dashboard-columns">
-      <section class="panel">
-        <h2 class="panel-title">리포트 신호</h2>
-        <div id="signals-table-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중...</p></div>
+        <div class="dashboard-columns">
+          <section class="panel">
+            <h2 class="panel-title">Report signals</h2>
+            <div id="signals-table-wrap" class="table-wrap"><p class="loading-text">Loading data...</p></div>
+          </section>
+          <section class="panel">
+            <h2 class="panel-title">Validation summary</h2>
+            <div id="pdf-metrics-wrap" class="table-wrap"><p class="loading-text">Loading data...</p></div>
+            <div id="validation-table-wrap" class="table-wrap table-spaced"><p class="loading-text">Loading data...</p></div>
+          </section>
+        </div>
+
+        <div class="panel">
+          <h2 class="panel-title">Zero-shot vs Few-shot</h2>
+          <p class="section-help">Same PDF set, compared between embedding similarity baseline and few-shot head.</p>
+          <div id="zero-shot-wrap" class="table-wrap"><p class="loading-text">Loading data...</p></div>
+        </div>
+
+        <div class="panel">
+          <h2 class="panel-title">News context and stock link</h2>
+          <p class="section-help">GDELT weekly tone samples and historical return context around report dates.</p>
+          <div class="dashboard-columns">
+            <div id="news-bridge-wrap" class="table-wrap"><p class="loading-text">Loading data...</p></div>
+            <div id="link-table-wrap" class="table-wrap"><p class="loading-text">Loading data...</p></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2 class="panel-title">Hypothesis checks</h2>
+          <div class="hypothesis-grid">
+            <div class="hyp-card">
+              <span class="hyp-label">H1</span>
+              <p class="hyp-claim">Climate anomaly may lead news tone.</p>
+              <span class="hyp-result partial">pilot support</span>
+              <p class="hyp-detail">NASA + GDELT monthly sample, exploratory lag analysis.</p>
+            </div>
+            <div class="hyp-card">
+              <span class="hyp-label">H2</span>
+              <p class="hyp-claim">News tone may explain ET spread direction.</p>
+              <span class="hyp-result rejected">weak direction</span>
+              <p class="hyp-detail">Weekly sample correlation is small and not causal.</p>
+            </div>
+            <div class="hyp-card">
+              <span class="hyp-label">H3</span>
+              <p class="hyp-claim">Event windows may change market relationship.</p>
+              <span class="hyp-result partial">observed</span>
+              <p class="hyp-detail">Rolling correlations are descriptive, not causal proof.</p>
+            </div>
+          </div>
+          <div class="dashboard-columns table-spaced">
+            <div>
+              <h3 class="subsection-title">Climate -> news</h3>
+              <div id="actual-climate-news-wrap" class="table-wrap"><p class="loading-text">Loading data...</p></div>
+            </div>
+            <div>
+              <h3 class="subsection-title">News -> stocks</h3>
+              <div id="actual-news-stock-wrap" class="table-wrap"><p class="loading-text">Loading data...</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2 class="panel-title">Analysis figures</h2>
+          <div class="figures-grid">
+            <div class="fig-card">
+              <h4>Time series comparison</h4>
+              <img src="/api/figures/fig1_timeseries.png" alt="Time series comparison" loading="lazy" />
+            </div>
+            <div class="fig-card">
+              <h4>Lag heatmap</h4>
+              <img src="/api/figures/fig2_lag_heatmap.png" alt="Lag heatmap" loading="lazy" />
+            </div>
+            <div class="fig-card">
+              <h4>Rolling correlation</h4>
+              <img src="/api/figures/fig3_rolling_corr.png" alt="Rolling correlation" loading="lazy" />
+            </div>
+            <div class="fig-card">
+              <h4>Company sensitivity</h4>
+              <img src="/api/figures/fig4_company_sensitivity.png" alt="Company sensitivity" loading="lazy" />
+            </div>
+            <div class="fig-card fig-card-wide">
+              <h4>PDF report topic scores</h4>
+              <img src="/api/figures/fig5_report_signals.png" alt="PDF report topic scores" loading="lazy" />
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-columns">
+          <section class="panel">
+            <h2 class="panel-title">Failure analysis</h2>
+            <div id="failure-analysis-wrap" class="table-wrap"><p class="loading-text">Loading data...</p></div>
+          </section>
+          <section class="panel">
+            <h2 class="panel-title">OOD controls</h2>
+            <div id="ood-test-wrap" class="table-wrap"><p class="loading-text">Loading data...</p></div>
+          </section>
+        </div>
+
+        <div class="panel">
+          <h2 class="panel-title">Gemini summary evidence check</h2>
+          <div id="gemini-check-wrap" class="table-wrap"><p class="loading-text">Loading data...</p></div>
+        </div>
       </section>
-      <section class="panel">
-        <h2 class="panel-title">검증 요약</h2>
-        <div id="pdf-metrics-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중...</p></div>
-        <div id="validation-table-wrap" class="table-wrap table-spaced"><p class="loading-text">데이터 로딩 중...</p></div>
-      </section>
-    </div>
+    </main>
 
-    <div class="panel">
-      <h2 class="panel-title">Zero-shot vs Few-shot</h2>
-      <p class="section-help">같은 PDF 25개에서 baseline과 few-shot head를 비교한 결과입니다.</p>
-      <div id="zero-shot-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중...</p></div>
-    </div>
+    <footer class="site-footer">
+      <span>Energy Intelligence Lab · Report-to-Market Signal Analyzer</span>
+      <span>Historical context only. Not investment advice.</span>
+    </footer>
 
-    <div class="panel">
-      <h2 class="panel-title">뉴스 컨텍스트와 주가 연결</h2>
-      <p class="section-help">GDELT 주간 샘플 기반 tone 신호와 PDF 이벤트 신호를 보고서 기준일 주변에서 연결합니다. 표본 기반 예비 분석입니다.</p>
-      <div class="dashboard-columns">
-        <div id="news-bridge-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중...</p></div>
-        <div id="link-table-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중...</p></div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h2 class="panel-title">가설 검증</h2>
-      <div class="hypothesis-grid">
-        <div class="hyp-card">
-          <span class="hyp-label">H1</span>
-          <p class="hyp-claim">기후 이상치 → 뉴스 감성 선행</p>
-          <span class="hyp-result partial">예비 지지</span>
-          <p class="hyp-detail">NASA + GDELT 샘플 월별 분석: lag +1개월 r≈0.406</p>
-        </div>
-        <div class="hyp-card">
-          <span class="hyp-label">H2</span>
-          <p class="hyp-claim">뉴스 tone → ET_SPREAD 양의 방향</p>
-          <span class="hyp-result rejected">방향 불일치</span>
-          <p class="hyp-detail">GDELT 샘플 주간 분석: best lag +2주 r≈-0.130</p>
-        </div>
-        <div class="hyp-card">
-          <span class="hyp-label">H3</span>
-          <p class="hyp-claim">이벤트 기간 관계 강화</p>
-          <span class="hyp-result partial">기술적 관찰</span>
-          <p class="hyp-detail">rolling correlation 패턴 참고용. 인과관계로 해석하지 않음</p>
-        </div>
-      </div>
-      <div class="dashboard-columns table-spaced">
-        <div>
-          <h3 class="subsection-title">기후 → 뉴스</h3>
-          <div id="actual-climate-news-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중...</p></div>
-        </div>
-        <div>
-          <h3 class="subsection-title">뉴스 → 주가</h3>
-          <div id="actual-news-stock-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중...</p></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h2 class="panel-title">분석 그래프</h2>
-      <div class="figures-grid">
-        <div class="fig-card">
-          <h4>시계열 비교</h4>
-          <img src="/api/figures/fig1_timeseries.png" alt="Figure 1" loading="lazy" />
-        </div>
-        <div class="fig-card">
-          <h4>시차 상관 히트맵</h4>
-          <img src="/api/figures/fig2_lag_heatmap.png" alt="Figure 2" loading="lazy" />
-        </div>
-        <div class="fig-card">
-          <h4>이동 상관관계</h4>
-          <img src="/api/figures/fig3_rolling_corr.png" alt="Figure 3" loading="lazy" />
-        </div>
-        <div class="fig-card">
-          <h4>기업별 감성 민감도</h4>
-          <img src="/api/figures/fig4_company_sensitivity.png" alt="Figure 4" loading="lazy" />
-        </div>
-        <div class="fig-card fig-card-wide">
-          <h4>PDF 리포트 주제 점수</h4>
-          <img src="/api/figures/fig5_report_signals.png" alt="Figure 5" loading="lazy" />
-        </div>
-      </div>
-    </div>
-
-    <div class="dashboard-columns">
-      <section class="panel">
-        <h2 class="panel-title">실패 사례</h2>
-        <div id="failure-analysis-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중...</p></div>
-      </section>
-      <section class="panel">
-        <h2 class="panel-title">음성 대조군</h2>
-        <div id="ood-test-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중...</p></div>
-      </section>
-    </div>
-
-    <div class="panel">
-      <h2 class="panel-title">Gemini 요약 근거 점검</h2>
-      <div id="gemini-check-wrap" class="table-wrap"><p class="loading-text">데이터 로딩 중...</p></div>
-    </div>
-  </section>
-</main>
-
-<footer class="site-footer">
-  <p>Energy Report-to-Market Signal Analyzer</p>
-</footer>
-
-<script src="/static/app.js"></script>
-</body>
+    <script src="/static/app.js"></script>
+  </body>
 </html>
