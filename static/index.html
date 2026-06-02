@@ -40,6 +40,10 @@
               and places the report date beside historical market data. It does not forecast future returns or provide
               investment advice.
             </p>
+            <p class="foundation-note">
+              The foundation model is used as a representation engine: MiniLM converts unstructured PDF paragraphs into dense
+              semantic vectors, then a small few-shot head maps those vectors into energy-theme signals.
+            </p>
             <p class="scope-disclaimer">Market windows are historical context only. No forecasting. No investment advice.</p>
           </div>
 
@@ -180,7 +184,7 @@
               <span id="btn-text">Analyze evidence</span>
               <span id="btn-spinner" class="spinner hidden"></span>
             </button>
-            <button id="btn-sample" class="btn-secondary" type="button">Try sample report</button>
+            <button id="btn-sample" class="btn-secondary" type="button">Try sample: IEA report</button>
 
             <div class="input-note">
               <strong>Scope</strong>
@@ -286,7 +290,7 @@
           <div class="ov-card">
             <span class="ov-num">18/25</span>
             <span class="ov-label">Pilot match</span>
-            <span class="ov-sub">existing benchmark</span>
+            <span class="ov-sub">few-shot top theme matched a human reference label in 18 of 25 pilot PDFs</span>
           </div>
           <div class="ov-card">
             <span class="ov-num">313</span>
@@ -312,6 +316,11 @@
 
         <div class="panel">
           <h2 class="panel-title">Method notes</h2>
+          <p class="method-callout">
+            In this project, the foundation model is used as a representation engine, not as a predictor: it converts
+            unstructured report paragraphs into semantic vectors, and the few-shot classifier translates those vectors into
+            auditable energy-theme signals.
+          </p>
           <table class="data-table compact-table">
             <thead>
               <tr><th>Item</th><th>Exact meaning</th><th>Caution</th></tr>
@@ -351,6 +360,7 @@
         <div class="panel">
           <h2 class="panel-title">Zero-shot vs Few-shot</h2>
           <p class="section-help">Same PDF set, compared between embedding similarity baseline and few-shot head.</p>
+          <div id="zero-shot-chart-wrap" class="comparison-grid"></div>
           <div id="zero-shot-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
         </div>
 

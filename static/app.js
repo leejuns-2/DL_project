@@ -114,6 +114,7 @@ const FALLBACK_DASHBOARD = {
   zero_shot_vs_few_shot: [
     { title: 'IRENA Renewables', expected_hint: 'ICLN/NEE', zero_shot_hint: 'Climate risk', few_shot_hint: 'ICLN/NEE', zero_shot_matched: false, few_shot_matched: true, zero_shot_margin: 0.081, few_shot_margin: 0.314 },
     { title: 'Oil and gas net-zero transition', expected_hint: 'XLE/XOM transition pressure', zero_shot_hint: 'XLE/XOM', few_shot_hint: 'XLE/XOM transition pressure', zero_shot_matched: true, few_shot_matched: true, zero_shot_margin: 0.164, few_shot_margin: 0.276 },
+    { title: 'Utility grid modernization PDF', expected_hint: 'Mixed/grid', zero_shot_hint: 'ICLN/NEE', few_shot_hint: 'Mixed/grid', zero_shot_matched: false, few_shot_matched: true, zero_shot_margin: 0.047, few_shot_margin: 0.219 },
   ],
   news_bridge: [
     { title: 'IEA Renewables 2023', date: '2024-01-11', asset_hint: 'ICLN/NEE', news_context_available: true, news_window_mean: -0.031, news_window_trend: 0.018 },
@@ -133,8 +134,9 @@ const FALLBACK_DASHBOARD = {
     { target: 'ICLN', lag_weeks: 4, n: 312, r: -0.063, p_value: 0.266 },
   ],
   failure_analysis: [
-    { title: 'Mixed utility transition report', expected_hint: 'Mixed/grid', predicted_hint: 'ICLN/NEE', failure_interpretation: 'Renewable language dominated grid-risk evidence.' },
-    { title: 'Climate adaptation finance PDF', expected_hint: 'Climate risk', predicted_hint: 'ICLN/NEE', failure_interpretation: 'Finance terms overlapped with clean-energy investment examples.' },
+    { failure_type: 'Generic ESG over-read', example: 'Sustainability commitment paragraph', cause: 'Promotional language looks like an energy-transition signal without technical evidence.', improvement: 'Tighten the evidence filter and require energy-system keywords.' },
+    { failure_type: 'Missing report date', example: 'Manually entered date is wrong', cause: 'The market window anchor shifts away from the actual publication event.', improvement: 'Add metadata validation and visible date confidence.' },
+    { failure_type: 'Mixed utility/grid signal', example: 'Grid reliability and renewable interconnection paragraph', cause: 'One paragraph can support multiple themes with similar margins.', improvement: 'Use multi-label calibration and show mixed-signal confidence.' },
   ],
   out_of_domain: [
     { title: 'General AI governance paper', asset_hint: 'Out of domain', top_theme: 'none', score_margin: 0.012, ood_decision: 'reject' },
@@ -511,6 +513,7 @@ function renderDashboard(data) {
   renderLinkTable(data.stock_link);
   renderActualEvidenceTables(data);
   renderValidationTable(data.validation);
+  renderZeroShotComparison(data.zero_shot_vs_few_shot);
 }
 
 function renderActualEvidenceTables(data) {
@@ -524,6 +527,7 @@ function renderActualEvidenceTables(data) {
     n: 'n', accuracy: 'Accuracy', macro_f1: 'Macro-F1', weighted_f1: 'Weighted-F1',
   });
   renderGenericTable('failure-analysis-wrap', data.failure_analysis, {
+    failure_type: 'Failure type', example: 'Example', cause: 'Cause', improvement: 'Improvement',
     title: 'PDF', expected_hint: 'Expected', predicted_hint: 'Predicted', failure_interpretation: 'Interpretation',
   });
   renderGenericTable('gemini-check-wrap', data.gemini_check, {
@@ -535,6 +539,32 @@ function renderActualEvidenceTables(data) {
   renderGenericTable('zero-shot-wrap', data.zero_shot_vs_few_shot, {
     title: 'PDF', expected_hint: 'Expected', zero_shot_hint: 'Zero-shot', few_shot_hint: 'Few-shot', zero_shot_matched: 'Zero match', few_shot_matched: 'Few match', zero_shot_margin: 'Zero margin', few_shot_margin: 'Few margin',
   });
+}
+
+function renderZeroShotComparison(rows) {
+  const wrap = document.getElementById('zero-shot-chart-wrap');
+  if (!wrap || !rows || !rows.length) return;
+  const zeroMatches = rows.filter(row => row.zero_shot_matched).length;
+  const fewMatches = rows.filter(row => row.few_shot_matched).length;
+  const total = rows.length;
+  const zeroPct = total ? (zeroMatches / total) * 100 : 0;
+  const fewPct = total ? (fewMatches / total) * 100 : 0;
+  wrap.innerHTML = [
+    { label: 'Zero-shot similarity', value: zeroMatches, pct: zeroPct, cls: 'baseline' },
+    { label: 'Few-shot head', value: fewMatches, pct: fewPct, cls: 'improved' },
+  ].map(item => `
+    <div class="comparison-card ${item.cls}">
+      <div class="comparison-top">
+        <strong>${escapeHtml(item.label)}</strong>
+        <span>${item.value}/${total} matched</span>
+      </div>
+      <div class="comparison-bar">
+        <div style="width:${item.pct.toFixed(1)}%"></div>
+      </div>
+      <p>${item.cls === 'improved'
+        ? 'Few-shot labels adapt the foundation-model representation to the energy-report task.'
+        : 'Embedding similarity alone is useful, but can over-read generic climate or ESG language.'}</p>
+    </div>`).join('');
 }
 
 function renderGenericTable(id, rows, headers) {
