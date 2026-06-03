@@ -957,10 +957,13 @@ summary:focus-visible,
   padding: 14px;
   color: var(--ink);
   font-size: 14px;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
 }
 
 .summary-box p {
   margin: 0;
+  max-width: 100%;
 }
 
 .summary-bullets {
@@ -979,6 +982,7 @@ summary:focus-visible,
   margin-top: 12px !important;
   padding-top: 12px;
   border-top: 1px solid var(--line);
+  line-height: 1.75;
 }
 
 .evidence-tabs {

@@ -359,10 +359,20 @@ function renderSummary(summary) {
     .slice(0, 4)
     .map(item => `<li>${escapeHtml(item)}</li>`)
     .join('');
-  const gen = summary.generative && summary.generative.summary
-    ? `<p class="generated-summary">${escapeHtml(summary.generative.summary)}</p>`
+  const generatedText = summary.generative && summary.generative.summary
+    ? String(summary.generative.summary).trim()
+    : '';
+  const gen = isCompleteSummary(generatedText)
+    ? `<p class="generated-summary">${escapeHtml(generatedText)}</p>`
     : '';
   box.innerHTML = `<p>${escapeHtml(summary.korean || '')}</p><ul class="summary-bullets">${bullets}</ul>${gen}`;
+}
+
+function isCompleteSummary(text) {
+  if (!text || text.length < 24) return false;
+  const trimmed = text.trim();
+  if (/[.!?。！？]$/.test(trimmed)) return true;
+  return /(다|니다|습니다|입니다|됩니다|합니다|였습니다|있습니다)$/.test(trimmed);
 }
 
 function renderEvidence(evidence, topK) {
