@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Energy Report-to-Market Signal Analyzer</title>
-    <link rel="stylesheet" href="/static/style.css?v=fm-reframe-4" />
+    <title>Report-to-Market Context Analyzer</title>
+    <link rel="stylesheet" href="/static/style.css?v=fm-reframe-5" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
   </head>
   <body>
@@ -14,7 +14,7 @@
           <span class="brand-dot" aria-hidden="true"></span>
           <div>
             <p class="eyebrow">Energy Intelligence Lab</p>
-            <h1>Report-to-Market Signal Analyzer</h1>
+            <h1>Report-to-Market Context Analyzer</h1>
           </div>
         </div>
         <nav class="tab-nav" aria-label="Primary views">
@@ -379,24 +379,56 @@
 
         <div class="panel">
           <h2 class="panel-title">Research findings</h2>
-          <ol class="findings-list">
-            <li>Energy reports contain paragraphs that can be converted into theme-level signals.</li>
-            <li>Frozen MiniLM embeddings are useful for representing PDF evidence paragraphs.</li>
-            <li>A small few-shot logistic head improves theme alignment compared with zero-shot similarity.</li>
-            <li>Historical market windows are useful as context, but should not be interpreted as causal evidence or future prediction.</li>
-            <li>Main failure cases occur in generic ESG paragraphs, ambiguous grid-transition language, and date-metadata errors.</li>
-          </ol>
+          <div class="findings-grid">
+            <div>
+              <strong>What worked</strong>
+              <span>Energy-transition reports contain paragraphs that can be converted into theme-level evidence signals.</span>
+              <span>Frozen MiniLM embeddings provide a practical representation layer for PDF evidence.</span>
+            </div>
+            <div>
+              <strong>What improved</strong>
+              <span>Few-shot logistic adaptation improved pilot theme alignment from 10/25 to 18/25.</span>
+              <span>Evidence fragments make model outputs easier to audit than whole-document summaries.</span>
+            </div>
+            <div>
+              <strong>What this does not claim</strong>
+              <span>Historical market windows do not prove causality and do not forecast future returns.</span>
+              <span>Generic ESG language, mixed grid-transition paragraphs, and date errors remain failure cases.</span>
+            </div>
+          </div>
         </div>
 
         <div class="dashboard-columns">
           <section class="panel">
             <h2 class="panel-title">Report signals</h2>
-            <div id="signals-table-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
+            <div id="signals-table-wrap" class="table-wrap">
+              <table class="data-table compact-table">
+                <thead><tr><th>Report</th><th>Date</th><th>Top context</th><th>Transition</th></tr></thead>
+                <tbody>
+                  <tr><td>IEA Renewables 2023</td><td>2024-01-11</td><td>ICLN/NEE</td><td class="pos">1.219</td></tr>
+                  <tr><td>IEA World Energy Outlook 2023</td><td>2023-10-24</td><td>ICLN/NEE</td><td class="pos">0.978</td></tr>
+                  <tr><td>IEA Oil and Gas Net Zero</td><td>2023-11-23</td><td>XLE/XOM pressure</td><td>0.098</td></tr>
+                </tbody>
+              </table>
+            </div>
           </section>
           <section class="panel">
             <h2 class="panel-title">Validation summary</h2>
-            <div id="pdf-metrics-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
-            <div id="validation-table-wrap" class="table-wrap table-spaced"><p class="loading-text">Preview data ready.</p></div>
+            <div id="pdf-metrics-wrap" class="table-wrap">
+              <table class="data-table compact-table">
+                <thead><tr><th>n</th><th>Accuracy</th><th>Macro-F1</th><th>Weighted-F1</th></tr></thead>
+                <tbody><tr><td>25</td><td class="pos">0.720</td><td>0.675</td><td>0.735</td></tr></tbody>
+              </table>
+            </div>
+            <div id="validation-table-wrap" class="table-wrap table-spaced">
+              <table class="data-table compact-table">
+                <thead><tr><th>Check</th><th>Result</th><th>Meaning</th></tr></thead>
+                <tbody>
+                  <tr><td>Pilot theme match</td><td class="pos">18/25</td><td>Few-shot top theme matched human reference labels.</td></tr>
+                  <tr><td>Catalog scope</td><td>50 PDFs</td><td>Includes in-domain reports and boundary cases.</td></tr>
+                </tbody>
+              </table>
+            </div>
           </section>
         </div>
 
@@ -404,15 +436,40 @@
           <h2 class="panel-title">Zero-shot vs Few-shot</h2>
           <p class="section-help">Same PDF set, compared between embedding similarity baseline and few-shot head.</p>
           <div id="zero-shot-chart-wrap" class="comparison-grid"></div>
-          <div id="zero-shot-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
+          <div id="zero-shot-wrap" class="table-wrap">
+            <table class="data-table compact-table">
+              <thead><tr><th>Experiment</th><th>Baseline</th><th>Few-shot head</th><th>Interpretation</th></tr></thead>
+              <tbody>
+                <tr><td>Pilot theme match</td><td>10/25</td><td class="pos">18/25</td><td>Few-shot adaptation improves theme alignment.</td></tr>
+                <tr><td>Evidence traceability</td><td>Medium</td><td class="pos">Higher</td><td>Retrieved fragments become easier to audit.</td></tr>
+                <tr><td>OOD robustness</td><td class="neg">Weak</td><td>Partial</td><td>Generic ESG text can still confuse the model.</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div class="panel">
           <h2 class="panel-title">News context and stock link</h2>
           <p class="section-help">GDELT weekly tone samples and historical return context around report dates.</p>
           <div class="dashboard-columns">
-            <div id="news-bridge-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
-            <div id="link-table-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
+            <div id="news-bridge-wrap" class="table-wrap">
+              <table class="data-table compact-table">
+                <thead><tr><th>Report</th><th>News</th><th>4w tone</th></tr></thead>
+                <tbody>
+                  <tr><td>IEA Renewables 2023</td><td class="match">available</td><td>-0.031</td></tr>
+                  <tr><td>IEA WEO 2023</td><td class="match">available</td><td>-0.012</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="link-table-wrap" class="table-wrap">
+              <table class="data-table compact-table">
+                <thead><tr><th>Report</th><th>4w ET spread</th><th>4w ICLN</th><th>4w ETN</th></tr></thead>
+                <tbody>
+                  <tr><td>IEA Renewables 2023</td><td class="neg">-4.40%</td><td class="neg">-5.50%</td><td class="pos">+15.00%</td></tr>
+                  <tr><td>IEA WEO 2023</td><td class="pos">+12.10%</td><td class="pos">+5.20%</td><td class="pos">+17.90%</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -441,11 +498,21 @@
           <div class="dashboard-columns table-spaced">
             <div>
               <h3 class="subsection-title">Climate -> news</h3>
-              <div id="actual-climate-news-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
+              <div id="actual-climate-news-wrap" class="table-wrap">
+                <table class="data-table compact-table">
+                  <thead><tr><th>Signal</th><th>Target</th><th>r</th></tr></thead>
+                  <tbody><tr><td>temperature anomaly</td><td>GDELT energy tone</td><td class="neg">-0.214</td></tr></tbody>
+                </table>
+              </div>
             </div>
             <div>
               <h3 class="subsection-title">News -> stocks</h3>
-              <div id="actual-news-stock-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
+              <div id="actual-news-stock-wrap" class="table-wrap">
+                <table class="data-table compact-table">
+                  <thead><tr><th>Target</th><th>Best lag</th><th>r</th></tr></thead>
+                  <tbody><tr><td>ET spread</td><td>2w</td><td>0.087</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
@@ -479,27 +546,51 @@
         <div class="dashboard-columns">
           <section class="panel">
             <h2 class="panel-title">Failure analysis</h2>
-            <div id="failure-analysis-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
+            <div id="failure-analysis-wrap" class="table-wrap">
+              <table class="data-table compact-table">
+                <thead><tr><th>Failure type</th><th>Example</th><th>Improvement</th></tr></thead>
+                <tbody>
+                  <tr><td>Generic ESG over-read</td><td>Sustainability commitment paragraph</td><td>Require energy-system evidence keywords.</td></tr>
+                  <tr><td>Mixed grid signal</td><td>Grid reliability + renewable interconnection</td><td>Use multi-label calibration.</td></tr>
+                </tbody>
+              </table>
+            </div>
           </section>
           <section class="panel">
             <h2 class="panel-title">OOD controls</h2>
-            <div id="ood-test-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
+            <div id="ood-test-wrap" class="table-wrap">
+              <table class="data-table compact-table">
+                <thead><tr><th>OOD PDF</th><th>Decision</th><th>Reason</th></tr></thead>
+                <tbody>
+                  <tr><td>General AI governance paper</td><td class="neg">reject</td><td>No energy-system evidence.</td></tr>
+                  <tr><td>Consumer retail trend report</td><td class="neg">reject</td><td>Outside report domain.</td></tr>
+                </tbody>
+              </table>
+            </div>
           </section>
         </div>
 
         <div class="panel">
           <h2 class="panel-title">Gemini summary evidence check</h2>
           <p class="section-help">Gemini is used only as an auxiliary summary checker, not as the main theme signal model.</p>
-          <div id="gemini-check-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
+          <div id="gemini-check-wrap" class="table-wrap">
+            <table class="data-table compact-table">
+              <thead><tr><th>Report</th><th>Role</th><th>Evidence alignment</th><th>Unsupported prediction</th></tr></thead>
+              <tbody>
+                <tr><td>IEA Renewables 2023</td><td>auxiliary checker</td><td class="match">supported</td><td>false</td></tr>
+                <tr><td>Oil and Gas Net Zero</td><td>auxiliary checker</td><td class="match">supported</td><td>false</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
     </main>
 
     <footer class="site-footer">
-      <span>Energy Intelligence Lab - Report-to-Market Signal Analyzer</span>
+      <span>Energy Intelligence Lab - Report-to-Market Context Analyzer</span>
       <span>Historical context only. Not investment advice.</span>
     </footer>
 
-    <script src="/static/app.js?v=fm-reframe-4"></script>
+    <script src="/static/app.js?v=fm-reframe-5"></script>
   </body>
 </html>

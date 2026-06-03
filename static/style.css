@@ -839,7 +839,8 @@ summary:focus-visible,
 }
 
 .method-rationale-grid,
-.findings-list {
+.findings-list,
+.findings-grid {
   margin-bottom: 14px;
 }
 
@@ -883,6 +884,37 @@ summary:focus-visible,
   padding-left: 4px;
   color: var(--ink);
   font-size: 14px;
+}
+
+.findings-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.findings-grid div {
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.findings-grid strong,
+.findings-grid span {
+  display: block;
+}
+
+.findings-grid strong {
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.findings-grid span {
+  margin-top: 8px;
+  color: var(--ink);
+  font-size: 13px;
 }
 
 .score-cards {
@@ -1418,6 +1450,10 @@ summary:focus-visible,
   .method-rationale-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .findings-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
@@ -1450,6 +1486,7 @@ summary:focus-visible,
   .dashboard-overview,
   .workflow-grid,
   .method-rationale-grid,
+  .findings-grid,
   .comparison-grid,
   .hypothesis-grid,
   .figures-grid {
