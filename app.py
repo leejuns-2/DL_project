@@ -143,6 +143,45 @@ def _write_analysis_cache(cache_key: str, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
 
+def _is_complete_generated_summary(text: str) -> bool:
+    stripped = (text or "").strip()
+    if len(stripped) < 24:
+        return False
+    if stripped[-1] in ".!?。！？":
+        return True
+    complete_korean_endings = (
+        "다",
+        "니다",
+        "습니다",
+        "입니다",
+        "됩니다",
+        "합니다",
+        "였습니다",
+        "있습니다",
+    )
+    return stripped.endswith(complete_korean_endings)
+
+
+def _sanitize_generative_summary(result: dict) -> dict:
+    summary = str(result.get("summary") or "").strip()
+    if summary and not _is_complete_generated_summary(summary):
+        result = dict(result)
+        note = result.get("note") or ""
+        result["summary"] = ""
+        result["enabled"] = False
+        result["note"] = (note + " " if note else "") + "Generated summary was hidden because it ended mid-sentence."
+    return result
+
+
+def _sanitize_analysis_payload(payload: dict) -> dict:
+    summary = payload.get("summary")
+    if isinstance(summary, dict) and isinstance(summary.get("generative"), dict):
+        payload = dict(payload)
+        payload["summary"] = dict(summary)
+        payload["summary"]["generative"] = _sanitize_generative_summary(summary["generative"])
+    return payload
+
+
 def _interpret_evidence(theme: str, paragraph: str) -> str:
     text = paragraph.lower()
     signals = []
@@ -273,13 +312,13 @@ def _run_gemini_summary(api_key: str, model: str, title: str, evidence: pd.DataF
             data = json.loads(response.read().decode("utf-8"))
         parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
         text = "".join(part.get("text", "") for part in parts).strip()
-        return {
+        return _sanitize_generative_summary({
             "enabled": bool(text),
             "provider": "google_gemini",
             "model": model,
             "summary": text,
             "note": "" if text else "Gemini returned no text.",
-        }
+        })
     except Exception as exc:
         return {
             "enabled": False,
@@ -305,6 +344,7 @@ def _optional_generative_summary(title: str, evidence: pd.DataFrame) -> dict:
     if not api_url or not api_key:
         if local_model:
             result = _run_local_genai(local_model, title, evidence)
+            result = _sanitize_generative_summary(result)
             result.update(evidence_support_metadata(evidence))
             return result
         return {
@@ -343,7 +383,7 @@ def _optional_generative_summary(title: str, evidence: pd.DataFrame) -> dict:
         with urllib.request.urlopen(request, timeout=45) as response:
             data = json.loads(response.read().decode("utf-8"))
         content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-        result = {"enabled": True, "model": model, "summary": content.strip(), "note": ""}
+        result = _sanitize_generative_summary({"enabled": True, "model": model, "summary": content.strip(), "note": ""})
         result.update(evidence_support_metadata(evidence))
         return result
     except Exception as exc:
@@ -377,11 +417,12 @@ async def analyze_pdf(
         "max_pages": max_pages,
         "top_k": top_k,
         "horizons": horizon_list,
-        "pipeline_version": "2026-06-02-chunk-multilabel-ood-evidence-v4",
+        "pipeline_version": "2026-06-03-summary-guard-v5",
     }
     cache_key = _analysis_cache_key(pdf_bytes, cache_params)
     cached = _read_analysis_cache(cache_key)
     if cached is not None:
+        cached = _sanitize_analysis_payload(cached)
         cached["cache"] = {"hit": True, "key": cache_key}
         return JSONResponse(cached)
 
@@ -511,6 +552,7 @@ async def analyze_pdf(
             },
             "cache": {"hit": False, "key": cache_key},
         }
+        payload = _sanitize_analysis_payload(payload)
         _write_analysis_cache(cache_key, payload)
         return JSONResponse(payload)
     except ValueError as exc:
