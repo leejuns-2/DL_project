@@ -250,6 +250,59 @@ summary:focus-visible,
   font-size: 13.5px !important;
 }
 
+.foundation-card {
+  max-width: 680px;
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid rgba(47,93,80,0.2);
+  border-radius: 8px;
+  background: rgba(255,252,244,0.76);
+  box-shadow: var(--sh-sm);
+}
+
+.foundation-card-kicker {
+  margin: 0 0 5px !important;
+  color: var(--copper) !important;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px !important;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.foundation-card h3 {
+  margin: 0 0 12px;
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.foundation-card dl {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+}
+
+.foundation-card dl div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 12px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
+
+.foundation-card dt {
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.foundation-card dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+}
+
 .hero-chart {
   display: flex;
   flex-direction: column;
@@ -785,6 +838,53 @@ summary:focus-visible,
   font-size: 13.5px;
 }
 
+.method-rationale-grid,
+.findings-list {
+  margin-bottom: 14px;
+}
+
+.method-rationale-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.method-rationale-grid div {
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.method-rationale-grid strong,
+.method-rationale-grid span {
+  display: block;
+}
+
+.method-rationale-grid strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.method-rationale-grid span {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.findings-list {
+  display: grid;
+  gap: 9px;
+  margin-top: 12px;
+  padding-left: 20px;
+}
+
+.findings-list li {
+  padding-left: 4px;
+  color: var(--ink);
+  font-size: 14px;
+}
+
 .score-cards {
   display: grid;
   grid-template-columns: repeat(5, minmax(110px, 1fr));
@@ -1314,7 +1414,8 @@ summary:focus-visible,
 
   .method-strip,
   .dashboard-overview,
-  .workflow-grid {
+  .workflow-grid,
+  .method-rationale-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1348,6 +1449,7 @@ summary:focus-visible,
   .score-cards,
   .dashboard-overview,
   .workflow-grid,
+  .method-rationale-grid,
   .comparison-grid,
   .hypothesis-grid,
   .figures-grid {
@@ -1357,6 +1459,11 @@ summary:focus-visible,
   .paper-meta {
     display: grid;
     gap: 4px;
+  }
+
+  .foundation-card dl div {
+    grid-template-columns: 1fr;
+    gap: 3px;
   }
 
   .panel-heading.row,

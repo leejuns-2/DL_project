@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Energy Report-to-Market Signal Analyzer</title>
-    <link rel="stylesheet" href="/static/style.css?v=summary-guard-3" />
+    <link rel="stylesheet" href="/static/style.css?v=fm-reframe-4" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
   </head>
   <body>
@@ -30,28 +30,42 @@
           <div class="hero-copy">
             <div class="paper-meta" aria-label="Prototype metadata">
               <span>Energy Intelligence Lab</span>
-              <span>Prototype v0.3</span>
+              <span>Prototype v0.4</span>
               <span>Historical context only</span>
             </div>
-            <p class="kicker">Research question</p>
-            <h2 id="hero-title">Can energy report sentences become traceable market-context signals?</h2>
+            <p class="kicker">Foundation Model application</p>
+            <h2 id="hero-title">MiniLM turns energy report paragraphs into traceable market-context signals.</h2>
             <p>
-              This prototype retrieves energy-transition evidence from PDF reports, converts that evidence into theme signals,
-              and places the report date beside historical market data. It does not forecast future returns or provide
-              investment advice.
+              This project applies a selected foundation model to the energy-report domain. MiniLM-L6-v2 embeds PDF
+              paragraphs, a few-shot head adapts those vectors into energy-theme signals, and the output is linked to
+              historical context around the report date.
             </p>
-            <p class="foundation-note">
-              The foundation model is used as a representation engine: MiniLM converts unstructured PDF paragraphs into dense
-              semantic vectors, then a small few-shot head maps those vectors into energy-theme signals.
-            </p>
+            <div class="foundation-card" aria-label="Selected foundation model">
+              <p class="foundation-card-kicker">Selected Foundation Model</p>
+              <h3>MiniLM-L6-v2 sentence embedding model</h3>
+              <dl>
+                <div>
+                  <dt>Role</dt>
+                  <dd>Unstructured PDF paragraphs -> dense semantic vectors</dd>
+                </div>
+                <div>
+                  <dt>Adaptation</dt>
+                  <dd>Frozen embeddings + few-shot logistic regression head</dd>
+                </div>
+                <div>
+                  <dt>Output</dt>
+                  <dd>Energy-theme signal with traceable evidence fragments</dd>
+                </div>
+              </dl>
+            </div>
             <p class="scope-disclaimer">Market windows are historical context only. No forecasting. No investment advice.</p>
           </div>
 
           <div class="hero-chart" role="img" aria-labelledby="hero-chart-title hero-chart-desc">
             <div class="chart-card-header">
               <div>
-                <span class="chart-ticker" id="hero-chart-title">PDF Evidence -> Theme Signal -> Market Context</span>
-                <span class="chart-subtitle">Report-date anchored historical window</span>
+                <span class="chart-ticker" id="hero-chart-title">MiniLM Representation -> Few-shot Signal -> Market Context</span>
+                <span class="chart-subtitle">Foundation-model representation adapted to energy reports</span>
               </div>
               <span class="domain-tag">Research MVP</span>
             </div>
@@ -95,40 +109,40 @@
             </svg>
             <div class="pipeline-row">
               <ol>
-                <li><span>01</span>PDF paragraphs</li>
+                <li><span>01</span>Foundation model</li>
                 <li><span>02</span>Evidence retrieval</li>
-                <li><span>03</span>Theme signal</li>
-                <li><span>04</span>Market context</li>
+                <li><span>03</span>Few-shot head</li>
+                <li><span>04</span>Historical context</li>
               </ol>
             </div>
           </div>
         </section>
 
-        <div class="section-rule" aria-hidden="true"><span>§ 01 · Method</span></div>
+        <div class="section-rule" aria-hidden="true"><span>01 - Foundation Model Method</span></div>
         <section class="method-strip" aria-label="Method summary">
           <article>
-            <span>Retrieval</span>
-            <strong>TF-IDF evidence search</strong>
-            <p>Theme queries retrieve candidate paragraphs, then the strongest evidence fragments are scored.</p>
+            <span>Foundation model</span>
+            <strong>MiniLM-L6-v2 representation</strong>
+            <p>A frozen sentence embedding model converts each PDF paragraph into a dense semantic vector.</p>
           </article>
           <article>
-            <span>Representation</span>
-            <strong>MiniLM-L6-v2 embedding</strong>
-            <p>PDF paragraphs are represented as sentence-level vectors for comparable evidence scoring.</p>
+            <span>Evidence retrieval</span>
+            <strong>TF-IDF assisted filtering</strong>
+            <p>TF-IDF narrows long PDFs to candidate evidence paragraphs before MiniLM-based scoring is applied.</p>
           </article>
           <article>
-            <span>Classifier</span>
-            <strong>Few-shot logistic head</strong>
-            <p>A small logistic head over frozen embeddings estimates relative theme strength.</p>
+            <span>Few-shot adaptation</span>
+            <strong>Task-specific logistic head</strong>
+            <p>Small human examples train a lightweight head on top of frozen embeddings instead of full fine-tuning.</p>
           </article>
           <article>
-            <span>Context</span>
-            <strong>Report-date market window</strong>
-            <p>Returns are displayed only as historical downstream context, anchored to the report date.</p>
+            <span>Historical context</span>
+            <strong>Report-date market link</strong>
+            <p>Signals are joined to past news tone and return windows for context, not prediction.</p>
           </article>
         </section>
 
-        <div class="section-rule" aria-hidden="true"><span>§ 02 · Analyzer</span></div>
+        <div class="section-rule" aria-hidden="true"><span>02 - Analyzer</span></div>
         <div class="analyzer-grid">
           <aside class="panel panel-input dark-panel">
             <div class="panel-heading">
@@ -196,13 +210,13 @@
           <section class="panel panel-result" id="result-panel">
             <div id="result-empty" class="result-empty">
               <p class="empty-title">Sample analysis is ready.</p>
-              <p>Use the sample report preview, or upload a PDF to run the evidence retrieval pipeline.</p>
+              <p>Use the sample report preview, or upload a PDF to run the foundation-model evidence pipeline.</p>
               <div class="pipeline-steps">
                 <div class="step">PDF text</div>
-                <div class="step">Evidence</div>
-                <div class="step">Embedding</div>
-                <div class="step">Theme score</div>
-                <div class="step">Market link</div>
+                <div class="step">MiniLM vectors</div>
+                <div class="step">Few-shot head</div>
+                <div class="step">Evidence signal</div>
+                <div class="step">Market context</div>
               </div>
             </div>
 
@@ -238,7 +252,7 @@
                   <span class="section-kicker">03</span>
                   <h3 class="result-section-title">Evidence fragments</h3>
                 </div>
-                <p class="section-help">PDF text fragments used by the model scoring step.</p>
+                <p class="section-help">PDF text fragments used by the foundation-model representation and few-shot scoring steps.</p>
                 <div class="evidence-tabs" id="evidence-tabs"></div>
                 <div class="evidence-content" id="evidence-content"></div>
               </div>
@@ -264,20 +278,20 @@
       </section>
 
       <section id="tab-dashboard" class="tab-section hidden">
-        <div class="section-rule" aria-hidden="true"><span>§ 03 · Validation dashboard</span></div>
+        <div class="section-rule" aria-hidden="true"><span>03 - Validation Dashboard</span></div>
         <div class="dashboard-lede panel">
           <div>
             <p class="eyebrow">Project summary</p>
-            <h2>PDF event signals connected to market-context evidence.</h2>
+            <h2>Foundation-model paragraph representations connected to market-context evidence.</h2>
             <p>
-              The validation view converts report evidence into topic signals, links those signals to news-tone samples and
-              historical return windows, and keeps visible where the method succeeds or fails.
+              The validation view shows how MiniLM paragraph vectors, few-shot adaptation, evidence retrieval, and historical
+              market windows work together. It keeps the limitations visible rather than presenting the output as prediction.
             </p>
           </div>
           <div class="lede-points">
-            <span>MiniLM embeddings frozen</span>
-            <span>Few-shot logistic head</span>
-            <span>50 PDF validation catalog</span>
+            <span>Selected FM: MiniLM-L6-v2</span>
+            <span>Adaptation: few-shot head</span>
+            <span>Validation: 50 PDF catalog</span>
           </div>
         </div>
 
@@ -307,10 +321,10 @@
         <div class="panel">
           <h2 class="panel-title">Project workflow</h2>
           <div class="workflow-grid">
-            <div><strong>1. PDF</strong><span>Text extraction and paragraph splitting</span></div>
-            <div><strong>2. Evidence</strong><span>Theme evidence retrieval</span></div>
-            <div><strong>3. Model</strong><span>MiniLM embedding + few-shot head</span></div>
-            <div><strong>4. Link</strong><span>News tone and historical return context</span></div>
+            <div><strong>1. Foundation representation</strong><span>MiniLM-L6-v2 embeds PDF paragraphs</span></div>
+            <div><strong>2. Evidence retrieval</strong><span>TF-IDF filters candidate evidence fragments</span></div>
+            <div><strong>3. Few-shot adaptation</strong><span>Logistic head maps vectors to energy themes</span></div>
+            <div><strong>4. Historical context</strong><span>News tone and market windows around report dates</span></div>
           </div>
         </div>
 
@@ -321,20 +335,38 @@
             unstructured report paragraphs into semantic vectors, and the few-shot classifier translates those vectors into
             auditable energy-theme signals.
           </p>
+          <div class="method-rationale-grid">
+            <div>
+              <strong>Why MiniLM?</strong>
+              <span>It is lightweight, sentence-level, and suitable for paragraph similarity and theme classification.</span>
+            </div>
+            <div>
+              <strong>Why not full fine-tuning?</strong>
+              <span>The project has limited labeled examples, so a frozen FM plus a few-shot head is more realistic and auditable.</span>
+            </div>
+            <div>
+              <strong>Why TF-IDF?</strong>
+              <span>It is a retrieval aid that reduces noise before the foundation-model representation step.</span>
+            </div>
+            <div>
+              <strong>Why market data?</strong>
+              <span>It supplies historical context around report dates, not causal proof or future prediction.</span>
+            </div>
+          </div>
           <table class="data-table compact-table">
             <thead>
               <tr><th>Item</th><th>Exact meaning</th><th>Caution</th></tr>
             </thead>
             <tbody>
               <tr>
-                <td>Few-shot</td>
-                <td>Frozen MiniLM embeddings with a logistic regression head trained from small human examples</td>
-                <td>Not full foundation-model fine-tuning</td>
+                <td>Foundation model</td>
+                <td>MiniLM-L6-v2 sentence embeddings convert report paragraphs into dense vectors</td>
+                <td>Used as representation, not as a final answer generator</td>
               </tr>
               <tr>
-                <td>Score</td>
-                <td>Relative theme strength inside one report</td>
-                <td>Not directly comparable across every report without context</td>
+                <td>Few-shot adaptation</td>
+                <td>Frozen MiniLM embeddings with a logistic regression head trained from small human examples</td>
+                <td>Not full foundation-model fine-tuning</td>
               </tr>
               <tr>
                 <td>Returns</td>
@@ -343,6 +375,17 @@
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="panel">
+          <h2 class="panel-title">Research findings</h2>
+          <ol class="findings-list">
+            <li>Energy reports contain paragraphs that can be converted into theme-level signals.</li>
+            <li>Frozen MiniLM embeddings are useful for representing PDF evidence paragraphs.</li>
+            <li>A small few-shot logistic head improves theme alignment compared with zero-shot similarity.</li>
+            <li>Historical market windows are useful as context, but should not be interpreted as causal evidence or future prediction.</li>
+            <li>Main failure cases occur in generic ESG paragraphs, ambiguous grid-transition language, and date-metadata errors.</li>
+          </ol>
         </div>
 
         <div class="dashboard-columns">
@@ -446,16 +489,17 @@
 
         <div class="panel">
           <h2 class="panel-title">Gemini summary evidence check</h2>
+          <p class="section-help">Gemini is used only as an auxiliary summary checker, not as the main theme signal model.</p>
           <div id="gemini-check-wrap" class="table-wrap"><p class="loading-text">Preview data ready.</p></div>
         </div>
       </section>
     </main>
 
     <footer class="site-footer">
-      <span>Energy Intelligence Lab · Report-to-Market Signal Analyzer</span>
+      <span>Energy Intelligence Lab - Report-to-Market Signal Analyzer</span>
       <span>Historical context only. Not investment advice.</span>
     </footer>
 
-    <script src="/static/app.js?v=summary-guard-3"></script>
+    <script src="/static/app.js?v=fm-reframe-4"></script>
   </body>
 </html>
