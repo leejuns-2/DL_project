@@ -1,0 +1,230 @@
+{
+  "generated_at_utc": "2026-06-15T10:19:32.189142+00:00",
+  "project": "Energy Report-to-Market Signal Analyzer",
+  "python": "3.12.13 (main, May 10 2026, 19:35:37) [MSC v.1944 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "model": "sentence-transformers/all-MiniLM-L6-v2",
+  "scoring": "Frozen MiniLM embeddings + small-sample supervised logistic linear probes",
+  "retrieval": "TF-IDF + embedding hybrid retrieval",
+  "validation_summary": {
+    "pilot_pdf_count": 50,
+    "pilot_few_shot_matches": 36,
+    "pilot_accuracy": 0.72,
+    "pilot_macro_f1": 0.658,
+    "zero_shot_matches": 17,
+    "few_shot_matches": 36,
+    "catalog_pdf_count": 50,
+    "interpretation": "Pilot evaluation only; not a generalization estimate."
+  },
+  "sample_pdf_inventory": {
+    "directory": "data/sample_pdfs",
+    "exists": true,
+    "pdf_count": 50
+  },
+  "files": [
+    {
+      "path": "app.py",
+      "exists": true,
+      "bytes": 27005,
+      "sha256": "bb235ac92fda9aafffee5f2f0fffc4bf1abbf68326c99784d375a52058169ae7"
+    },
+    {
+      "path": "src/report_signal_pipeline.py",
+      "exists": true,
+      "bytes": 61658,
+      "sha256": "44f7789d4938959195a69dbc0cda550e4ef0e439468db5d89d36adfe9bb044f8"
+    },
+    {
+      "path": "src/config.py",
+      "exists": true,
+      "bytes": 1162,
+      "sha256": "9b368bfa185a328ab483684bd4493a33a0a79709a679f06f34f9ce72cc772ff8"
+    },
+    {
+      "path": "requirements.txt",
+      "exists": true,
+      "bytes": 165,
+      "sha256": "99617002f745604c88fc557695a7a028e492002dbc50b36b69452243339b6e6a"
+    },
+    {
+      "path": "requirements-lock.txt",
+      "exists": true,
+      "bytes": 1071,
+      "sha256": "2d492cf7ec09708c53ce08817dd1615b42fffdc92bd448b9695c639bd81ed104"
+    },
+    {
+      "path": "data/processed/stock_returns_weekly.csv",
+      "exists": true,
+      "bytes": 43124,
+      "sha256": "7d6905b649f4684da8c3e1de1037a7bf1d918d2024d8528c258003c8fec20b22"
+    },
+    {
+      "path": "data/processed/news_sentiment_weekly.csv",
+      "exists": true,
+      "bytes": 26730,
+      "sha256": "84e9e4c2280c163eda16cad3909fb5b5af878722799cd9a66fc9b184860a4e61"
+    },
+    {
+      "path": "data/processed/reports/report_signals.csv",
+      "exists": true,
+      "bytes": 1101,
+      "sha256": "a1a80f05fb19496e86273409d6c6531b9e9ac358943a83d74823e4a22bcfcbfa"
+    },
+    {
+      "path": "data/processed/reports/report_stock_link.csv",
+      "exists": true,
+      "bytes": 1822,
+      "sha256": "2f7d303134754650d0a7a85ec6fd797d22741cee853d9ef6beb7f0fdf2b0fcf3"
+    },
+    {
+      "path": "data/processed/reports/report_news_bridge.csv",
+      "exists": true,
+      "bytes": 1382,
+      "sha256": "c0750c6534324b70c7309475a6a096912713ba1a879fe8f1464ac2783678a01e"
+    },
+    {
+      "path": "data/processed/reports/expanded_pdf_validation.csv",
+      "exists": true,
+      "bytes": 11506,
+      "sha256": "fd13bdaa7bd779592a3e9444d2ba8bf31922cc4de44f396d806d003213b15ca1"
+    },
+    {
+      "path": "data/processed/reports/validation_pdf_catalog.csv",
+      "exists": true,
+      "bytes": 10392,
+      "sha256": "c4f4774ad0fb06c35b7ea6e7b3eac068ddc10e12646104d2b66138b8bd65eca1"
+    },
+    {
+      "path": "data/processed/reports/sample_pdf_manifest.csv",
+      "exists": true,
+      "bytes": 8791,
+      "sha256": "dc82dc6b0c0d9b9f4ee1ac4604cd5cb272e81f4f77125c0096034b60b1cece81"
+    },
+    {
+      "path": "data/processed/reports/zero_shot_vs_few_shot.csv",
+      "exists": true,
+      "bytes": 16895,
+      "sha256": "5964a7a691a18c2e02140e82abc73af2f7d7940fee29d3dad8e9a6c7c5b3a62b"
+    },
+    {
+      "path": "data/processed/reports/pdf_validation_metrics.csv",
+      "exists": true,
+      "bytes": 225,
+      "sha256": "231bca10622d905f9b4eaa9b5f0c5f2bdc45a54b04c9b1af2b08b82ddb6f9ce5"
+    },
+    {
+      "path": "data/processed/reports/pdf_validation_split_metrics.csv",
+      "exists": true,
+      "bytes": 145,
+      "sha256": "49d37212c6a4db8b26a96f97df63e99283cbf0d26217163efd44132ade9f299a"
+    },
+    {
+      "path": "data/processed/reports/pdf_validation_confusion_matrix.csv",
+      "exists": true,
+      "bytes": 195,
+      "sha256": "57f22ea7b6e90f7019bf5560026a4f511520be2498e828657f6f6a6851a8e109"
+    },
+    {
+      "path": "data/processed/reports/pdf_validation_chunk_labels.csv",
+      "exists": true,
+      "bytes": 1795387,
+      "sha256": "f1cb0a129f5de0d90db793d432768b41fd2cb356406e2d9dc8178a1edd28511d"
+    },
+    {
+      "path": "data/processed/reports/pdf_validation_label_rationale.csv",
+      "exists": true,
+      "bytes": 8744,
+      "sha256": "e77c6a4f1d13c3b03c6c9fe54afdadd535a1e2eb1f9bbb79e38ae4499ef1b815"
+    },
+    {
+      "path": "data/processed/reports/pdf_validation_failure_analysis.csv",
+      "exists": true,
+      "bytes": 3209,
+      "sha256": "b9b345d2145127a854a285657455556b6b5dce15ffafa184020543353d320235"
+    },
+    {
+      "path": "data/processed/reports/out_of_domain_pdf_test.csv",
+      "exists": true,
+      "bytes": 930,
+      "sha256": "cfd471883887aa19eda75600341cb3996b991e6eede19b67889594b267e9b800"
+    },
+    {
+      "path": "data/processed/reports/gemini_summary_human_check.csv",
+      "exists": true,
+      "bytes": 2354,
+      "sha256": "6671d8b4e5b3b451fbe0716d9756a7c691835d36470cae34550c3e64f3b71285"
+    },
+    {
+      "path": "data/processed/reports/zero_shot_vs_few_shot_split_metrics.csv",
+      "exists": true,
+      "bytes": 203,
+      "sha256": "e512a37d9c2272c847c84857a3ab2bb2fa3b51ae6a448e09a14a6a010b2b537e"
+    },
+    {
+      "path": "data/processed/reports/actual_climate_news_lag_corr.csv",
+      "exists": true,
+      "bytes": 477,
+      "sha256": "9d43579f74dd40d0f3fc1a8bfbb66cd9d76e0cdcbc06e0974aa49c9951d9c19d"
+    },
+    {
+      "path": "data/processed/reports/actual_news_stock_best_lag.csv",
+      "exists": true,
+      "bytes": 599,
+      "sha256": "3f985de6b9ac65b5c82e4c3729b44118cd6c863febba3042c1923939337dadcf"
+    },
+    {
+      "path": "outputs/tables/model_validation_brief.md",
+      "exists": true,
+      "bytes": 7332,
+      "sha256": "8e3e1a36ba41f8441c1c228c99da0a0abea683000c2bc79eaba7c521a00bb7e3"
+    },
+    {
+      "path": "outputs/tables/final_result_summary.md",
+      "exists": true,
+      "bytes": 10470,
+      "sha256": "3328be9b77824c0a720edd04ffa745fb2d8ad6fe994ff7391a1553644d153765"
+    },
+    {
+      "path": "outputs/tables/project_quality_audit.md",
+      "exists": true,
+      "bytes": 3843,
+      "sha256": "11c4cf0756966ebc1a07c4d4cb257e9058139022d3217452f36c7ad6caf488ed"
+    },
+    {
+      "path": "outputs/tables/pdf_generalization_validation.md",
+      "exists": true,
+      "bytes": 1432,
+      "sha256": "61bb4226c875aa7cb6f38783d41c9674bba36b5c82043d8c84609ed9914baac6"
+    },
+    {
+      "path": "outputs/tables/smoke_check_result.json",
+      "exists": true,
+      "bytes": 1768,
+      "sha256": "6a33b6670218d6f51c6f787442a70fe4095d74db28d31c350b87070a080ae308"
+    },
+    {
+      "path": "outputs/tables/smoke_check_result.md",
+      "exists": true,
+      "bytes": 964,
+      "sha256": "071fbf966e5a1d3d0f97fb78d46cb87cf2d0b9b16a1fcc936ff961de1619a25f"
+    },
+    {
+      "path": "outputs/reports/Energy_Report_Signal_Analyzer_report_style_FINAL.pptx",
+      "exists": true,
+      "bytes": 4947740,
+      "sha256": "535900e3f0d12c18a3a5e72197b9e1a7978d552d9218e19918c4b8c95aa0fda3"
+    },
+    {
+      "path": "outputs/reports/Report_to_Market_Context_Analyzer_Project_Report_KR.docx",
+      "exists": true,
+      "bytes": 800738,
+      "sha256": "fa0c75122f97b888d2f960d4cc1ce4440034447e0f125deae907fcea5d96eaee"
+    },
+    {
+      "path": "outputs/reports/Report_to_Market_Context_Analyzer_Project_Report_KR.pdf",
+      "exists": true,
+      "bytes": 1229079,
+      "sha256": "d67a72cc7eb757f5ac5222750bc0c6685e24c2b22a9740e83b7c50b47b825a8a"
+    }
+  ]
+}

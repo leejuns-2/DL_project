@@ -1,7 +1,10 @@
 import sys
+import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
+from fastapi.testclient import TestClient
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -23,11 +26,44 @@ from report_signal_pipeline import (  # noqa: E402
     summarize_chunk_labels,
 )
 
+RESULTS = []
+
 
 def check(condition, message):
     if not condition:
+        RESULTS.append({"status": "fail", "message": message})
         raise AssertionError(message)
+    RESULTS.append({"status": "pass", "message": message})
     print(f"ok - {message}")
+
+
+def write_smoke_result(status, error=None):
+    output_dir = ROOT / "outputs" / "tables"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "status": status,
+        "error": str(error) if error else "",
+        "checks": RESULTS,
+    }
+    json_path = output_dir / "smoke_check_result.json"
+    md_path = output_dir / "smoke_check_result.md"
+    json_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    lines = [
+        "# Smoke Check Result",
+        "",
+        f"- status: `{status}`",
+        f"- generated_at_utc: `{payload['generated_at_utc']}`",
+    ]
+    if error:
+        lines.append(f"- error: `{error}`")
+    lines.extend(["", "| Status | Check |", "|---|---|"])
+    for row in RESULTS:
+        lines.append(f"| {row['status']} | {row['message']} |")
+    md_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(json_path)
+    print(md_path)
 
 
 def check_event_returns():
@@ -37,6 +73,17 @@ def check_event_returns():
     result = event_window_stock_returns(scores)
     check(not result.empty, "event window returns are generated")
     check("post_4w_abnormal_ICLN" in result.columns, "abnormal return column exists")
+
+
+def check_api_routes():
+    client = TestClient(app.app)
+    dashboard = client.get("/api/dashboard")
+    check(dashboard.status_code == 200, "dashboard API returns 200")
+    data = dashboard.json()
+    check("methodology" in data, "dashboard API includes methodology")
+    check(data["methodology"]["base_model"] == "sentence-transformers/all-MiniLM-L6-v2", "dashboard methodology names MiniLM")
+    index = client.get("/")
+    check(index.status_code == 200, "web app root returns 200")
 
 
 def check_ood_guard(embedder):
@@ -137,14 +184,20 @@ def check_chunk_multilabel_helpers():
 
 
 def main():
-    check(app.app.title == "Energy Report-to-Market Signal Analyzer", "FastAPI app imports")
-    check_event_returns()
-    embedder = EmbeddingModel()
-    check_ood_guard(embedder)
-    check_sample_pdf(embedder)
-    check_validation_metrics()
-    check_mixed_signal_profile()
-    check_chunk_multilabel_helpers()
+    try:
+        check(app.app.title == "Energy Report-to-Market Signal Analyzer", "FastAPI app imports")
+        check_api_routes()
+        check_event_returns()
+        embedder = EmbeddingModel()
+        check_ood_guard(embedder)
+        check_sample_pdf(embedder)
+        check_validation_metrics()
+        check_mixed_signal_profile()
+        check_chunk_multilabel_helpers()
+    except Exception as exc:
+        write_smoke_result("fail", exc)
+        raise
+    write_smoke_result("pass")
     print("smoke check complete")
 
 

@@ -514,9 +514,10 @@ async def analyze_pdf(
             "status": "success",
             "methodology": {
                 "base_model": "sentence-transformers/all-MiniLM-L6-v2",
-                "few_shot_learning": "Frozen MiniLM embeddings + cached logistic regression classifier heads.",
-                "retrieval": "TF-IDF + embedding hybrid evidence retrieval.",
-                "ood_guard": "Energy relevance score combines retrieval strength, keyword coverage, and raw classifier confidence.",
+                "theme_score_definition": "Theme scores are topic-salience scores from retrieved evidence paragraphs, not bullish/bearish market direction.",
+                "few_shot_learning": "Frozen MiniLM embeddings + cached small-sample supervised logistic linear probes.",
+                "retrieval": "Theme-conditioned TF-IDF + embedding hybrid evidence retrieval.",
+                "ood_guard": "Energy relevance score combines retrieval strength, keyword coverage, and raw classifier score.",
                 "generative_model": "Gemini summary when GEMINI_API_KEY is configured; summaries include evidence chunk IDs for review.",
                 "chunk_multilabel": "Retrieved paragraphs are weak-labeled by theme so mixed PDFs can be audited below document level.",
             },
@@ -604,7 +605,11 @@ async def get_dashboard():
 
     data["methodology"] = {
         "base_model": "sentence-transformers/all-MiniLM-L6-v2",
-        "few_shot_learning": "Frozen Transformer embeddings + few-shot logistic heads.",
+        "theme_score_definition": "Theme scores represent topic salience / thematic relevance, not market direction.",
+        "few_shot_learning": "Frozen Transformer embeddings + small-sample supervised logistic linear probes.",
+        "binary_heads": "Four independent heads are used because energy reports can contain multiple themes at once.",
+        "evaluation_scope": "50-PDF pilot dominant-theme top-1 alignment; not full multi-label generalization performance.",
+        "thresholds": "mixed: margin <= 0.10 and second score >= 0.80; OOD: energy relevance < 0.35; low relevance < 0.55.",
         "news_pdf_bridge": "GDELT weekly tone samples are joined to PDF event scores.",
         "generative_model": "Gemini summary with cautious research wording.",
         "chunk_multilabel": "Validation includes paragraph-level weak multi-labels; human multi-label annotation is still required.",

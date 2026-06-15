@@ -1,26 +1,51 @@
-report_id,title,expected_hint,predicted_hint,matched,paragraphs,evidence
-irena_global_renewables_outlook_2020,IRENA Global Renewables Outlook 2020,ICLN/NEE,ICLN/NEE,True,196,40
-irena_renewable_energy_statistics_2020,IRENA Renewable Energy Statistics 2020,ICLN/NEE,ICLN/NEE,True,31,40
-irena_renewable_power_costs_2022,IRENA Renewable Power Costs 2022,ICLN/NEE,ICLN/NEE,True,230,40
-irena_world_energy_transitions_2023,IRENA World Energy Transitions Outlook 2023,ICLN/NEE,ICLN/NEE,True,88,40
-irena_renewable_energy_statistics_2024,IRENA Renewable Energy Statistics 2024,ICLN/NEE,ICLN/NEE,True,33,40
-nextera_annual_2023,NextEra Energy Annual Report 2023,ETN,XLE/XOM transition pressure,False,352,40
-siemens_energy_annual_2023,Siemens Energy Annual Report 2023,ETN,ETN,True,381,40
-ipcc_ar6_synthesis,IPCC AR6 Synthesis Report,Climate risk,Climate risk,True,219,40
-iea_electricity_grids_2023,IEA Electricity Grids and Secure Energy Transitions,ETN,ETN,True,212,40
-iea_weo_2022,IEA World Energy Outlook 2022,ICLN/NEE,XLE/XOM transition pressure,False,165,40
-iea_electricity_2024,IEA Electricity 2024,ETN,ETN,True,214,40
-iea_power_sector_2021,IEA Secure Energy Transitions in the Power Sector,ETN,ETN,True,163,40
-iea_oil_2024,IEA Oil 2024,XLE/XOM transition pressure,XLE/XOM transition pressure,True,205,40
-iea_gas_2023,IEA Medium-Term Gas Report 2023,XLE/XOM transition pressure,XLE/XOM transition pressure,True,153,40
-iea_coal_2023,IEA Coal 2023,XLE/XOM transition pressure,ICLN/NEE,False,196,40
-iea_global_ev_2023,IEA Global EV Outlook 2023,ICLN/NEE,ETN,False,219,40
-iea_solar_pv_supply_2022,IEA Solar PV Global Supply Chains 2022,ICLN/NEE,ICLN/NEE,True,185,40
-iea_clean_tech_supply_2022,IEA Securing Clean Energy Technology Supply Chains,ICLN/NEE,ICLN/NEE,True,192,40
-iea_etp_2023,IEA Energy Technology Perspectives 2023,ICLN/NEE,ICLN/NEE,True,225,40
-iea_weo_2023_validation,IEA World Energy Outlook 2023,ICLN/NEE,ICLN/NEE,True,211,40
-iea_batteries_2024,IEA Batteries and Secure Energy Transitions 2024,ETN,ICLN/NEE,False,226,40
-eia_electric_power_annual_2023,EIA Electric Power Annual 2023,ETN,ETN,True,158,28
-exxon_acs_2024,ExxonMobil Advancing Climate Solutions 2024,Climate risk,XLE/XOM transition pressure,False,226,40
-exxon_acs_2025,ExxonMobil Advancing Climate Solutions 2025,Climate risk,XLE/XOM transition pressure,False,252,40
-ipcc_ar6_wg3_mitigation,IPCC AR6 WGIII Mitigation Full Report,Climate risk,Climate risk,True,263,40
+report_id,title,split,expected_hint,predicted_hint,matched,energy_relevance,ood_decision,ood_subtype,paragraphs,evidence,chunk_count,multi_label_chunk_count,multi_label_chunk_rate,chunk_primary_label,chunk_secondary_label,chunk_renewable_opportunity_count,chunk_fossil_pressure_count,chunk_grid_infrastructure_count,chunk_climate_risk_count
+irena_global_renewables_outlook_2020,IRENA Global Renewables Outlook 2020,validation,ICLN/NEE,ICLN/NEE,True,0.9771022489126419,in_domain,energy_domain,196,40,33,7,0.21212121212121213,renewable_opportunity,fossil_pressure,10,10,10,10
+irena_renewable_energy_statistics_2020,IRENA Renewable Energy Statistics 2020,validation,ICLN/NEE,ICLN/NEE,True,0.8830665413240719,in_domain,energy_domain,31,40,16,4,0.25,renewable_opportunity,grid_infrastructure,8,3,6,3
+irena_renewable_power_costs_2022,IRENA Renewable Power Costs 2022,validation,ICLN/NEE,ICLN/NEE,True,0.9841899015297165,in_domain,energy_domain,230,40,36,1,0.027777777777777776,fossil_pressure,climate_risk,9,10,8,10
+iea_breakthrough_agenda_report_2023,IEA Breakthrough Agenda Report 2023,test,ICLN/NEE,ICLN/NEE,True,0.947742151869446,in_domain,energy_domain,206,40,35,5,0.14285714285714285,renewable_opportunity,fossil_pressure,10,10,10,10
+iea_renewables_2023_validation,IEA Renewables 2023,validation,ICLN/NEE,ICLN/NEE,True,1.0,in_domain,energy_domain,204,40,36,4,0.1111111111111111,renewable_opportunity,fossil_pressure,10,10,10,10
+nextera_annual_2023,NextEra Energy Annual Report 2023,validation,ETN,XLE/XOM transition pressure,False,0.9210251781543985,in_domain,energy_domain,352,40,37,1,0.02702702702702703,renewable_opportunity,fossil_pressure,10,10,10,8
+iea_oil_gas_net_zero_2023_validation,IEA Oil and Gas Industry in Net Zero Transitions,validation,XLE/XOM transition pressure,XLE/XOM transition pressure,True,0.9818123750753512,in_domain,energy_domain,205,40,35,4,0.11428571428571428,renewable_opportunity,fossil_pressure,10,10,10,9
+ipcc_ar6_synthesis,IPCC AR6 Synthesis Report,validation,Climate risk,Climate risk,True,0.9893939393939393,in_domain,energy_domain,219,40,33,2,0.06060606060606061,renewable_opportunity,fossil_pressure,10,10,5,10
+iea_electricity_grids_2023,IEA Electricity Grids and Secure Energy Transitions,validation,ETN,ETN,True,0.9902777777777778,in_domain,energy_domain,212,40,36,3,0.08333333333333333,renewable_opportunity,grid_infrastructure,10,9,10,10
+iea_weo_2022,IEA World Energy Outlook 2022,validation,ICLN/NEE,XLE/XOM transition pressure,False,0.9917696392366094,in_domain,energy_domain,165,40,37,2,0.05405405405405406,renewable_opportunity,fossil_pressure,10,10,10,9
+iea_electricity_2024,IEA Electricity 2024,validation,ETN,ETN,True,0.9938585032130908,in_domain,energy_domain,214,40,35,4,0.11428571428571428,renewable_opportunity,fossil_pressure,10,10,10,10
+iea_power_sector_2021,IEA Secure Energy Transitions in the Power Sector,validation,ETN,ETN,True,1.0,in_domain,energy_domain,163,40,34,3,0.08823529411764706,renewable_opportunity,grid_infrastructure,10,8,10,9
+iea_oil_2024,IEA Oil 2024,validation,XLE/XOM transition pressure,XLE/XOM transition pressure,True,0.9365114236048606,in_domain,energy_domain,205,40,28,8,0.2857142857142857,fossil_pressure,grid_infrastructure,8,10,9,9
+iea_gas_2023,IEA Medium-Term Gas Report 2023,validation,XLE/XOM transition pressure,XLE/XOM transition pressure,True,0.9660243045834305,in_domain,energy_domain,153,40,31,6,0.1935483870967742,grid_infrastructure,climate_risk,8,9,10,10
+iea_coal_2023,IEA Coal 2023,validation,XLE/XOM transition pressure,ICLN/NEE,False,0.9422001909591776,in_domain,energy_domain,196,40,34,6,0.17647058823529413,renewable_opportunity,fossil_pressure,10,10,10,10
+iea_global_ev_2023,IEA Global EV Outlook 2023,validation,ICLN/NEE,ETN,False,0.844168782432287,in_domain,energy_domain,219,40,29,7,0.2413793103448276,renewable_opportunity,fossil_pressure,10,10,9,9
+iea_solar_pv_supply_2022,IEA Solar PV Global Supply Chains 2022,test,ICLN/NEE,ICLN/NEE,True,0.9772323859328431,in_domain,energy_domain,185,40,31,6,0.1935483870967742,renewable_opportunity,grid_infrastructure,10,7,10,10
+iea_clean_tech_supply_2022,IEA Securing Clean Energy Technology Supply Chains,validation,ICLN/NEE,ICLN/NEE,True,0.9184708356781135,in_domain,energy_domain,192,40,34,2,0.058823529411764705,fossil_pressure,renewable_opportunity,9,10,9,8
+iea_etp_2023,IEA Energy Technology Perspectives 2023,validation,ICLN/NEE,ICLN/NEE,True,0.9595368331995552,in_domain,energy_domain,225,40,35,4,0.11428571428571428,renewable_opportunity,fossil_pressure,10,10,10,9
+iea_weo_2023_validation,IEA World Energy Outlook 2023,validation,ICLN/NEE,ICLN/NEE,True,0.9977281735235985,in_domain,energy_domain,211,40,38,1,0.02631578947368421,fossil_pressure,grid_infrastructure,9,10,10,10
+iea_batteries_2024,IEA Batteries and Secure Energy Transitions 2024,validation,ETN,ICLN/NEE,False,0.9794117647058824,in_domain,energy_domain,226,40,34,3,0.08823529411764706,renewable_opportunity,grid_infrastructure,10,7,10,10
+eia_electric_power_annual_2023,EIA Electric Power Annual 2023,validation,ETN,Mixed transition signal (ETN + ICLN/NEE),True,0.956252140845518,in_domain,energy_domain,158,31,31,0,0.0,renewable_opportunity,grid_infrastructure,10,5,9,7
+exxon_acs_2024,ExxonMobil Advancing Climate Solutions 2024,validation,Climate risk,XLE/XOM transition pressure,False,0.933265292390483,in_domain,energy_domain,226,40,37,1,0.02702702702702703,renewable_opportunity,fossil_pressure,10,10,8,10
+exxon_acs_2025,ExxonMobil Advancing Climate Solutions 2025,test,Climate risk,XLE/XOM transition pressure,False,0.9650346429119641,in_domain,energy_domain,252,40,36,2,0.05555555555555555,fossil_pressure,grid_infrastructure,9,10,10,10
+ipcc_ar6_wg3_mitigation,IPCC AR6 WGIII Mitigation Full Report,validation,Climate risk,XLE/XOM transition pressure,False,0.9570869970875955,in_domain,energy_domain,263,40,36,3,0.08333333333333333,renewable_opportunity,fossil_pressure,10,10,9,10
+iea_world_energy_investment_2024,IEA World Energy Investment 2024,validation,ICLN/NEE,ICLN/NEE,True,1.0,in_domain,energy_domain,139,40,34,4,0.11764705882352941,renewable_opportunity,fossil_pressure,10,10,9,9
+iea_weo_2024,IEA World Energy Outlook 2024,validation,ICLN/NEE,ICLN/NEE,True,0.9949526396049115,in_domain,energy_domain,222,40,37,2,0.05405405405405406,renewable_opportunity,fossil_pressure,10,10,9,10
+iea_renewables_2024,IEA Renewables 2024,validation,ICLN/NEE,ICLN/NEE,True,0.9596776237052618,in_domain,energy_domain,187,40,35,5,0.14285714285714285,renewable_opportunity,fossil_pressure,10,10,10,10
+iea_global_ev_2024,IEA Global EV Outlook 2024,validation,ICLN/NEE,ETN,False,0.8448436166625335,in_domain,energy_domain,225,40,28,9,0.32142857142857145,renewable_opportunity,grid_infrastructure,10,9,10,10
+iea_global_critical_minerals_2024,IEA Global Critical Minerals Outlook 2024,validation,ICLN/NEE,ICLN/NEE,True,0.9875,in_domain,energy_domain,151,40,28,5,0.17857142857142858,fossil_pressure,renewable_opportunity,8,10,7,8
+iea_coal_2024,IEA Coal 2024,test,XLE/XOM transition pressure,XLE/XOM transition pressure,True,0.9329569200257728,in_domain,energy_domain,187,40,36,4,0.1111111111111111,renewable_opportunity,fossil_pressure,10,10,10,10
+iea_oil_2025,IEA Oil 2025,test,XLE/XOM transition pressure,XLE/XOM transition pressure,True,0.9392293536203306,in_domain,energy_domain,208,40,33,4,0.12121212121212122,renewable_opportunity,climate_risk,10,8,9,10
+iea_electricity_2025,IEA Electricity 2025,test,ETN,ETN,True,0.9985299863817167,in_domain,energy_domain,199,40,35,1,0.02857142857142857,renewable_opportunity,grid_infrastructure,10,7,10,9
+iea_energy_and_ai,IEA Energy and AI,test,ETN,ETN,True,0.9766666666666666,in_domain,energy_domain,219,40,30,5,0.16666666666666666,renewable_opportunity,grid_infrastructure,10,8,10,7
+iea_energy_technology_perspectives_2024,IEA Energy Technology Perspectives 2024,validation,ICLN/NEE,ICLN/NEE,True,0.9459844541022538,in_domain,energy_domain,273,40,35,3,0.08571428571428572,renewable_opportunity,grid_infrastructure,10,9,10,10
+irena_renewable_capacity_statistics_2024,IRENA Renewable Capacity Statistics 2024,validation,ICLN/NEE,ICLN/NEE,True,0.9533333333333334,in_domain,energy_domain,32,40,15,5,0.3333333333333333,renewable_opportunity,grid_infrastructure,8,2,7,4
+iea_global_methane_tracker_2024,IEA Global Methane Tracker 2024,validation,XLE/XOM transition pressure,XLE/XOM transition pressure,True,0.9328738083526019,in_domain,energy_domain,204,40,37,2,0.05405405405405406,fossil_pressure,grid_infrastructure,9,10,10,10
+ipcc_ar6_wg1_physical_science,IPCC AR6 WGI Physical Science Basis,test,Climate risk,Climate risk,True,0.9092269498507539,in_domain,energy_domain,232,40,38,1,0.02631578947368421,fossil_pressure,grid_infrastructure,9,10,10,10
+iea_energy_efficiency_2024,IEA Energy Efficiency 2024,validation,ETN,ICLN/NEE,False,0.9273724862215678,in_domain,energy_domain,191,40,36,2,0.05555555555555555,renewable_opportunity,grid_infrastructure,10,9,10,9
+eia_electric_power_annual_2022,EIA Electric Power Annual 2022,validation,ETN,Mixed transition signal (ETN + ICLN/NEE),True,0.9538187474652456,in_domain,energy_domain,157,30,30,0,0.0,renewable_opportunity,grid_infrastructure,10,5,8,7
+eia_annual_energy_outlook_2023,EIA Annual Energy Outlook 2023,validation,XLE/XOM transition pressure,Mixed transition signal (ICLN/NEE + XLE/XOM transition pressure),True,0.9406424923999561,in_domain,energy_domain,156,40,36,4,0.1111111111111111,renewable_opportunity,fossil_pressure,10,10,10,10
+iea_global_hydrogen_review_2024,IEA Global Hydrogen Review 2024,validation,ICLN/NEE,ICLN/NEE,True,0.9517203642640099,in_domain,energy_domain,216,40,36,2,0.05555555555555555,fossil_pressure,climate_risk,9,10,9,10
+eaton_annual_2023_validation,Eaton Annual Report 2023,validation,ETN,Mixed transition signal (ETN + Climate risk),True,0.88161689085768,in_domain,energy_domain,221,40,23,3,0.13043478260869565,fossil_pressure,renewable_opportunity,9,10,6,2
+iea_the_future_of_heat_pumps,IEA The Future of Heat Pumps,test,ETN,Mixed transition signal (ICLN/NEE + XLE/XOM transition pressure),False,0.9244719591470392,in_domain,energy_domain,190,40,30,8,0.26666666666666666,fossil_pressure,climate_risk,9,10,9,10
+iea_energy_efficiency_2023,IEA Energy Efficiency 2023,validation,ETN,ICLN/NEE,False,0.9702612747846419,in_domain,energy_domain,170,40,35,5,0.14285714285714285,renewable_opportunity,fossil_pressure,10,10,10,10
+iea_renewable_energy_market_update_2022,IEA Renewable Energy Market Update May 2022,test,ICLN/NEE,ICLN/NEE,True,0.9890625,in_domain,energy_domain,125,40,32,5,0.15625,renewable_opportunity,fossil_pressure,10,10,10,7
+iea_net_zero_roadmap_2023,IEA Net Zero Roadmap 2023 Update,validation,Climate risk,ICLN/NEE,False,0.982016697525256,in_domain,energy_domain,192,40,38,1,0.02631578947368421,renewable_opportunity,fossil_pressure,10,10,9,10
+iea_clean_energy_market_monitor_march_2024,IEA Clean Energy Market Monitor March 2024,validation,ICLN/NEE,ICLN/NEE,True,0.9904522655554646,in_domain,energy_domain,90,40,28,9,0.32142857142857145,renewable_opportunity,fossil_pressure,10,10,9,10
+iea_renewable_energy_market_update_june_2023,IEA Renewable Energy Market Update June 2023,test,ICLN/NEE,ICLN/NEE,True,1.0,in_domain,energy_domain,188,40,33,4,0.12121212121212122,renewable_opportunity,climate_risk,10,9,8,10
+iea_emissions_2023,IEA CO2 Emissions in 2023,validation,Climate risk,ICLN/NEE,False,0.928687180481856,in_domain,energy_domain,93,40,30,8,0.26666666666666666,renewable_opportunity,fossil_pressure,10,10,9,9

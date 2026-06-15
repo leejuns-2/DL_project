@@ -1,2 +1,2 @@
-n,accuracy,macro_f1,weighted_f1,caveat
-25,0.72,0.6746309246309246,0.7353846153846153,small public-PDF validation set with mixed easy and boundary cases; not a generalization estimate
+n,accuracy,macro_f1,weighted_f1,zero_shot_matches,few_shot_matches,caveat
+50,0.72,0.6579408212560387,0.7034251207729468,17,36,50-public-PDF pilot evaluation with mixed easy and boundary cases; not a generalization estimate

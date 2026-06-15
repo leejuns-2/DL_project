@@ -37,7 +37,7 @@
             <h2 id="hero-title">MiniLM turns energy report paragraphs into traceable market-context signals.</h2>
             <p>
               This project applies a selected foundation model to the energy-report domain. MiniLM-L6-v2 embeds PDF
-              paragraphs, a few-shot head adapts those vectors into energy-theme signals, and the output is linked to
+              paragraphs, supervised logistic linear probes score energy-theme salience, and the output is linked to
               historical context around the report date.
             </p>
             <div class="foundation-card" aria-label="Selected foundation model">
@@ -50,7 +50,7 @@
                 </div>
                 <div>
                   <dt>Adaptation</dt>
-                  <dd>Frozen embeddings + few-shot logistic regression head</dd>
+                  <dd>Frozen embeddings + supervised logistic linear probe</dd>
                 </div>
                 <div>
                   <dt>Output</dt>
@@ -131,9 +131,9 @@
             <p>TF-IDF narrows long PDFs to candidate evidence paragraphs before MiniLM-based scoring is applied.</p>
           </article>
           <article>
-            <span>Few-shot adaptation</span>
-            <strong>Task-specific logistic head</strong>
-            <p>Small human examples train a lightweight head on top of frozen embeddings instead of full fine-tuning.</p>
+            <span>Linear probe adaptation</span>
+            <strong>Task-specific logistic heads</strong>
+            <p>Small human examples train lightweight supervised heads on top of frozen embeddings instead of full fine-tuning.</p>
           </article>
           <article>
             <span>Historical context</span>
@@ -284,13 +284,13 @@
             <p class="eyebrow">Project summary</p>
             <h2>Foundation-model paragraph representations connected to market-context evidence.</h2>
             <p>
-              The validation view shows how MiniLM paragraph vectors, few-shot adaptation, evidence retrieval, and historical
+              The validation view shows how MiniLM paragraph vectors, supervised linear probes, evidence retrieval, and historical
               market windows work together. It keeps the limitations visible rather than presenting the output as prediction.
             </p>
           </div>
           <div class="lede-points">
             <span>Selected FM: MiniLM-L6-v2</span>
-            <span>Adaptation: few-shot head</span>
+            <span>Adaptation: supervised linear probe</span>
             <span>Validation: 50 PDF catalog</span>
           </div>
         </div>
@@ -302,9 +302,9 @@
             <span class="ov-sub">local validation set</span>
           </div>
           <div class="ov-card">
-            <span class="ov-num">18/25</span>
+            <span class="ov-num">36/50</span>
             <span class="ov-label">Pilot match</span>
-            <span class="ov-sub">few-shot top theme matched a human reference label in 18 of 25 pilot PDFs</span>
+            <span class="ov-sub">few-shot top theme matched a human reference label in 36 of 50 pilot PDFs</span>
           </div>
           <div class="ov-card">
             <span class="ov-num">313</span>
@@ -322,8 +322,8 @@
           <h2 class="panel-title">Project workflow</h2>
           <div class="workflow-grid">
             <div><strong>1. Foundation representation</strong><span>MiniLM-L6-v2 embeds PDF paragraphs</span></div>
-            <div><strong>2. Evidence retrieval</strong><span>TF-IDF filters candidate evidence fragments</span></div>
-            <div><strong>3. Few-shot adaptation</strong><span>Logistic head maps vectors to energy themes</span></div>
+            <div><strong>2. Theme-conditioned retrieval</strong><span>TF-IDF + MiniLM finds evidence fragments</span></div>
+            <div><strong>3. Linear probe adaptation</strong><span>Small-sample logistic heads score theme salience</span></div>
             <div><strong>4. Historical context</strong><span>News tone and market windows around report dates</span></div>
           </div>
         </div>
@@ -331,9 +331,8 @@
         <div class="panel">
           <h2 class="panel-title">Method notes</h2>
           <p class="method-callout">
-            In this project, the foundation model is used as a representation engine, not as a predictor: it converts
-            unstructured report paragraphs into semantic vectors, and the few-shot classifier translates those vectors into
-            auditable energy-theme signals.
+            Theme scores represent topic salience or thematic relevance in retrieved evidence paragraphs, not bullish or
+            bearish market direction. Market data is attached only as historical context.
           </p>
           <div class="method-rationale-grid">
             <div>
@@ -342,11 +341,11 @@
             </div>
             <div>
               <strong>Why not full fine-tuning?</strong>
-              <span>The project has limited labeled examples, so a frozen FM plus a few-shot head is more realistic and auditable.</span>
+              <span>The project has limited labeled examples, so a frozen FM plus a few-shot supervised linear probe is more realistic and auditable.</span>
             </div>
             <div>
-              <strong>Why TF-IDF?</strong>
-              <span>It is a retrieval aid that reduces noise before the foundation-model representation step.</span>
+              <strong>Why binary heads?</strong>
+              <span>Energy PDFs can contain renewable, fossil, grid, and climate themes at the same time, so independent sigmoid heads fit the multi-label structure better than one softmax.</span>
             </div>
             <div>
               <strong>Why market data?</strong>
@@ -364,14 +363,14 @@
                 <td>Used as representation, not as a final answer generator</td>
               </tr>
               <tr>
-                <td>Few-shot adaptation</td>
-                <td>Frozen MiniLM embeddings with a logistic regression head trained from small human examples</td>
-                <td>Not full foundation-model fine-tuning</td>
+                <td>Linear probe</td>
+                <td>Frozen MiniLM embeddings with four independent logistic heads trained from 33 positive and 8 negative examples</td>
+                <td>Not episodic meta-learning or full foundation-model fine-tuning</td>
               </tr>
               <tr>
-                <td>Returns</td>
-                <td>Historical downstream example around the report date</td>
-                <td>Not a future prediction or recommendation</td>
+                <td>Pilot evaluation</td>
+                <td>Dominant-theme top-1 alignment on 50 public PDFs</td>
+                <td>Not full multi-label generalization performance</td>
               </tr>
             </tbody>
           </table>
@@ -387,12 +386,12 @@
             </div>
             <div>
               <strong>What improved</strong>
-              <span>Few-shot logistic adaptation improved pilot theme alignment from 10/25 to 18/25.</span>
+              <span>Small-sample logistic heads improved dominant-theme alignment from 17/50 to 36/50.</span>
               <span>Evidence fragments make model outputs easier to audit than whole-document summaries.</span>
             </div>
             <div>
               <strong>What this does not claim</strong>
-              <span>Historical market windows do not prove causality and do not forecast future returns.</span>
+              <span>Historical market windows do not prove causality, do not forecast future returns, and do not turn theme scores into investment signals.</span>
               <span>Generic ESG language, mixed grid-transition paragraphs, and date errors remain failure cases.</span>
             </div>
           </div>
@@ -403,7 +402,7 @@
             <h2 class="panel-title">Report signals</h2>
             <div id="signals-table-wrap" class="table-wrap">
               <table class="data-table compact-table">
-                <thead><tr><th>Report</th><th>Date</th><th>Top context</th><th>Transition</th></tr></thead>
+                <thead><tr><th>Report</th><th>Date</th><th>Sector context</th><th>Transition</th></tr></thead>
                 <tbody>
                   <tr><td>IEA Renewables 2023</td><td>2024-01-11</td><td>ICLN/NEE</td><td class="pos">1.219</td></tr>
                   <tr><td>IEA World Energy Outlook 2023</td><td>2023-10-24</td><td>ICLN/NEE</td><td class="pos">0.978</td></tr>
@@ -417,14 +416,14 @@
             <div id="pdf-metrics-wrap" class="table-wrap">
               <table class="data-table compact-table">
                 <thead><tr><th>n</th><th>Accuracy</th><th>Macro-F1</th><th>Weighted-F1</th></tr></thead>
-                <tbody><tr><td>25</td><td class="pos">0.720</td><td>0.675</td><td>0.735</td></tr></tbody>
+                <tbody><tr><td>50</td><td class="pos">0.720</td><td>0.658</td><td>0.703</td></tr></tbody>
               </table>
             </div>
             <div id="validation-table-wrap" class="table-wrap table-spaced">
               <table class="data-table compact-table">
                 <thead><tr><th>Check</th><th>Result</th><th>Meaning</th></tr></thead>
                 <tbody>
-                  <tr><td>Pilot theme match</td><td class="pos">18/25</td><td>Few-shot top theme matched human reference labels.</td></tr>
+                  <tr><td>Pilot theme match</td><td class="pos">36/50</td><td>Linear-probe top theme matched human reference labels.</td></tr>
                   <tr><td>Catalog scope</td><td>50 PDFs</td><td>Includes in-domain reports and boundary cases.</td></tr>
                 </tbody>
               </table>
@@ -433,14 +432,14 @@
         </div>
 
         <div class="panel">
-          <h2 class="panel-title">Zero-shot vs Few-shot</h2>
-          <p class="section-help">Same PDF set, compared between embedding similarity baseline and few-shot head.</p>
+          <h2 class="panel-title">Zero-shot vs Linear Probe</h2>
+          <p class="section-help">Same evidence pool, compared between zero-shot similarity and small-sample supervised logistic heads.</p>
           <div id="zero-shot-chart-wrap" class="comparison-grid"></div>
           <div id="zero-shot-wrap" class="table-wrap">
             <table class="data-table compact-table">
-              <thead><tr><th>Experiment</th><th>Baseline</th><th>Few-shot head</th><th>Interpretation</th></tr></thead>
+              <thead><tr><th>Experiment</th><th>Baseline</th><th>Linear probe</th><th>Interpretation</th></tr></thead>
               <tbody>
-                <tr><td>Pilot theme match</td><td>10/25</td><td class="pos">18/25</td><td>Few-shot adaptation improves theme alignment.</td></tr>
+                <tr><td>Pilot theme match</td><td>17/50</td><td class="pos">36/50</td><td>Small-sample linear probing improves theme alignment.</td></tr>
                 <tr><td>Evidence traceability</td><td>Medium</td><td class="pos">Higher</td><td>Retrieved fragments become easier to audit.</td></tr>
                 <tr><td>OOD robustness</td><td class="neg">Weak</td><td>Partial</td><td>Generic ESG text can still confuse the model.</td></tr>
               </tbody>

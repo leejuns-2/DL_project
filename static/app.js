@@ -105,7 +105,7 @@ const FALLBACK_DASHBOARD = {
     { title: 'IEA World Energy Outlook 2023', date: '2023-10-24', renewable_opportunity: 1.0, fossil_pressure: 0.023, grid_infrastructure: 0.0, climate_risk: 0.002, transition_signal: 0.978, asset_hint: 'ICLN/NEE' },
     { title: 'IEA Oil and Gas Industry in Net Zero Transitions', date: '2023-11-23', renewable_opportunity: 0.650, fossil_pressure: 1.0, grid_infrastructure: 0.448, climate_risk: 0.0, transition_signal: 0.098, asset_hint: 'XLE/XOM transition pressure' },
   ],
-  pdf_metrics: [{ n: 50, accuracy: 0.72, macro_f1: 0.704, weighted_f1: 0.718 }],
+  pdf_metrics: [{ n: 50, accuracy: 0.72, macro_f1: 0.658, weighted_f1: 0.703 }],
   validation: [
     { title: 'IRENA Global Renewables Outlook 2020', expected_hint: 'ICLN/NEE', predicted_hint: 'ICLN/NEE', matched: true },
     { title: 'EIA Annual Energy Outlook 2023', expected_hint: 'XLE/XOM transition pressure', predicted_hint: 'XLE/XOM transition pressure', matched: true },
@@ -344,11 +344,12 @@ function renderConfidence(scores, conf) {
     : '';
   const confColor = { High: '#1f7a5c', Medium: '#9a5b18', Low: '#a33b32' }[conf.level] || '#667085';
   box.innerHTML = `
-    <strong>${escapeHtml(scores.asset_hint || 'Research signal')}</strong>
+    <strong>${escapeHtml(scores.asset_hint || 'Sector context')}</strong>
     <span>Top theme: ${escapeHtml(topThemeLabel)}</span>
     ${mixedLine}
-    <span>Confidence: <b style="color:${confColor}">${escapeHtml(conf.level || 'Review')}</b></span>
-    <span>Score margin: ${Number(conf.margin || 0).toFixed(3)}</span>`;
+    <span>Review level: <b style="color:${confColor}">${escapeHtml(conf.level || 'Review')}</b></span>
+    <span>Separation margin: ${Number(conf.margin || 0).toFixed(3)}</span>
+    <span>Scores are relative, uncalibrated model scores.</span>`;
 }
 
 function renderSummary(summary) {
@@ -572,7 +573,7 @@ function renderZeroShotComparison(rows) {
         <div style="width:${item.pct.toFixed(1)}%"></div>
       </div>
       <p>${item.cls === 'improved'
-        ? 'Few-shot labels adapt the foundation-model representation to the energy-report task.'
+        ? 'Small labeled examples adapt the frozen MiniLM representation to the dominant-theme task.'
         : 'Embedding similarity alone is useful, but can over-read generic climate or ESG language.'}</p>
     </div>`).join('');
 }
@@ -595,7 +596,7 @@ function renderNewsBridgeTable(rows) {
   renderGenericTable('news-bridge-wrap', rows, {
     title: 'Report',
     date: 'Date',
-    asset_hint: 'PDF signal',
+    asset_hint: 'Sector context',
     news_context_available: 'News',
     news_window_mean: '4w mean',
     news_window_trend: '4w trend',
@@ -620,7 +621,7 @@ function renderSignalsTable(signals) {
     grid_infrastructure: 'Grid',
     climate_risk: 'Climate',
     transition_signal: 'Transition',
-    asset_hint: 'Asset hint',
+    asset_hint: 'Sector context',
   });
 }
 
@@ -662,7 +663,7 @@ function prettyHeader(col) {
   return col
     .replace('forward_4w_', '4w ')
     .replace('transition_signal', 'Transition')
-    .replace('asset_hint', 'Asset hint')
+    .replace('asset_hint', 'Sector context')
     .replace('title', 'Report');
 }
 

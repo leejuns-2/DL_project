@@ -2,7 +2,7 @@
 
 ## Project Status
 
-본 프로젝트는 교수님이 제시한 `PDF -> Text -> Summary` 예시를 에너지 시장 분석 문제로 확장한 MVP입니다. 단순 요약에서 끝내지 않고, PDF 근거 문단을 주제 신호로 변환하고, 뉴스 컨텍스트 및 과거 주가 수익률과 연결했습니다.
+본 프로젝트는 교수님이 제시한 `PDF -> Text -> Summary` 예시를 에너지 시장 분석 문제로 확장한 MVP입니다. 단순 요약에서 끝내지 않고, PDF 근거 문단을 topic salience score로 변환하고, 뉴스 컨텍스트 및 과거 주가 수익률과 연결했습니다.
 
 ## Current Pipeline
 
@@ -10,8 +10,8 @@
 2. PyMuPDF 기반 텍스트 추출
 3. TF-IDF 기반 에너지 전환 관련 근거 문단 검색
 4. MiniLM 임베딩 생성
-5. 소수 라벨 예시 기반 few-shot Logistic Regression 분류 헤드 학습
-6. 재생에너지, 화석연료 압력, 전력망, 기후 리스크 점수 산출
+5. 소수 라벨 예시 기반 supervised logistic linear probe 학습
+6. 재생에너지, 화석연료 압력, 전력망, 기후 리스크 topic salience 점수 산출
 7. Gemini 3.5 Flash 기반 근거 요약 생성
 8. 보고서 날짜 주변 뉴스 감성 컨텍스트 연결
 9. 보고서 날짜 이후 과거 주가 수익률과 downstream 연결
@@ -22,16 +22,43 @@
 | Model | Role |
 |---|---|
 | `sentence-transformers/all-MiniLM-L6-v2` | PDF 문단과 예시 문장을 벡터로 변환하는 사전학습 Transformer 임베딩 모델 |
-| Logistic Regression heads | 고정된 임베딩 위에서 소수 라벨 예시로 학습되는 downstream few-shot classifier |
+| Logistic Regression heads | 고정된 임베딩 위에서 소수 라벨 예시로 학습되는 supervised linear probe |
 | `gemini-3.5-flash` | PDF 근거 문단을 한국어 연구 요약으로 생성 |
 
 정확한 표현:
 
-> 본 프로젝트는 MiniLM foundation embedding을 고정하고, 사람이 정의한 소수 라벨 예시를 이용해 downstream 분류 헤드를 few-shot 방식으로 학습했습니다.
+> 본 프로젝트는 MiniLM foundation embedding을 고정하고, 사람이 정의한 소수 라벨 예시를 이용해 downstream logistic head만 학습한 small-sample supervised linear probing 방식입니다.
 
 과장하면 안 되는 표현:
 
 > 대형 foundation model 전체를 fine-tuning했다.
+
+## Method Definition
+
+Theme score는 특정 에너지 주제가 검색된 상위 근거 문단에서 얼마나 강하게 나타나는지를 나타내는 topic salience / thematic relevance score입니다. 이는 주가 상승·하락 방향, 투자 추천, 예측 신호가 아닙니다. `asset_hint`는 코드 호환을 위해 남아 있지만, 해석상으로는 theme-linked sector context tag입니다.
+
+4개 테마는 상호 배타적이지 않으므로 4-class softmax 대신 독립적인 binary logistic head 4개를 사용했습니다.
+
+```text
+s_i,k = sigmoid(w_k^T h_i + b_k)
+
+h_i: MiniLM 384-dimensional paragraph embedding
+k: energy theme
+s_i,k: paragraph-level thematic relevance score
+```
+
+학습 예시는 theme positive 33개와 non-energy negative 8개입니다. 평가 카탈로그는 50개 공개 PDF이며, 현재 수치는 PDF별 dominant reference theme과 top-1 model result의 alignment만 측정합니다. 따라서 multi-label theme detection의 일반화 성능이 아니라 pilot dominant-theme alignment 결과입니다.
+
+주요 규칙은 다음과 같습니다.
+
+| Item | Rule |
+|---|---|
+| Zero-shot baseline | same evidence pool에서 theme-conditioned retrieval score를 top 30% 평균으로 집계 |
+| Few-shot score | same evidence pool에서 logistic-head score를 top 30% 평균으로 집계 |
+| Mixed signal | top-1/top-2 margin `<= 0.10` and second score `>= 0.80` |
+| OOD | energy relevance `< 0.35` |
+| Low relevance | energy relevance `< 0.55` |
+| Score caveat | scores are relative and not calibrated probabilities |
 
 ## Data Summary
 
@@ -40,15 +67,15 @@
 | Stock weekly returns | `data/processed/stock_returns_weekly.csv` | 배포 포함 |
 | Report signals | `data/processed/reports/report_signals.csv` | 핵심 PDF 5개 |
 | Report-stock link | `data/processed/reports/report_stock_link.csv` | 핵심 PDF 5개 |
-| Expanded PDF validation | `data/processed/reports/expanded_pdf_validation.csv` | 추가 PDF 25개 |
-| Test PDF manifest | `data/processed/reports/sample_pdf_manifest.csv` | 로컬 저장 PDF 25개 목록 |
+| Expanded PDF validation | `data/processed/reports/expanded_pdf_validation.csv` | 추가 PDF 50개 |
+| Test PDF manifest | `data/processed/reports/sample_pdf_manifest.csv` | 로컬 저장 PDF 50개 목록 |
 | News context signal | `data/processed/news_sentiment_weekly.csv` | 실제 GDELT GKG weekly sample tone |
 | Climate anomaly | `data/processed/climate_monthly_gistemp_tai.csv` | NASA GISTEMP monthly anomaly |
 | Report-news bridge | `data/processed/reports/report_news_bridge.csv` | 뉴스 컨텍스트 연결 완료 |
 | Actual climate-news lag | `data/processed/reports/actual_climate_news_lag_corr.csv` | H1 예비 검증 |
 | Actual news-stock lag | `data/processed/reports/actual_news_stock_best_lag.csv` | H2 예비 검증 |
 | PDF validation metrics | `data/processed/reports/pdf_validation_metrics.csv` | confusion matrix, macro-F1 |
-| PDF failure analysis | `data/processed/reports/pdf_validation_failure_analysis.csv` | 오분류 7건 원인 해석 |
+| PDF failure analysis | `data/processed/reports/pdf_validation_failure_analysis.csv` | 오분류 14건 원인 해석 |
 | Gemini summary check | `data/processed/reports/gemini_summary_human_check.csv` | 표본 5개 근거 점검 |
 | Out-of-domain PDF test | `data/processed/reports/out_of_domain_pdf_test.csv` | WHO/OECD 비에너지 PDF 음성 대조군 |
 | Zero-shot vs few-shot comparison | `data/processed/reports/zero_shot_vs_few_shot.csv` | foundation model 전이학습 비교 |
@@ -59,26 +86,26 @@
 
 | Metric | Value |
 |---|---:|
-| Validation PDFs | 25 |
-| Matched expected direction | 18 |
+| Validation PDFs | 50 |
+| Matched expected direction | 36 |
 | Accuracy | 0.72 |
-| Macro-F1 | 0.675 |
+| Macro-F1 | 0.658 |
 | Interpretation | 소규모 MVP 검증. 실패 사례를 포함한 재현 가능 결과 |
 
 주의:
 
-> 18/25 일치는 소규모 검증 결과입니다. 이를 정량 일반화 성능으로 발표하면 안 됩니다.
+> 36/50 일치는 소규모 검증 결과입니다. 이를 정량 일반화 성능으로 발표하면 안 됩니다.
 
-현재 실패 사례는 NextEra annual report, IEA World Energy Outlook 2022, IEA Coal 2023, IEA Global EV Outlook 2023, IEA Batteries 2024, ExxonMobil ACS 2024, ExxonMobil ACS 2025입니다. 공통 원인은 문서가 단일 주제만 담고 있지 않고, 재생에너지·화석연료·전력망·정책 전환 표현이 섞여 있다는 점입니다. 따라서 이 프로젝트는 “완벽한 분류기”가 아니라, 복합 PDF를 foundation embedding과 few-shot head로 신호화하는 연구용 MVP라고 설명하는 것이 안전합니다.
+현재 실패 사례는 14건이며, 대표적으로 NextEra annual report, IEA World Energy Outlook, IEA Coal, IEA Global EV Outlook, IEA Batteries, ExxonMobil ACS, IPCC WGIII, IEA Energy Efficiency 문서가 포함됩니다. 공통 원인은 문서가 단일 주제만 담고 있지 않고, 재생에너지·화석연료·전력망·정책 전환 표현이 섞여 있다는 점입니다. 따라서 이 프로젝트는 “완벽한 분류기”가 아니라, 복합 PDF를 foundation embedding과 supervised logistic linear probe로 topic salience화하는 연구용 MVP라고 설명하는 것이 안전합니다.
 
-## Zero-shot vs Few-shot Comparison
+## Zero-shot vs Supervised Linear Probe Comparison
 
-같은 25개 검증 PDF에 대해 두 가지 방식을 비교했습니다.
+같은 50개 검증 PDF에 대해 두 가지 방식을 비교했습니다.
 
-| Method | Correct / 25 | Match rate | Meaning |
+| Method | Correct / 50 | Match rate | Meaning |
 |---|---:|---:|---|
-| Zero-shot embedding similarity | 10 | 40% | 사전학습 임베딩과 테마 키워드 유사도만 사용 |
-| Few-shot classifier head | 18 | 72% | 고정된 MiniLM 임베딩 위에 사람이 만든 소수 예시로 logistic head 학습 |
+| Zero-shot embedding similarity | 17 | 34% | 사전학습 임베딩과 테마 키워드 유사도만 사용 |
+| Few-shot classifier head | 36 | 72% | 고정된 MiniLM 임베딩 위에 사람이 만든 소수 예시로 logistic head 학습 |
 
 이 비교는 교수님이 요구한 foundation model 활용 흐름을 더 명확하게 보여줍니다. 즉, 범용 사전학습 모델을 그대로 쓰는 것에서 끝내지 않고, 에너지 리포트라는 downstream task에 맞게 소수 예시를 이용해 전이학습 계층을 얹었습니다.
 
@@ -119,7 +146,7 @@
 
 ## Limitations
 
-- 검증 PDF 수를 25개로 늘렸지만, 여전히 엄밀한 일반화 평가에는 작습니다.
+- 검증 PDF 수를 50개로 늘렸지만, 여전히 엄밀한 일반화 평가에는 작습니다.
 - 뉴스 컨텍스트는 실제 GDELT 기반이지만 주간 1시점 표본이므로 대량 뉴스 기반 일반화 검증은 추가로 필요합니다.
 - Gemini 요약은 생성형 모델 출력이므로 근거 문단과 함께 확인해야 합니다.
 - 과거 수익률 연결은 예측이나 투자 추천이 아닙니다.

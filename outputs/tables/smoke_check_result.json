@@ -1,0 +1,75 @@
+{
+  "generated_at_utc": "2026-06-15T10:12:13.495985+00:00",
+  "status": "pass",
+  "error": "",
+  "checks": [
+    {
+      "status": "pass",
+      "message": "FastAPI app imports"
+    },
+    {
+      "status": "pass",
+      "message": "dashboard API returns 200"
+    },
+    {
+      "status": "pass",
+      "message": "dashboard API includes methodology"
+    },
+    {
+      "status": "pass",
+      "message": "dashboard methodology names MiniLM"
+    },
+    {
+      "status": "pass",
+      "message": "web app root returns 200"
+    },
+    {
+      "status": "pass",
+      "message": "event window returns are generated"
+    },
+    {
+      "status": "pass",
+      "message": "abnormal return column exists"
+    },
+    {
+      "status": "pass",
+      "message": "non-energy text is marked out_of_domain"
+    },
+    {
+      "status": "pass",
+      "message": "energy PDF is marked in_domain"
+    },
+    {
+      "status": "pass",
+      "message": "energy relevance clears threshold"
+    },
+    {
+      "status": "pass",
+      "message": "split metrics include all groups"
+    },
+    {
+      "status": "pass",
+      "message": "close high-confidence themes are marked mixed_signal"
+    },
+    {
+      "status": "pass",
+      "message": "mixed signal keeps renewable component visible"
+    },
+    {
+      "status": "pass",
+      "message": "mixed signal keeps fossil component visible"
+    },
+    {
+      "status": "pass",
+      "message": "chunk weak labels can mark multi-label evidence"
+    },
+    {
+      "status": "pass",
+      "message": "chunk label summary counts mixed chunks"
+    },
+    {
+      "status": "pass",
+      "message": "summary support metadata includes evidence chunk ids"
+    }
+  ]
+}

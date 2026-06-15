@@ -17,8 +17,8 @@ app_port: 7860
 ## 핵심 기능
 
 - PDF 업로드 분석: 에너지 보고서를 업로드하면 문단 추출, 근거 검색, 주제 점수화, Gemini 요약을 수행합니다.
-- Few-shot learning: MiniLM 임베딩 모델은 고정하고, 사람이 작성한 소수의 라벨 예시로 Logistic Regression 분류 헤드를 학습합니다.
-- Zero-shot vs few-shot 비교: 사전학습 임베딩 유사도만 쓴 baseline과 few-shot classifier head를 같은 25개 PDF에서 비교합니다.
+- Few-shot supervised linear probe: MiniLM 임베딩 모델은 고정하고, 사람이 작성한 소수의 라벨 예시로 Logistic Regression 분류 헤드만 학습합니다.
+- Zero-shot vs linear probe 비교: 사전학습 임베딩 유사도만 쓴 baseline과 supervised logistic linear probe를 같은 50개 PDF에서 비교합니다.
 - Mixed-signal 판정: WEO처럼 상위 두 테마가 모두 강한 복합 보고서는 단일 자산 힌트 대신 복합 전환 신호로 표시합니다.
 - Chunk multi-label 보완: PDF 단일 라벨 외에 근거 문단별 weak multi-label 테이블을 만들어 복합 주제 문서를 더 세밀하게 점검합니다.
 - OOD subtype 판정: WHO 보건 문서처럼 climate-health 표현이 많은 문서는 climate risk 확정 대신 overlap/review 대상으로 표시할 수 있게 합니다.
@@ -37,21 +37,55 @@ app_port: 7860
 
 주의: MiniLM 자체의 파라미터를 fine-tuning하지는 않습니다. 본 프로젝트의 few-shot learning은 고정된 foundation embedding 위에 작은 downstream 분류 헤드를 학습하는 방식입니다.
 
+## 핵심 정의
+
+- Theme score는 특정 에너지 주제가 문서의 상위 근거 문단에서 얼마나 강하게 나타나는지를 나타내는 topic salience / thematic relevance score입니다. 주가 상승·하락, 투자 매수·매도 방향을 의미하지 않습니다.
+- `asset_hint` 필드는 투자 추천이 아니라 theme-linked sector context tag입니다. 보고서 신호를 해석할 때 비교할 수 있는 역사적 시장 카테고리를 표시합니다.
+- `confidence`로 표시되는 값은 보정된 확률이 아니라 top-theme score와 separation margin 기반의 uncalibrated model score입니다.
+- Gemini 요약은 점수 산출에 관여하지 않습니다. 검색된 evidence fragments만 입력으로 받아 설명 문장을 생성하거나, 근거 기반 추출 요약을 제공합니다.
+
 ## 분석 흐름
 
 ```text
 PDF Upload
   -> Text Extraction (PyMuPDF)
-  -> Evidence Retrieval (TF-IDF)
+  -> Theme-conditioned Evidence Retrieval (TF-IDF + MiniLM similarity)
   -> MiniLM Embedding
-  -> Few-shot Logistic Classifier Heads
-  -> Report Topic Scores
+  -> Small-sample Supervised Logistic Heads
+  -> Topic Salience Scores
   -> Single or Mixed Signal Decision
   -> Chunk-level Weak Multi-label Audit
   -> Evidence-grounded Gemini Summary
   -> News Context Bridge
   -> Historical Stock-return Link
 ```
+
+## 모델 구조와 평가 방식
+
+에너지 보고서는 하나의 테마만 포함하는 단일 분류 문제가 아니라 renewable, fossil pressure, grid infrastructure, climate risk가 동시에 나타날 수 있는 multi-label 성격을 가집니다. 따라서 네 점수의 합을 1로 제한하는 4-class softmax 대신, 테마별 독립 sigmoid/logistic head 4개를 사용했습니다.
+
+```text
+s_i,k = sigmoid(w_k^T h_i + b_k)
+
+h_i: MiniLM이 생성한 384차원 문단 임베딩
+k: energy theme
+s_i,k: 문단 i가 theme k와 관련될 model score
+```
+
+학습 데이터는 사람이 작성한 테마별 positive 예시 33개와 non-energy negative 예시 8개입니다. 평가 데이터는 `data/sample_pdfs`의 50개 공개 PDF 카탈로그이며, 학습 예시 문장과 평가 PDF는 같은 문단을 공유하지 않습니다. 현재 평가는 완전한 일반화 성능이 아니라 개발 카탈로그 기반의 pilot dominant-theme alignment입니다.
+
+Zero-shot baseline은 같은 retrieval evidence pool에서 테마별 retrieval score를 top-30% 평균으로 집계한 frozen MiniLM/TF-IDF similarity baseline입니다. Linear probe 방식은 같은 evidence paragraph pool에 대해 고정 MiniLM embedding을 만들고 supervised logistic head score를 top-30% 평균으로 집계합니다.
+
+주요 threshold는 코드에 고정되어 있습니다.
+
+| 판정 | 기준 |
+|---|---|
+| Mixed signal | top-1과 top-2 separation margin `<= 0.10` 그리고 second theme score `>= 0.80` |
+| OOD | energy relevance `< 0.35` |
+| Low relevance | energy relevance `< 0.55` |
+| Climate-health review | `climate_health_overlap`이고 keyword relevance `< 0.70` |
+
+Threshold는 개발 카탈로그에서 경험적으로 정한 값이며, 보편적으로 최적이라고 주장하지 않습니다.
 
 ## 데이터 요약
 
@@ -60,9 +94,9 @@ PDF Upload
 | Stock weekly returns | 2019-2024 주간 수익률 CSV 포함 |
 | Report signals | 핵심 에너지 PDF 5개 분석 결과 포함 |
 | Validation PDF catalog | `data/sample_pdfs`에 로컬 검증 PDF 50개 준비 |
-| Expanded PDF validation | 기존 25개 결과 포함, 50개 카탈로그 기준 재검증 가능 |
+| Expanded PDF validation | 50개 공개 PDF 카탈로그 기준 pilot validation 결과 포함 |
 | PDF validation chunk labels | 검증 재생성 시 문단 단위 weak multi-label 검토 테이블 생성 |
-| Zero-shot vs few-shot comparison | zero-shot 10/25, few-shot 18/25 비교 결과 포함 |
+| Zero-shot vs few-shot comparison | zero-shot 17/50, few-shot 36/50 비교 결과 포함 |
 | News sentiment context | 실제 GDELT GKG weekly sample tone signal 포함 |
 | Report-stock link | 보고서 날짜 이후 4주 과거 수익률 연결 포함 |
 
@@ -74,8 +108,9 @@ PDF Upload
 
 - 이 앱은 미래 수익률을 예측하지 않습니다.
 - 포트폴리오 계산은 과거 특정 기간의 실제 수익률을 적용한 시나리오입니다.
-- 기존 PDF 검증 결과는 25개 중 18개 일치 기준입니다. 표본이 아직 작고 복합 주제 문서의 단일 라벨 평가가 어려워 정량 일반화 성능으로 해석하면 안 됩니다.
-- 현재 로컬에는 50개 검증 PDF 카탈로그가 준비되어 있습니다. 그래도 일반화 성능을 주장하려면 문서 유형별 층화 샘플링으로 최소 100개 이상 PDF와 사람이 검수한 chunk multi-label 평가셋이 필요합니다.
+- PDF 검증 결과는 50개 중 36개 일치 기준입니다. 표본이 아직 작고 복합 주제 문서의 단일 라벨 평가가 어려워 정량 일반화 성능으로 해석하면 안 됩니다.
+- 모델은 multi-label 구조이지만 현재 human reference는 PDF별 dominant theme 하나입니다. 따라서 accuracy 0.720은 dominant-theme top-1 alignment이며, 전체 multi-label theme detection 성능이 아닙니다.
+- 일반화 성능을 주장하려면 문서 유형별 층화 샘플링으로 최소 100개 이상 PDF와 사람이 검수한 chunk multi-label 평가셋이 필요합니다.
 - WHO 보건 문서처럼 climate-health 표현이 많은 OOD 문서는 climate risk와 겹칠 수 있으므로, `ood_subtype=climate_health_overlap` 또는 review 판정을 별도로 확인해야 합니다.
 - Gemini 요약은 생성형 출력이므로 단독 근거로 쓰지 말고, 함께 반환되는 evidence chunk와 support level을 확인해야 합니다.
 - 뉴스 컨텍스트는 현재 샘플 신호이므로, 대량 뉴스 원자료 기반 정량 검증으로 과장하면 안 됩니다.
