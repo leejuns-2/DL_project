@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-06-15T10:12:13.495985+00:00",
+  "generated_at_utc": "2026-08-31T10:48:26.230430+00:00",
   "status": "pass",
   "error": "",
   "checks": [
@@ -36,12 +36,8 @@
       "message": "non-energy text is marked out_of_domain"
     },
     {
-      "status": "pass",
-      "message": "energy PDF is marked in_domain"
-    },
-    {
-      "status": "pass",
-      "message": "energy relevance clears threshold"
+      "status": "skip",
+      "message": "sample energy PDF check requires scripts/download_validation_pdfs.py"
     },
     {
       "status": "pass",

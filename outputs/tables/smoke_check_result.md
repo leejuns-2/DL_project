@@ -1,7 +1,7 @@
 # Smoke Check Result
 
 - status: `pass`
-- generated_at_utc: `2026-06-15T10:12:13.495985+00:00`
+- generated_at_utc: `2026-08-31T10:48:26.230430+00:00`
 
 | Status | Check |
 |---|---|
@@ -13,8 +13,7 @@
 | pass | event window returns are generated |
 | pass | abnormal return column exists |
 | pass | non-energy text is marked out_of_domain |
-| pass | energy PDF is marked in_domain |
-| pass | energy relevance clears threshold |
+| skip | sample energy PDF check requires scripts/download_validation_pdfs.py |
 | pass | split metrics include all groups |
 | pass | close high-confidence themes are marked mixed_signal |
 | pass | mixed signal keeps renewable component visible |

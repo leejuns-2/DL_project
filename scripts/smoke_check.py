@@ -111,7 +111,9 @@ def check_ood_guard(embedder):
 def check_sample_pdf(embedder):
     pdf = ROOT / "data" / "sample_pdfs" / "IEA_Renewables_2023.pdf"
     if not pdf.exists():
-        print("skip - sample PDF not found")
+        message = "sample energy PDF check requires scripts/download_validation_pdfs.py"
+        RESULTS.append({"status": "skip", "message": message})
+        print(f"skip - {message}")
         return
     report = ReportMeta("smoke_pdf", "IEA Renewables 2023", "2024-01-11", "IEA", str(pdf), "")
     pages = extract_pdf_text_from_path(pdf, max_pages=8)
