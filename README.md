@@ -1,4 +1,4 @@
-﻿---
+---
 title: Energy Report-to-Market Signal Analyzer
 emoji: ⚡
 colorFrom: green
@@ -10,140 +10,104 @@ app_port: 7860
 
 # Energy Report-to-Market Signal Analyzer
 
-에너지·기후 PDF 보고서를 텍스트로 변환하고, 근거 문단을 추출한 뒤, 사전학습 Transformer 임베딩 모델과 few-shot 분류 헤드를 이용해 시장 분석용 신호로 바꾸는 연구용 MVP입니다.
+## Overview
 
-이 앱은 투자 추천 도구가 아닙니다. PDF 내용, 뉴스 컨텍스트, 과거 주가 수익률을 연결해 “보고서 신호가 시장 데이터와 어떻게 함께 보이는지”를 탐색하는 downstream 분석 예시입니다.
+에너지·기후 PDF에서 관련 문단을 찾고, 문서의 주요 테마를 점수화한 뒤 뉴스와 과거 시장 데이터를 함께 보여주는 분석 도구입니다. 목표는 보고서의 근거를 잃지 않으면서 비정형 문서를 비교 가능한 신호로 바꾸는 것입니다.
 
-## 핵심 기능
+이 도구는 수익률을 예측하거나 투자를 추천하지 않습니다. 뉴스와 시장 데이터는 보고서 해석을 위한 과거 컨텍스트이며, 관찰된 상관관계는 인과관계를 뜻하지 않습니다.
 
-- PDF 업로드 분석: 에너지 보고서를 업로드하면 문단 추출, 근거 검색, 주제 점수화, Gemini 요약을 수행합니다.
-- Few-shot supervised linear probe: MiniLM 임베딩 모델은 고정하고, 사람이 작성한 소수의 라벨 예시로 Logistic Regression 분류 헤드만 학습합니다.
-- Zero-shot vs linear probe 비교: 사전학습 임베딩 유사도만 쓴 baseline과 supervised logistic linear probe를 같은 50개 PDF에서 비교합니다.
-- Mixed-signal 판정: WEO처럼 상위 두 테마가 모두 강한 복합 보고서는 단일 자산 힌트 대신 복합 전환 신호로 표시합니다.
-- Chunk multi-label 보완: PDF 단일 라벨 외에 근거 문단별 weak multi-label 테이블을 만들어 복합 주제 문서를 더 세밀하게 점검합니다.
-- OOD subtype 판정: WHO 보건 문서처럼 climate-health 표현이 많은 문서는 climate risk 확정 대신 overlap/review 대상으로 표시할 수 있게 합니다.
-- Evidence-grounded Gemini 요약: `gemini-3.5-flash`를 사용할 때 요약과 함께 `evidence_chunk_ids`, `support_level`을 반환해 근거 문단 확인을 강제합니다.
-- 뉴스-PDF 연결: 실제 GDELT GKG 공개 원자료에서 주간 샘플을 수집해 보고서 날짜 주변 뉴스 tone 컨텍스트를 PDF 신호와 연결합니다.
-- Downstream stock link: 보고서 날짜 전후의 실제 과거 수익률을 연결해 시나리오로 보여줍니다.
-- 포트폴리오 시뮬레이터: 사용자가 투자금과 비중을 넣으면 과거 수익률 기반 가상 손익을 계산합니다.
+## What I Built
 
-## 사용 모델
+- PyMuPDF 기반 PDF 텍스트 추출과 문단 분할
+- TF-IDF와 MiniLM 유사도를 함께 쓰는 근거 문단 검색
+- 고정된 MiniLM 임베딩 위에서 동작하는 테마별 Logistic Regression 분류 헤드
+- zero-shot 유사도 기준선과 supervised linear probe 비교
+- 복합 테마 문서와 비에너지 문서를 위한 mixed/OOD 판정
+- 검색 근거 ID를 함께 반환하는 Gemini 요약
+- GDELT 뉴스 톤과 보고서 날짜 전후 과거 시장 데이터 연결
 
-| 모델 | 역할 |
-|---|---|
-| `sentence-transformers/all-MiniLM-L6-v2` | PDF 문단과 라벨 예시 문장을 임베딩 |
-| Logistic Regression heads | 소수 라벨 예시 기반 downstream few-shot topic classification |
-| `gemini-3.5-flash` | 근거 문단 기반 생성형 한국어 요약 |
-
-주의: MiniLM 자체의 파라미터를 fine-tuning하지는 않습니다. 본 프로젝트의 few-shot learning은 고정된 foundation embedding 위에 작은 downstream 분류 헤드를 학습하는 방식입니다.
-
-## 핵심 정의
-
-- Theme score는 특정 에너지 주제가 문서의 상위 근거 문단에서 얼마나 강하게 나타나는지를 나타내는 topic salience / thematic relevance score입니다. 주가 상승·하락, 투자 매수·매도 방향을 의미하지 않습니다.
-- `asset_hint` 필드는 투자 추천이 아니라 theme-linked sector context tag입니다. 보고서 신호를 해석할 때 비교할 수 있는 역사적 시장 카테고리를 표시합니다.
-- `confidence`로 표시되는 값은 보정된 확률이 아니라 top-theme score와 separation margin 기반의 uncalibrated model score입니다.
-- Gemini 요약은 점수 산출에 관여하지 않습니다. 검색된 evidence fragments만 입력으로 받아 설명 문장을 생성하거나, 근거 기반 추출 요약을 제공합니다.
-
-## 분석 흐름
+## Pipeline
 
 ```text
-PDF Upload
-  -> Text Extraction (PyMuPDF)
-  -> Theme-conditioned Evidence Retrieval (TF-IDF + MiniLM similarity)
-  -> MiniLM Embedding
-  -> Small-sample Supervised Logistic Heads
-  -> Topic Salience Scores
-  -> Single or Mixed Signal Decision
-  -> Chunk-level Weak Multi-label Audit
-  -> Evidence-grounded Gemini Summary
-  -> News Context Bridge
-  -> Historical Stock-return Link
+PDF
+  -> text extraction
+  -> evidence retrieval
+  -> MiniLM embedding
+  -> topic classifier
+  -> mixed-theme / OOD checks
+  -> evidence-grounded summary
+  -> news and historical market context
 ```
 
-## 모델 구조와 평가 방식
+## Model
 
-에너지 보고서는 하나의 테마만 포함하는 단일 분류 문제가 아니라 renewable, fossil pressure, grid infrastructure, climate risk가 동시에 나타날 수 있는 multi-label 성격을 가집니다. 따라서 네 점수의 합을 1로 제한하는 4-class softmax 대신, 테마별 독립 sigmoid/logistic head 4개를 사용했습니다.
-
-```text
-s_i,k = sigmoid(w_k^T h_i + b_k)
-
-h_i: MiniLM이 생성한 384차원 문단 임베딩
-k: energy theme
-s_i,k: 문단 i가 theme k와 관련될 model score
-```
-
-학습 데이터는 사람이 작성한 테마별 positive 예시 33개와 non-energy negative 예시 8개입니다. 평가 데이터는 `data/sample_pdfs`의 50개 공개 PDF 카탈로그이며, 학습 예시 문장과 평가 PDF는 같은 문단을 공유하지 않습니다. 현재 평가는 완전한 일반화 성능이 아니라 개발 카탈로그 기반의 pilot dominant-theme alignment입니다.
-
-Zero-shot baseline은 같은 retrieval evidence pool에서 테마별 retrieval score를 top-30% 평균으로 집계한 frozen MiniLM/TF-IDF similarity baseline입니다. Linear probe 방식은 같은 evidence paragraph pool에 대해 고정 MiniLM embedding을 만들고 supervised logistic head score를 top-30% 평균으로 집계합니다.
-
-주요 threshold는 코드에 고정되어 있습니다.
-
-| 판정 | 기준 |
+| Component | Role |
 |---|---|
-| Mixed signal | top-1과 top-2 separation margin `<= 0.10` 그리고 second theme score `>= 0.80` |
-| OOD | energy relevance `< 0.35` |
-| Low relevance | energy relevance `< 0.55` |
-| Climate-health review | `climate_health_overlap`이고 keyword relevance `< 0.70` |
+| `sentence-transformers/all-MiniLM-L6-v2` | 보고서 문단과 라벨 예시를 384차원 임베딩으로 변환 |
+| Logistic Regression heads | 고정된 임베딩에서 renewable, fossil pressure, grid infrastructure, climate risk를 독립적으로 점수화 |
+| Gemini | 검색된 근거 문단을 설명하고 요약. 분류 점수 계산에는 사용하지 않음 |
 
-Threshold는 개발 카탈로그에서 경험적으로 정한 값이며, 보편적으로 최적이라고 주장하지 않습니다.
+MiniLM 파라미터는 fine-tuning하지 않습니다. 학습되는 부분은 사람이 작성한 소수 예시를 사용한 작은 downstream 분류 헤드입니다. 각 테마는 상호 배타적이지 않기 때문에 단일 softmax 대신 독립적인 logistic head를 사용합니다.
 
-## 데이터 요약
+`confidence`는 보정된 확률이 아니라 테마 점수와 상위 점수 간 차이에 기반한 값입니다. `asset_hint`도 매수·매도 신호가 아니라 관련 시장 범주를 표시하는 태그입니다.
 
-| 데이터 | 현재 상태 |
-|---|---|
-| Stock weekly returns | 2019-2024 주간 수익률 CSV 포함 |
-| Report signals | 핵심 에너지 PDF 5개 분석 결과 포함 |
-| Validation PDF catalog | `data/sample_pdfs`에 로컬 검증 PDF 50개 준비 |
-| Expanded PDF validation | 50개 공개 PDF 카탈로그 기준 pilot validation 결과 포함 |
-| PDF validation chunk labels | 검증 재생성 시 문단 단위 weak multi-label 검토 테이블 생성 |
-| Zero-shot vs few-shot comparison | zero-shot 17/50, few-shot 36/50 비교 결과 포함 |
-| News sentiment context | 실제 GDELT GKG weekly sample tone signal 포함 |
-| Report-stock link | 보고서 날짜 이후 4주 과거 수익률 연결 포함 |
+## Validation
 
-검증 요약은 `outputs/tables/model_validation_brief.md`에 정리되어 있습니다. 여기에는 핵심 지표, baseline 비교, 실패 사례, OOD 점검, Gemini 요약 검토, 라이브 웹 테스트 기록이 포함됩니다.
+현재 저장된 검증 결과는 공개 PDF 50개로 만든 소규모 개발 카탈로그에서 생성했습니다.
 
-뉴스 컨텍스트 CSV는 GDELT GKG 공개 파일에서 매주 금요일 12:00 UTC 파일을 표본 수집해 만든 실제 뉴스 tone 신호입니다. 전체 뉴스 모집단이 아니라 주간 1시점 샘플이므로, Bloomberg/NewsAPI 전체 히스토리와 같은 완전한 뉴스 원자료 분석으로 과장하면 안 됩니다.
+| Method | Dominant-theme top-1 alignment |
+|---|---:|
+| Zero-shot embedding similarity | 17/50 (34%) |
+| Supervised linear probe | 36/50 (72%) |
 
-## 해석 주의
+`36/50`은 문서마다 사람이 정한 하나의 dominant theme과 모델의 top-1 결과가 일치한 횟수입니다. 전체 multi-label 정확도가 아닙니다. 상세 결과와 실패 사례는 [`outputs/tables/model_validation_brief.md`](outputs/tables/model_validation_brief.md)에 있습니다.
 
-- 이 앱은 미래 수익률을 예측하지 않습니다.
-- 포트폴리오 계산은 과거 특정 기간의 실제 수익률을 적용한 시나리오입니다.
-- PDF 검증 결과는 50개 중 36개 일치 기준입니다. 표본이 아직 작고 복합 주제 문서의 단일 라벨 평가가 어려워 정량 일반화 성능으로 해석하면 안 됩니다.
-- 모델은 multi-label 구조이지만 현재 human reference는 PDF별 dominant theme 하나입니다. 따라서 accuracy 0.720은 dominant-theme top-1 alignment이며, 전체 multi-label theme detection 성능이 아닙니다.
-- 일반화 성능을 주장하려면 문서 유형별 층화 샘플링으로 최소 100개 이상 PDF와 사람이 검수한 chunk multi-label 평가셋이 필요합니다.
-- WHO 보건 문서처럼 climate-health 표현이 많은 OOD 문서는 climate risk와 겹칠 수 있으므로, `ood_subtype=climate_health_overlap` 또는 review 판정을 별도로 확인해야 합니다.
-- Gemini 요약은 생성형 출력이므로 단독 근거로 쓰지 말고, 함께 반환되는 evidence chunk와 support level을 확인해야 합니다.
-- 뉴스 컨텍스트는 현재 샘플 신호이므로, 대량 뉴스 원자료 기반 정량 검증으로 과장하면 안 됩니다.
-- 상관관계와 수익률 연결은 인과관계 증명이 아닙니다.
+남아 있는 평가 한계는 다음과 같습니다.
 
-## 로컬 실행
+- 50개 문서는 일반화 성능을 주장하기에는 작습니다.
+- 실제 문서는 여러 테마를 함께 다루므로 단일 dominant label이 내용을 충분히 표현하지 못합니다.
+- WHO 보건 문서처럼 climate-health 표현이 있는 OOD 문서는 climate risk와 겹칠 수 있습니다.
+- mixed/OOD 기준값은 개발 카탈로그에서 경험적으로 정한 heuristic입니다.
+- 문단 단위 테이블은 weak label이며, 사람이 검수한 multi-label 정답셋이 아닙니다.
+
+## Data and Context
+
+저장소에는 대표 보고서 신호, 검증 결과, GDELT GKG 주간 표본에서 만든 뉴스 톤, NASA GISTEMP 기후 이상치, 과거 주간 수익률 연결 결과가 포함되어 있습니다. GDELT 데이터는 주간 한 시점 표본이므로 전체 뉴스 모집단 분석으로 해석하면 안 됩니다. 시장 연결 역시 설명용 과거 상관·이벤트 컨텍스트입니다.
+
+## Run
+
+Python 환경에 의존성을 설치하고 API를 실행합니다.
 
 ```bash
 pip install -r requirements.txt
 uvicorn app:app --reload --port 8000
 ```
 
-브라우저에서 `http://localhost:8000` 접속
+브라우저에서 `http://localhost:8000`에 접속합니다. Gemini 요약은 `GEMINI_API_KEY`가 설정된 경우에만 활성화되며, 키는 저장소에 커밋하지 않습니다.
 
-## 검증 자료 재생성
+검증 자료를 처음부터 다시 만들 때는 PDF를 먼저 내려받아야 합니다.
 
 ```bash
+python scripts/download_validation_pdfs.py
 python scripts/build_model_validation_brief.py
 python scripts/smoke_check.py
 ```
 
-생성되는 핵심 문서는 `outputs/tables/model_validation_brief.md`입니다.
+첫 번째 명령은 외부 PDF 호스트에 대한 네트워크 접근이 필요합니다. 주요 요약은 `outputs/tables/model_validation_brief.md`에 생성됩니다.
 
-## Gemini 설정
+## My Contribution
 
-Hugging Face Space의 Variables/Secrets에 아래 값을 넣으면 Gemini 요약이 활성화됩니다.
+저장소에서 확인할 수 있는 구현 범위는 다음과 같습니다.
 
-```bash
-GEMINI_API_KEY=your_key
-GEMINI_MODEL=gemini-3.5-flash
-GENAI_PROVIDER=gemini
-GEMINI_THINKING_LEVEL=high
-GEMINI_MAX_OUTPUT_TOKENS=600
-```
+- end-to-end 보고서 분석 흐름 설계
+- 근거 검색, 테마 점수화, mixed/OOD 판정 구현
+- zero-shot과 supervised linear probe 비교 및 검증 스크립트 작성
+- 보고서 신호를 뉴스·과거 시장 컨텍스트와 연결
+- 실패 사례와 해석 한계 문서화
 
-API 키는 코드나 Git에 직접 넣으면 안 됩니다.
+## Limitations
+
+- 분류 헤드는 적은 수의 사람이 작성한 예시로 학습되어 라벨과 문서 유형 변화에 민감합니다.
+- 현재 OOD 처리는 완전한 도메인 분류기가 아니라 relevance와 키워드 기반 규칙을 포함합니다.
+- Gemini 출력은 생성형 요약이므로 반환된 evidence chunk와 함께 검토해야 합니다.
+- 뉴스·시장 분석은 예비 상관 및 컨텍스트 분석이며, 인과 추론이나 투자 예측이 아닙니다.
