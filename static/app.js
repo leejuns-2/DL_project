@@ -105,7 +105,7 @@ const FALLBACK_DASHBOARD = {
     { title: 'IEA World Energy Outlook 2023', date: '2023-10-24', renewable_opportunity: 1.0, fossil_pressure: 0.023, grid_infrastructure: 0.0, climate_risk: 0.002, transition_signal: 0.978, asset_hint: 'ICLN/NEE' },
     { title: 'IEA Oil and Gas Industry in Net Zero Transitions', date: '2023-11-23', renewable_opportunity: 0.650, fossil_pressure: 1.0, grid_infrastructure: 0.448, climate_risk: 0.0, transition_signal: 0.098, asset_hint: 'XLE/XOM transition pressure' },
   ],
-  pdf_metrics: [{ n: 50, accuracy: 0.72, macro_f1: 0.658, weighted_f1: 0.703 }],
+  pdf_metrics: [{ n: 50, agreement: 0.72, macro_f1: 0.658, weighted_f1: 0.703 }],
   validation: [
     { title: 'IRENA Global Renewables Outlook 2020', expected_hint: 'ICLN/NEE', predicted_hint: 'ICLN/NEE', matched: true },
     { title: 'EIA Annual Energy Outlook 2023', expected_hint: 'XLE/XOM transition pressure', predicted_hint: 'XLE/XOM transition pressure', matched: true },
@@ -535,7 +535,7 @@ function renderActualEvidenceTables(data) {
     target: 'Target', lag_weeks: 'Best lag', n: 'n', r: 'r', p_value: 'p-value',
   });
   renderGenericTable('pdf-metrics-wrap', data.pdf_metrics, {
-    n: 'n', accuracy: 'Accuracy', macro_f1: 'Macro-F1', weighted_f1: 'Weighted-F1',
+    n: 'n', agreement: 'Top-1 Agreement', macro_f1: 'Macro-F1', weighted_f1: 'Weighted-F1',
   });
   renderGenericTable('failure-analysis-wrap', data.failure_analysis, {
     failure_type: 'Failure type', example: 'Example', cause: 'Cause', improvement: 'Improvement',

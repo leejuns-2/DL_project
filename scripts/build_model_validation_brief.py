@@ -79,11 +79,11 @@ def build_brief() -> str:
     total = int(metric.get("n", len(validation))) if not validation.empty or metric else 0
     matched = int(validation["matched"].astype(bool).sum()) if "matched" in validation else None
 
-    zero_accuracy = None
-    few_accuracy = None
+    zero_agreement = None
+    few_agreement = None
     if not comparison.empty:
-        zero_accuracy = comparison["zero_shot_matched"].astype(bool).mean()
-        few_accuracy = comparison["few_shot_matched"].astype(bool).mean()
+        zero_agreement = comparison["zero_shot_matched"].astype(bool).mean()
+        few_agreement = comparison["few_shot_matched"].astype(bool).mean()
 
     failure_rows = []
     if not failures.empty:
@@ -129,7 +129,7 @@ def build_brief() -> str:
         "## 목적",
         "",
         "이 문서는 에너지/기후 PDF 분석 모델을 발표 또는 제출용 결과로 해석할 때 필요한 검증 요약입니다. "
-        "단순 정확도만 제시하지 않고, baseline 비교, 실패 사례, OOD 한계, mixed-signal 문서, 생성형 요약 검증을 함께 공개합니다.",
+        "단일 agreement 수치만 제시하지 않고, baseline 비교, 실패 사례, OOD 한계, mixed-signal 문서, 생성형 요약 검증을 함께 공개합니다.",
         "",
         "## 한줄 평가",
         "",
@@ -140,8 +140,9 @@ def build_brief() -> str:
         "",
         "- Theme score는 검색된 상위 근거 문단에서 특정 에너지 주제가 얼마나 강하게 나타나는지를 나타내는 topic salience / thematic relevance score입니다. 주가 상승·하락 방향이나 투자 신호가 아닙니다.",
         "- MiniLM은 frozen Transformer sentence encoder이고, 학습 대상은 logistic regression linear probe입니다. 엄밀한 episodic meta-learning이나 foundation model fine-tuning은 아닙니다.",
-        "- 학습 예시는 theme positive 33개와 non-energy negative 8개입니다. 평가 카탈로그는 50개 공개 PDF이며, 현재 평가는 PDF별 dominant reference theme과 model top signal의 top-1 alignment만 측정합니다.",
-        "- 모델 구조는 multi-label에 가깝지만, 현재 ground truth가 PDF별 dominant label 하나이므로 Accuracy 72.0%는 전체 multi-label 성능이 아닙니다.",
+        "- 학습 예시는 theme positive 33개와 non-energy negative 8개입니다. 개발 카탈로그는 50개 공개 PDF이며, 현재 평가는 PDF별 dominant reference theme과 model top signal의 top-1 agreement만 측정합니다.",
+        "- 이 50개 카탈로그는 개발 과정에서 사용되었으므로 독립 held-out benchmark가 아닙니다. 내부 development_main/development_diagnostic 구분도 진단용입니다.",
+        "- 모델 구조는 multi-label에 가깝지만, 현재 reference가 PDF별 dominant label 하나이므로 72.0% agreement는 전체 multi-label 성능이 아닙니다.",
         "- Mixed signal rule: top-1/top-2 separation margin `<= 0.10` and second theme score `>= 0.80`.",
         "- OOD rule: energy relevance `< 0.35`, low relevance `< 0.55`, climate-health overlap은 review 대상으로 분리합니다.",
         "",
@@ -149,12 +150,12 @@ def build_brief() -> str:
         "",
         "| 항목 | 값 | 해석 |",
         "|---|---:|---|",
-        f"| 검증 PDF 수 | {_safe_int(total)} | 공개 PDF 기반 소규모 pilot 검증셋 |",
+        f"| 개발 PDF 수 | {_safe_int(total)} | 공개 PDF 기반 소규모 development catalog |",
         f"| 기대 방향 일치 | {_safe_int(matched)} / {_safe_int(total)} | 사람이 정한 자산/테마 방향과 모델 판정 비교 |",
-        f"| Accuracy | {_pct(metric.get('accuracy'))} | dominant-theme top-1 alignment 기준의 참고값 |",
+        f"| Dominant-theme top-1 agreement | {_pct(metric.get('agreement', metric.get('accuracy')))} | 독립 holdout이 아닌 개발 결과 |",
         f"| Macro-F1 | {float(metric.get('macro_f1', 0)):.3f} | 라벨 불균형 영향을 줄인 평균 F1 |",
-        f"| Zero-shot baseline | {_pct(zero_accuracy)} | MiniLM 임베딩 유사도만 사용한 기준선 |",
-        f"| Supervised linear probe | {_pct(few_accuracy)} | 고정 MiniLM 임베딩 위 logistic head 사용 |",
+        f"| Zero-shot baseline | {_pct(zero_agreement)} | MiniLM 임베딩 유사도만 사용한 기준선 |",
+        f"| Supervised linear probe | {_pct(few_agreement)} | 고정 MiniLM 임베딩 위 logistic head 사용 |",
         f"| Chunk weak labels | {_safe_int(chunk_total)} | 문단 단위 multi-label 확장용 약지도 테이블 |",
         f"| Mixed chunks | {_safe_int(mixed_chunk_count)} | 복합 문단으로 검토해야 할 chunk 수 |",
         "",

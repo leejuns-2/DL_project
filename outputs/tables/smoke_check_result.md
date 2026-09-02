@@ -1,7 +1,7 @@
 # Smoke Check Result
 
 - status: `pass`
-- generated_at_utc: `2026-08-31T11:25:05.720328+00:00`
+- generated_at_utc: `2026-09-02T11:17:39.744638+00:00`
 
 | Status | Check |
 |---|---|
@@ -15,7 +15,7 @@
 | pass | non-energy text is marked out_of_domain |
 | pass | energy PDF is marked in_domain |
 | pass | energy relevance clears threshold |
-| pass | split metrics include all groups |
+| pass | development metrics include all diagnostic groups |
 | pass | close high-confidence themes are marked mixed_signal |
 | pass | mixed signal keeps renewable component visible |
 | pass | mixed signal keeps fossil component visible |

@@ -1,7 +1,7 @@
 {
-  "generated_at_utc": "2026-06-15T10:19:32.189142+00:00",
+  "generated_at_utc": "2026-09-02T11:03:35.964906+00:00",
   "project": "Energy Report-to-Market Signal Analyzer",
-  "python": "3.12.13 (main, May 10 2026, 19:35:37) [MSC v.1944 64 bit (AMD64)]",
+  "python": "3.12.13 (main, Aug  7 2026, 02:26:41) [MSC v.1944 64 bit (AMD64)]",
   "platform": "Windows-11-10.0.26200-SP0",
   "model": "sentence-transformers/all-MiniLM-L6-v2",
   "scoring": "Frozen MiniLM embeddings + small-sample supervised logistic linear probes",
@@ -9,7 +9,7 @@
   "validation_summary": {
     "pilot_pdf_count": 50,
     "pilot_few_shot_matches": 36,
-    "pilot_accuracy": 0.72,
+    "development_top1_agreement": 0.72,
     "pilot_macro_f1": 0.658,
     "zero_shot_matches": 17,
     "few_shot_matches": 36,
@@ -25,14 +25,14 @@
     {
       "path": "app.py",
       "exists": true,
-      "bytes": 27005,
-      "sha256": "bb235ac92fda9aafffee5f2f0fffc4bf1abbf68326c99784d375a52058169ae7"
+      "bytes": 27667,
+      "sha256": "935176dfae0d0403cef5ab492c17c3f9b67aa986bf0cf5248a3dbf97a8cfc934"
     },
     {
       "path": "src/report_signal_pipeline.py",
       "exists": true,
-      "bytes": 61658,
-      "sha256": "44f7789d4938959195a69dbc0cda550e4ef0e439468db5d89d36adfe9bb044f8"
+      "bytes": 61522,
+      "sha256": "a8324965f1a6c2da63d8688335b85e2022b51371a570dd4b6f60a5e05841d80f"
     },
     {
       "path": "src/config.py",
@@ -85,8 +85,8 @@
     {
       "path": "data/processed/reports/expanded_pdf_validation.csv",
       "exists": true,
-      "bytes": 11506,
-      "sha256": "fd13bdaa7bd779592a3e9444d2ba8bf31922cc4de44f396d806d003213b15ca1"
+      "bytes": 11883,
+      "sha256": "2eade13f313b02c6ac85eaeebd6a250971c37cbcd2977312fef2dfc5cc617e3c"
     },
     {
       "path": "data/processed/reports/validation_pdf_catalog.csv",
@@ -97,26 +97,26 @@
     {
       "path": "data/processed/reports/sample_pdf_manifest.csv",
       "exists": true,
-      "bytes": 8791,
-      "sha256": "dc82dc6b0c0d9b9f4ee1ac4604cd5cb272e81f4f77125c0096034b60b1cece81"
+      "bytes": 10910,
+      "sha256": "42b1d70d0de93b86fc5248ac6baa49c2fbd1cb3d266ef0e3622c908afb1d9104"
     },
     {
       "path": "data/processed/reports/zero_shot_vs_few_shot.csv",
       "exists": true,
-      "bytes": 16895,
-      "sha256": "5964a7a691a18c2e02140e82abc73af2f7d7940fee29d3dad8e9a6c7c5b3a62b"
+      "bytes": 17262,
+      "sha256": "ab9e541715b02ac9a2812d83875f600b68bfd545046f29d194cec8528d8f3b78"
     },
     {
       "path": "data/processed/reports/pdf_validation_metrics.csv",
       "exists": true,
-      "bytes": 225,
-      "sha256": "231bca10622d905f9b4eaa9b5f0c5f2bdc45a54b04c9b1af2b08b82ddb6f9ce5"
+      "bytes": 215,
+      "sha256": "60c7929fa48f0b77a3fae61bec890a4eb8314de74bea9a44581bae69c480ace2"
     },
     {
       "path": "data/processed/reports/pdf_validation_split_metrics.csv",
       "exists": true,
-      "bytes": 145,
-      "sha256": "49d37212c6a4db8b26a96f97df63e99283cbf0d26217163efd44132ade9f299a"
+      "bytes": 182,
+      "sha256": "eb70aba02533b2e2e8b73bf86d6190a107ae01a8479ea4cf3ca569c8dadb81f8"
     },
     {
       "path": "data/processed/reports/pdf_validation_confusion_matrix.csv",
@@ -157,8 +157,8 @@
     {
       "path": "data/processed/reports/zero_shot_vs_few_shot_split_metrics.csv",
       "exists": true,
-      "bytes": 203,
-      "sha256": "e512a37d9c2272c847c84857a3ab2bb2fa3b51ae6a448e09a14a6a010b2b537e"
+      "bytes": 241,
+      "sha256": "4022d57a01b6c467fe3f170587a1515243f8eac5d5039102bfe473632f6ae51a"
     },
     {
       "path": "data/processed/reports/actual_climate_news_lag_corr.csv",
@@ -175,38 +175,38 @@
     {
       "path": "outputs/tables/model_validation_brief.md",
       "exists": true,
-      "bytes": 7332,
-      "sha256": "8e3e1a36ba41f8441c1c228c99da0a0abea683000c2bc79eaba7c521a00bb7e3"
+      "bytes": 7542,
+      "sha256": "99a5912eed7725698db1f2ac87c26010f015a3a14c37d5787c35b6b9f0f6d0b7"
     },
     {
       "path": "outputs/tables/final_result_summary.md",
       "exists": true,
-      "bytes": 10470,
-      "sha256": "3328be9b77824c0a720edd04ffa745fb2d8ad6fe994ff7391a1553644d153765"
+      "bytes": 10643,
+      "sha256": "b1ceb0dd331bf296a2a1d9274545f26ad96dd95d1f4d79262038941d7b5ad015"
     },
     {
       "path": "outputs/tables/project_quality_audit.md",
       "exists": true,
-      "bytes": 3843,
-      "sha256": "11c4cf0756966ebc1a07c4d4cb257e9058139022d3217452f36c7ad6caf488ed"
+      "bytes": 3965,
+      "sha256": "6cf33548e2ee795442cf9e4ebc288c94d66745a2d387bd03638a574bb2d53695"
     },
     {
       "path": "outputs/tables/pdf_generalization_validation.md",
       "exists": true,
-      "bytes": 1432,
-      "sha256": "61bb4226c875aa7cb6f38783d41c9674bba36b5c82043d8c84609ed9914baac6"
+      "bytes": 1566,
+      "sha256": "7a9aed9c5cb304756923e9716b1e9e82ebb17bf1ebd22c80d06d1ca819b165a6"
     },
     {
       "path": "outputs/tables/smoke_check_result.json",
       "exists": true,
       "bytes": 1768,
-      "sha256": "6a33b6670218d6f51c6f787442a70fe4095d74db28d31c350b87070a080ae308"
+      "sha256": "90df729aa16047a2680fad10adf48843e5bbd454b3377e947ed48ba060451de8"
     },
     {
       "path": "outputs/tables/smoke_check_result.md",
       "exists": true,
       "bytes": 964,
-      "sha256": "071fbf966e5a1d3d0f97fb78d46cb87cf2d0b9b16a1fcc936ff961de1619a25f"
+      "sha256": "8d580c4f1c8703e77c3f0fbcc04307f2cbdf9483ddf9c4629ec6df93e98ae6c4"
     },
     {
       "path": "outputs/reports/Energy_Report_Signal_Analyzer_report_style_FINAL.pptx",
