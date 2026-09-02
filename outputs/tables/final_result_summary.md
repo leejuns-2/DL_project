@@ -68,39 +68,39 @@ s_i,k: paragraph-level thematic relevance score
 | Report signals | `data/processed/reports/report_signals.csv` | 핵심 PDF 5개 |
 | Report-stock link | `data/processed/reports/report_stock_link.csv` | 핵심 PDF 5개 |
 | Expanded PDF validation | `data/processed/reports/expanded_pdf_validation.csv` | 추가 PDF 50개 |
-| Test PDF manifest | `data/processed/reports/sample_pdf_manifest.csv` | 로컬 저장 PDF 50개 목록 |
+| Development PDF manifest | `data/processed/reports/sample_pdf_manifest.csv` | 로컬 저장 PDF 50개 목록 |
 | News context signal | `data/processed/news_sentiment_weekly.csv` | 실제 GDELT GKG weekly sample tone |
 | Climate anomaly | `data/processed/climate_monthly_gistemp_tai.csv` | NASA GISTEMP monthly anomaly |
 | Report-news bridge | `data/processed/reports/report_news_bridge.csv` | 뉴스 컨텍스트 연결 완료 |
 | Actual climate-news lag | `data/processed/reports/actual_climate_news_lag_corr.csv` | H1 예비 검증 |
 | Actual news-stock lag | `data/processed/reports/actual_news_stock_best_lag.csv` | H2 예비 검증 |
-| PDF validation metrics | `data/processed/reports/pdf_validation_metrics.csv` | confusion matrix, macro-F1 |
+| PDF development metrics | `data/processed/reports/pdf_validation_metrics.csv` | confusion matrix, macro-F1; independent holdout 아님 |
 | PDF failure analysis | `data/processed/reports/pdf_validation_failure_analysis.csv` | 오분류 14건 원인 해석 |
 | Gemini summary check | `data/processed/reports/gemini_summary_human_check.csv` | 표본 5개 근거 점검 |
-| Out-of-domain PDF test | `data/processed/reports/out_of_domain_pdf_test.csv` | WHO/OECD 비에너지 PDF 음성 대조군 |
+| Out-of-domain diagnostic | `data/processed/reports/out_of_domain_pdf_test.csv` | WHO/OECD 비에너지 PDF 음성 대조군 2건 |
 | Zero-shot vs few-shot comparison | `data/processed/reports/zero_shot_vs_few_shot.csv` | foundation model 전이학습 비교 |
 
-## Expanded PDF Validation
+## Expanded PDF Development Evaluation
 
 추가 검증 표본은 IRENA 보고서뿐 아니라 NextEra, Siemens Energy, IPCC, EIA, ExxonMobil, IEA 전력망·전력·석유·가스·석탄·EV·태양광·배터리·공급망 자료를 포함해 라벨 다양성을 늘렸습니다.
 
 | Metric | Value |
 |---|---:|
-| Validation PDFs | 50 |
+| Development PDFs | 50 |
 | Matched expected direction | 36 |
-| Accuracy | 0.72 |
+| Dominant-theme top-1 agreement | 0.72 |
 | Macro-F1 | 0.658 |
-| Interpretation | 소규모 MVP 검증. 실패 사례를 포함한 재현 가능 결과 |
+| Interpretation | 소규모 MVP 개발 결과. 독립 held-out benchmark가 아님 |
 
 주의:
 
-> 36/50 일치는 소규모 검증 결과입니다. 이를 정량 일반화 성능으로 발표하면 안 됩니다.
+> 36/50 일치는 개발 과정에서 사용된 50개 카탈로그의 결과입니다. 이를 독립 test accuracy나 정량 일반화 성능으로 발표하면 안 됩니다.
 
 현재 실패 사례는 14건이며, 대표적으로 NextEra annual report, IEA World Energy Outlook, IEA Coal, IEA Global EV Outlook, IEA Batteries, ExxonMobil ACS, IPCC WGIII, IEA Energy Efficiency 문서가 포함됩니다. 공통 원인은 문서가 단일 주제만 담고 있지 않고, 재생에너지·화석연료·전력망·정책 전환 표현이 섞여 있다는 점입니다. 따라서 이 프로젝트는 “완벽한 분류기”가 아니라, 복합 PDF를 foundation embedding과 supervised logistic linear probe로 topic salience화하는 연구용 MVP라고 설명하는 것이 안전합니다.
 
 ## Zero-shot vs Supervised Linear Probe Comparison
 
-같은 50개 검증 PDF에 대해 두 가지 방식을 비교했습니다.
+같은 50개 개발 PDF에 대해 두 가지 방식을 비교했습니다.
 
 | Method | Correct / 50 | Match rate | Meaning |
 |---|---:|---:|---|

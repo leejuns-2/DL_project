@@ -608,11 +608,11 @@ async def get_dashboard():
         "theme_score_definition": "Theme scores represent topic salience / thematic relevance, not market direction.",
         "few_shot_learning": "Frozen Transformer embeddings + small-sample supervised logistic linear probes.",
         "binary_heads": "Four independent heads are used because energy reports can contain multiple themes at once.",
-        "evaluation_scope": "50-PDF pilot dominant-theme top-1 alignment; not full multi-label generalization performance.",
+        "evaluation_scope": "50-PDF development-catalog dominant-theme top-1 agreement; not an independent held-out or multi-label benchmark.",
         "thresholds": "mixed: margin <= 0.10 and second score >= 0.80; OOD: energy relevance < 0.35; low relevance < 0.55.",
         "news_pdf_bridge": "GDELT weekly tone samples are joined to PDF event scores.",
         "generative_model": "Gemini summary with cautious research wording.",
-        "chunk_multilabel": "Validation includes paragraph-level weak multi-labels; human multi-label annotation is still required.",
+        "chunk_multilabel": "Development artifacts include paragraph-level weak multi-labels; human multi-label annotation is still required.",
     }
     return JSONResponse(data)
 

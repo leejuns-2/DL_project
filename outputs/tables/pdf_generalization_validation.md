@@ -1,4 +1,4 @@
-# Expanded PDF Validation
+# Expanded PDF Development Evaluation
 
 ## 목적
 
@@ -16,17 +16,17 @@
 
 | 항목 | 값 |
 |---|---:|
-| 검증 PDF | 50 |
+| 개발 PDF | 50 |
 | Dominant theme 일치 | 36 |
-| Accuracy | 0.72 |
+| Dominant-theme top-1 agreement | 0.72 |
 | Macro-F1 | 0.658 |
 | Zero-shot 일치 | 17/50 |
 | Few-shot 일치 | 36/50 |
 
 ## 해석
 
-Small-sample supervised logistic head는 zero-shot similarity baseline보다 더 많은 PDF에서 dominant reference theme과 일치했습니다. 다만 이 결과는 소규모 예비 검증이며, 복합 주제 보고서에서는 단일 라벨 평가가 애매할 수 있습니다.
+Small-sample supervised logistic head는 zero-shot similarity baseline보다 더 많은 PDF에서 dominant reference theme과 일치했습니다. 다만 이 결과는 개발 과정에서 사용된 카탈로그의 결과이며, 복합 주제 보고서에서는 단일 라벨 평가가 애매할 수 있습니다.
 
 ## 주의
 
-이 검증은 정량 일반화 성능 평가가 아니라 MVP 수준의 dominant-theme alignment 점검입니다. 발표에서는 “50개 공개 PDF에서 supervised linear probe가 36개 dominant reference theme과 일치했다” 정도로 설명하는 것이 안전합니다.
+이 평가는 독립 held-out benchmark나 정량 일반화 성능 평가가 아니라 MVP 수준의 development-set dominant-theme alignment 점검입니다. 발표에서는 “50개 공개 PDF 개발 카탈로그에서 supervised linear probe가 36개 dominant reference theme과 일치했다” 정도로 설명하는 것이 안전합니다.

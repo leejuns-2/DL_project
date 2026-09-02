@@ -1,5 +1,4 @@
 import re
-import zlib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -22,6 +21,7 @@ from config import (
     STOCK_WEEKLY_PATH,
     ensure_project_dirs,
 )
+from evaluation import development_group_for_report, summarize_development_results
 
 
 REPORT_DIR = RAW_DIR / "reports"
@@ -430,42 +430,6 @@ def load_validation_sample_pdfs():
             rows.append({col: row[col] for col in required})
         return rows
     return VALIDATION_SAMPLE_PDFS
-
-
-def validation_split_for_report(report_id, test_ratio=0.28):
-    """Stable split so validation/test membership does not change across runs."""
-    bucket = zlib.crc32(str(report_id).encode("utf-8")) % 100
-    return "test" if bucket < int(test_ratio * 100) else "validation"
-
-
-def summarize_validation_results(result, matched_col="matched"):
-    rows = []
-    if result.empty or matched_col not in result.columns:
-        return pd.DataFrame(rows)
-
-    groups = [("all", result)]
-    if "split" in result.columns:
-        groups.extend((split, group) for split, group in result.groupby("split"))
-
-    for split, group in groups:
-        available = group[group.get("predicted_hint", "") != "missing_pdf"] if "predicted_hint" in group else group
-        if available.empty:
-            rows.append({"split": split, "n": 0, "accuracy": np.nan, "coverage": 0.0})
-            continue
-        rows.append(
-            {
-                "split": split,
-                "n": int(len(available)),
-                "accuracy": float(available[matched_col].astype(bool).mean()),
-                "coverage": float(len(available) / len(group)) if len(group) else 0.0,
-                "low_relevance_rate": (
-                    float((available["ood_decision"] != "in_domain").mean())
-                    if "ood_decision" in available.columns
-                    else np.nan
-                ),
-            }
-        )
-    return pd.DataFrame(rows)
 
 
 def ensure_dirs():
@@ -1188,7 +1152,7 @@ def validate_sample_pdfs(embedder=None, max_pages=40, top_k=10, hybrid_retrieval
     rows = []
     chunk_label_frames = []
     for sample in load_validation_sample_pdfs():
-        split = validation_split_for_report(sample["report_id"])
+        split = development_group_for_report(sample["report_id"])
         path = Path(sample["path"])
         if not path.exists():
             rows.append(
@@ -1249,7 +1213,7 @@ def validate_sample_pdfs(embedder=None, max_pages=40, top_k=10, hybrid_retrieval
     chunk_output = REPORT_PROCESSED_DIR / "pdf_validation_chunk_labels.csv"
     chunk_result = pd.concat(chunk_label_frames, ignore_index=True) if chunk_label_frames else pd.DataFrame()
     chunk_result.to_csv(chunk_output, index=False)
-    split_metrics = summarize_validation_results(result)
+    split_metrics = summarize_development_results(result)
     split_metrics.to_csv(REPORT_PROCESSED_DIR / "pdf_validation_split_metrics.csv", index=False)
     return result
 
@@ -1259,7 +1223,7 @@ def compare_zero_shot_vs_few_shot(embedder=None, max_pages=40, top_k=10, hybrid_
     rows = []
 
     for sample in load_validation_sample_pdfs():
-        split = validation_split_for_report(sample["report_id"])
+        split = development_group_for_report(sample["report_id"])
         path = Path(sample["path"])
         base = {
             "report_id": sample["report_id"],
@@ -1319,17 +1283,17 @@ def compare_zero_shot_vs_few_shot(embedder=None, max_pages=40, top_k=10, hybrid_
     result.to_csv(output, index=False)
     if not result.empty:
         metric_rows = []
-        for split, group in [("all", result), *result.groupby("split")]:
+        for split, group in [("all_development", result), *result.groupby("split")]:
             available = group[group["few_shot_hint"] != "missing_pdf"]
             if available.empty:
-                metric_rows.append({"split": split, "n": 0, "zero_shot_accuracy": np.nan, "few_shot_accuracy": np.nan})
+                metric_rows.append({"split": split, "n": 0, "zero_shot_agreement": np.nan, "few_shot_agreement": np.nan})
                 continue
             metric_rows.append(
                 {
                     "split": split,
                     "n": int(len(available)),
-                    "zero_shot_accuracy": float(available["zero_shot_matched"].astype(bool).mean()),
-                    "few_shot_accuracy": float(available["few_shot_matched"].astype(bool).mean()),
+                    "zero_shot_agreement": float(available["zero_shot_matched"].astype(bool).mean()),
+                    "few_shot_agreement": float(available["few_shot_matched"].astype(bool).mean()),
                     "few_shot_low_relevance_rate": float((available["few_shot_ood_decision"] != "in_domain").mean()),
                 }
             )

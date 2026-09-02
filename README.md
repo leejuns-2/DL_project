@@ -62,6 +62,21 @@ MiniLM 파라미터는 fine-tuning하지 않습니다. 학습되는 부분은 �
 
 `36/50`은 문서마다 사람이 정한 하나의 dominant theme과 모델의 top-1 결과가 일치한 횟수입니다. 전체 multi-label 정확도가 아닙니다. 상세 결과와 실패 사례는 [`outputs/tables/model_validation_brief.md`](outputs/tables/model_validation_brief.md)에 있습니다.
 
+> On a 50-document development catalog, dominant-theme top-1 agreement improved from 34% for the zero-shot baseline to 72% for the supervised linear probe. This is a development-set result, not an independent held-out benchmark.
+
+카탈로그 내부의 `development_main`과 `development_diagnostic` 표시는 재현 가능한 진단용 부분집합일 뿐입니다. 두 부분집합과 전체 카탈로그가 개발 과정에서 활용되었으므로 어느 쪽도 독립 test set으로 해석하지 않습니다.
+
+평가 범위는 component별로 분리합니다.
+
+| Component | Current evidence | What it does not establish |
+|---|---|---|
+| Evidence retrieval | 검색된 문단과 score를 저장해 사례별 검토 가능 | 사람이 판정한 retrieval precision/recall benchmark 없음 |
+| Theme classification | 50개 개발 문서의 dominant-theme top-1 agreement 72% | 독립 holdout, multi-label accuracy, calibrated probability 아님 |
+| Mixed-theme detection | 문단 weak label과 heuristic 사례 점검 | 사람이 검수한 multi-label benchmark 없음 |
+| OOD detection | WHO/OECD negative control 2건; WHO는 false positive overlap | 일반화된 OOD accuracy 아님 |
+| Gemini summary | 5건 수동 evidence-alignment 점검 | 정량 summary accuracy나 faithfulness benchmark 아님 |
+| Market context | 과거 뉴스·수익률 연결 및 상관 요약 | 수익률 예측 또는 투자 성과 검증 아님 |
+
 남아 있는 평가 한계는 다음과 같습니다.
 
 - 50개 문서는 일반화 성능을 주장하기에는 작습니다.
@@ -69,6 +84,7 @@ MiniLM 파라미터는 fine-tuning하지 않습니다. 학습되는 부분은 �
 - WHO 보건 문서처럼 climate-health 표현이 있는 OOD 문서는 climate risk와 겹칠 수 있습니다.
 - mixed/OOD 기준값은 개발 카탈로그에서 경험적으로 정한 heuristic입니다.
 - 문단 단위 테이블은 weak label이며, 사람이 검수한 multi-label 정답셋이 아닙니다.
+- 다음 독립 평가에는 새 PDF 50–100개 이상, human-reviewed multi-label, label별 precision/recall/F1과 macro F1, 전용 OOD negative set이 필요합니다.
 
 ## Data and Context
 
@@ -102,6 +118,7 @@ python scripts/smoke_check.py
 - end-to-end 보고서 분석 흐름 설계
 - 근거 검색, 테마 점수화, mixed/OOD 판정 구현
 - zero-shot과 supervised linear probe 비교 및 검증 스크립트 작성
+- 개발 카탈로그 평가 helper를 `src/evaluation.py`로 분리하고 명칭 오해를 막는 단위 테스트 추가
 - 보고서 신호를 뉴스·과거 시장 컨텍스트와 연결
 - 실패 사례와 해석 한계 문서화
 

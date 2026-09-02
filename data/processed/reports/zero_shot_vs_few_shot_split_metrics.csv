@@ -1,4 +1,4 @@
-split,n,zero_shot_accuracy,few_shot_accuracy,few_shot_low_relevance_rate
-all,50,0.34,0.72,0.0
-test,11,0.2727272727272727,0.8181818181818182,0.0
-validation,39,0.358974358974359,0.6923076923076923,0.0
+split,n,zero_shot_agreement,few_shot_agreement,few_shot_low_relevance_rate
+all_development,50,0.34,0.72,0.0
+development_diagnostic,11,0.2727272727272727,0.8181818181818182,0.0
+development_main,39,0.358974358974359,0.6923076923076923,0.0

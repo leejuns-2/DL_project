@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-08-31T11:25:05.720328+00:00",
+  "generated_at_utc": "2026-09-02T11:17:39.744638+00:00",
   "status": "pass",
   "error": "",
   "checks": [
@@ -45,7 +45,7 @@
     },
     {
       "status": "pass",
-      "message": "split metrics include all groups"
+      "message": "development metrics include all diagnostic groups"
     },
     {
       "status": "pass",

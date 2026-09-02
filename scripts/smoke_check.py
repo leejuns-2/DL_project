@@ -22,9 +22,9 @@ from report_signal_pipeline import (  # noqa: E402
     retrieve_evidence,
     score_evidence_with_few_shot_learning,
     split_paragraphs,
-    summarize_validation_results,
     summarize_chunk_labels,
 )
+from evaluation import summarize_development_results  # noqa: E402
 
 RESULTS = []
 
@@ -127,12 +127,17 @@ def check_sample_pdf(embedder):
 def check_validation_metrics():
     sample = pd.DataFrame(
         [
-            {"split": "validation", "predicted_hint": "ICLN/NEE", "matched": True, "ood_decision": "in_domain"},
-            {"split": "test", "predicted_hint": "ETN", "matched": False, "ood_decision": "low_relevance"},
+            {"split": "development_main", "predicted_hint": "ICLN/NEE", "matched": True, "ood_decision": "in_domain"},
+            {"split": "development_diagnostic", "predicted_hint": "ETN", "matched": False, "ood_decision": "low_relevance"},
         ]
     )
-    metrics = summarize_validation_results(sample)
-    check({"all", "validation", "test"}.issubset(set(metrics["split"])), "split metrics include all groups")
+    metrics = summarize_development_results(sample)
+    check(
+        {"all_development", "development_main", "development_diagnostic"}.issubset(
+            set(metrics["split"])
+        ),
+        "development metrics include all diagnostic groups",
+    )
 
 
 def check_mixed_signal_profile():

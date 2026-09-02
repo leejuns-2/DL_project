@@ -71,7 +71,7 @@ def main():
         "validation_summary": {
             "pilot_pdf_count": 50,
             "pilot_few_shot_matches": 36,
-            "pilot_accuracy": 0.72,
+            "development_top1_agreement": 0.72,
             "pilot_macro_f1": 0.658,
             "zero_shot_matches": 17,
             "few_shot_matches": 36,

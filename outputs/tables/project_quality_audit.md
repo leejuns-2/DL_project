@@ -10,7 +10,7 @@
 
 | Issue | Why It Looked Weak | Fix |
 |---|---|---|
-| 검증 표본 부족 | 소수 PDF만으로는 일반화 검증처럼 보이기 어려웠음 | 공개 PDF 50개 검증셋과 label rationale 정리 |
+| 독립 평가 표본 부족 | 개발 PDF 결과를 일반화 검증처럼 읽을 위험 | 공개 PDF 50개 development catalog와 label rationale 정리, held-out이 아님을 명시 |
 | Baseline 부재 | foundation model을 썼다는 설명은 있지만 개선 근거가 약했음 | zero-shot similarity baseline과 supervised linear probe 비교 추가 |
 | 실패 사례 은폐 위험 | 정확도만 말하면 과장처럼 보일 수 있음 | 오분류 7건의 원인 해석 CSV와 문서화 추가 |
 | OOD 안정성 부족 | 비에너지 PDF도 기후 리스크로 흡수될 수 있음 | WHO/OECD 음성 대조군 결과 공개 및 energy relevance/OOD guard 추가 |
@@ -21,11 +21,11 @@
 
 ## 현재 성능을 설명하는 안전한 문장
 
-> 같은 50개 PDF에서 zero-shot similarity baseline은 17개, supervised logistic linear probe는 36개의 dominant reference theme과 일치했습니다. 이는 범용 사전학습 임베딩 위에 소수 예시 기반 downstream head를 얹었을 때 dominant-theme alignment가 개선되는 예비 결과입니다.
+> 같은 50개 PDF 개발 카탈로그에서 zero-shot similarity baseline은 17개, supervised logistic linear probe는 36개의 dominant reference theme과 일치했습니다. 이는 범용 사전학습 임베딩 위에 소수 예시 기반 downstream head를 얹었을 때 dominant-theme alignment가 개선되는 개발 결과이며, 독립 held-out benchmark가 아닙니다.
 
 ## 남은 약점
 
-- 검증 PDF가 50개라 엄밀한 통계 일반화 평가로는 여전히 작고, 현재 수치는 multi-label 성능이 아니라 dominant-theme top-1 alignment입니다.
+- 50개 PDF는 개발 과정에서 사용되어 독립 test가 아니며, 현재 수치는 multi-label 성능이 아니라 dominant-theme top-1 agreement입니다.
 - 하나의 PDF 안에 재생에너지, 화석연료, 전력망, 기후 리스크가 섞인 경우는 mixed-signal로 표시하지만, 더 세밀한 multi-label 평가셋은 아직 필요합니다.
 - WHO 보건 문서처럼 climate-health 표현이 많은 OOD 문서는 기후 리스크로 일부 흡수될 수 있습니다.
 - Gemini 요약은 생성형 출력이므로 항상 근거 문단과 함께 확인해야 합니다.
